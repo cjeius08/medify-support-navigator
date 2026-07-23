@@ -3,6 +3,33 @@ const ASSET_BASE = import.meta.env?.BASE_URL ?? "/";
 
 export const products = [
   {
+    id: "ma-14",
+    model: "MA-14",
+    revision: "White / Black · current",
+    status: "Active",
+    finderEligible: true,
+    coverage: 213,
+    cadr: 57,
+    cadrMetric: 97,
+    dimensions: "12.20 H × 8.26 W × 8.26 D in",
+    weight: "7 lb",
+    wattage: "16 W",
+    speeds: "3",
+    controls: "Three fan speeds, touch controls, sleep mode, standby mode, filter indicator",
+    filterLife: "2,500 hours (about 3–4 months)",
+    filtration: "Pre-filter, HEPA, active carbon composite",
+    sound: "Sleep 26; speeds 29.5 / 37.2 / 48.3 dBA",
+    wheels: "No",
+    warranty: "Limited lifetime; current terms and registration still apply",
+    filter: "MA-14 replacement filter",
+    reset: "Use only the current MA-14 manual procedure",
+    image: `${ASSET_BASE}products/ma-14.png`,
+    source: "https://medifyair.com/products/ma-14",
+    sourceLabel: "Official MA-14 product page",
+    summary: "Current compact model for small rooms, verified at 213 sq ft every 30 minutes.",
+    flags: ["Corrected: MA-14 is current and must not be tagged as discontinued."]
+  },
+  {
     id: "ma-22",
     model: "MA-22",
     revision: "Standard",
@@ -196,7 +223,6 @@ export const products = [
 
 export const supportOnlyProducts = [
   ["MA-125", "Discontinued", "New-sale recommendations are disabled; preserve support history only."],
-  ["MA-14", "Discontinued", "Excluded from new-purchase recommendations despite a conflicting live page."],
   ["MA-10", "Discontinued", "Legacy support only."],
   ["MA-18", "Discontinued", "Legacy support only."],
   ["MA-15", "Filter support only", "Unit is decommissioned; compatible-filter support remains."],
@@ -246,8 +272,23 @@ export const workflows = workflowRows.map(([id, title, category, status, summary
   category,
   status,
   summary,
-  fullyGuided: ["WF-005", "WF-009", "WF-011", "WF-012", "WF-013", "WF-014", "WF-018", "WF-019", "WF-021", "WF-024", "WF-028", "WF-029", "WF-030"].includes(id)
+  fullyGuided: true
 }));
+
+export const taskSelector = [
+  ["Order or delivery", ["WF-001", "WF-002", "WF-003", "WF-004", "WF-005", "WF-006", "WF-007", "WF-008"]],
+  ["Return or refund", ["WF-009", "WF-010", "WF-011"]],
+  ["Warranty or replacement", ["WF-012"]],
+  ["Product troubleshooting", ["WF-013", "WF-014", "WF-015", "WF-016", "WF-017"]],
+  ["Filter or Filter Club", ["WF-015", "WF-022", "WF-023", "WF-024"]],
+  ["Product recommendation", ["WF-019", "WF-020"]],
+  ["Product information", ["WF-018", "WF-021"]],
+  ["Cancellation or order change", ["WF-007", "WF-008"]],
+  ["Marketplace or reseller", ["WF-025"]],
+  ["Escalation or internal follow-up", ["WF-026", "WF-027", "WF-028"]],
+  ["Customer communication or notes", ["WF-029"]],
+  ["Security or sensitive information", ["WF-030"]]
+];
 
 const commonSources = {
   warranty: "Internal troubleshooting + official warranty page (SRC-106, SRC-201)",
@@ -255,7 +296,7 @@ const commonSources = {
   return: "Internal return/refund procedures + public shipping policy (SRC-103, SRC-104, SRC-203)"
 };
 
-export const guidedFlows = {
+const specializedGuidedFlows = {
   "WF-012": {
     title: "Warranty intake & replacement assessment",
     purpose: "Identify the exact unit, complete safe troubleshooting, gather evidence, and route a decision-ready packet without implying approval.",
@@ -508,6 +549,86 @@ export const guidedFlows = {
     ]
   }
 };
+
+function createGeneralFlow(process) {
+  return {
+    title: process.title,
+    purpose: `${process.summary} Follow the verified state from intake through customer communication without recording a requested or pending action as complete.`,
+    channel: "All",
+    status: process.status,
+    source: "Current official policy, model source, and approved internal procedure",
+    steps: [
+      {
+        id: "intake",
+        title: "Confirm the exact request",
+        question: "Is the customer’s exact situation and requested outcome confirmed?",
+        choices: ["Confirmed", "Partially confirmed", "Missing essential information", "Different process is needed"],
+        need: "Customer request, affected order/product/subscription, purchase channel, and relevant dates.",
+        why: "The same topic can require a different action depending on the purchase channel and current case state.",
+        ask: "To make sure I follow the correct process, may I confirm what happened and what outcome you are requesting?",
+        evidence: "Order, product, account, or conversation details needed for this specific task.",
+        check: "Match the request to the correct workflow and do not collect information that is not operationally needed.",
+        action: "Record confirmed facts and list each missing item separately.",
+        notPromise: "Do not promise the requested outcome before eligibility and system state are verified.",
+        result: "Correct task selected with a complete intake or an explicit Awaiting Customer state.",
+        source: "Current approved support process",
+        verified: VERIFIED_ON
+      },
+      {
+        id: "verification",
+        title: "Verify evidence and policy",
+        question: "What is the current verification state?",
+        choices: ["Required information verified", "Awaiting customer evidence", "Live-system check required", "Policy conflict — Needs Confirmation"],
+        need: "The evidence, current official policy, and live-system record required for the selected task.",
+        why: "A customer request, uploaded document, or elapsed timeframe does not prove eligibility or completion.",
+        ask: "I’m checking the information required for this request. I’ll confirm the next step once the applicable details are verified.",
+        evidence: "Only evidence required by the applicable current process.",
+        check: "Use the current official source first; preserve conflicts and route unresolved rules to the accountable owner.",
+        action: "Label the case Awaiting Customer, Awaiting Approval, Needs Confirmation, or ready for action.",
+        notPromise: "Do not invent a policy, exception, approval, date, tracking event, refund, replacement, or account change.",
+        result: "A documented eligibility state and a safe next action.",
+        source: "Official Medify source + approved internal procedure",
+        verified: VERIFIED_ON
+      },
+      {
+        id: "action-state",
+        title: "Confirm the actual action state",
+        question: "Which state is verified in the responsible system?",
+        choices: ["Information requested", "Action requested — pending", "Approval granted — action not completed", "Action completed and reference confirmed", "Escalated", "Resolved without further action"],
+        need: "Completed action, pending action, owner, confirmation/reference, and next checkpoint.",
+        why: "Requested, approved, created, processed, shipped, received, and resolved are different states.",
+        ask: "Here is what has been completed and what is still pending.",
+        evidence: "Live-system confirmation for any action described as completed.",
+        check: "Confirm the system event and reference before choosing a completed state.",
+        action: "Record completed and pending actions separately with the next owner and checkpoint.",
+        notPromise: "Do not convert a request or approval into a completed action.",
+        result: "One accurate operational state ready for channel-specific output.",
+        source: "Responsible live system or dated owner decision",
+        verified: VERIFIED_ON
+      },
+      {
+        id: "communication",
+        title: "Prepare the customer update",
+        question: "Is the response ready to send?",
+        choices: ["Ready to Send", "Draft — Review Required", "Awaiting Customer", "Awaiting Approval", "Needs Confirmation", "Escalated", "Completed"],
+        need: "Confirmed facts, customer action, internal action, pending item, owner, checkpoint, and prohibited promises.",
+        why: "The customer message and internal notes must describe the same case state.",
+        ask: "I’ll summarize the confirmed status, anything needed from you, and what happens next.",
+        evidence: "No additional evidence unless the selected status requires it.",
+        check: "Review names, numbers, dates, model/revision, links, placeholders, and every completion claim.",
+        action: "Generate email, chat, voice, and internal notes from the confirmed selections.",
+        notPromise: "Do not send while required information is missing or the output still contains unresolved placeholders.",
+        result: "Channel-ready wording or a clearly labeled draft with blockers.",
+        source: "Approved communication safeguards",
+        verified: VERIFIED_ON
+      }
+    ]
+  };
+}
+
+export const guidedFlows = Object.fromEntries(
+  workflows.map((process) => [process.id, specializedGuidedFlows[process.id] || createGeneralFlow(process)])
+);
 
 export const sources = [
   ["SRC-101", "Process & Product Updates 2026", "Internal procedure updates", "Verified", "Updates through Jul 9, 2026", "https://sites.google.com/wagmisolutions.io/medify-air-internal-kb/process-product-updates-2026"],

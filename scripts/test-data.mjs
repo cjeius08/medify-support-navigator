@@ -21,7 +21,9 @@ const recommend = (area, ceiling = 8) => {
 const cases = [
   [0, 8, null],
   [-1, 8, null],
-  [1, 8, "MA-22"],
+  [1, 8, "MA-14"],
+  [213, 8, "MA-14"],
+  [213.01, 8, "MA-22"],
   [278, 8, "MA-22"],
   [278.01, 8, "MA-25"],
   [413, 8, "MA-25"],
@@ -49,8 +51,10 @@ assert(!products.find((product) => product.id === "ma-112-pro").finderEligible, 
 assert(new Set(products.map((product) => product.id)).size === products.length, "Product IDs must be unique");
 assert(new Set(workflows.map((workflow) => workflow.id)).size === workflows.length, "Workflow IDs must be unique");
 assert(workflows.length === 30, "Exactly 30 workflow records are expected");
+assert(Object.keys(guidedFlows).length === 30, "Every workflow must have a guided process");
 assert(Object.keys(guidedFlows).every((id) => workflows.some((workflow) => workflow.id === id)), "Every full guide needs a workflow record");
 assert(noteHeadings.join(" / ") === "Spoke With / Name on the Account / Order Num / Email Address / Contact # / Reason for Calling / ACTION TAKEN / Offered FC/Cross Sell / AC Call ID / JA", "Call-note headings changed");
 assert(supportOnlyProducts.some(([model]) => model === "MA-125"), "MA-125 must remain support-only");
+assert(!supportOnlyProducts.some(([model]) => model === "MA-14"), "MA-14 must not be support-only or discontinued");
 
 console.log(`Validated ${cases.length} sizing boundaries, ${products.length} product profiles, and ${workflows.length} workflows.`);

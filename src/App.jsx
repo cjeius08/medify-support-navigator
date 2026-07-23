@@ -9,6 +9,7 @@ import {
   sources,
   supportOnlyProducts,
   synonyms,
+  taskSelector,
   workflows
 } from "./data";
 
@@ -245,7 +246,7 @@ export default function App() {
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="sidebar">
         <button className="brand" type="button" onClick={() => navigate("home")} aria-label="Go to Medify Air support home">
-          <img src="/medify-logo.svg" alt="Medify Air" width="176" height="33" />
+          <img src={`${import.meta.env.BASE_URL}medify-logo.svg`} alt="Medify Air" width="176" height="33" />
           <span>Support Knowledge Base</span>
         </button>
         <nav aria-label="Primary navigation" className="primary-nav">
@@ -455,16 +456,94 @@ function Home({ favorites, recents, onNavigate, onOpenWorkflow, onOpenProduct, o
 }
 
 function Processes({ activeId, favorites, callMode, onBack, onOpen, onToggleFavorite, onCopied }) {
+  const [showCatalog, setShowCatalog] = useState(false);
   if (activeId) {
     const process = workflows.find((item) => item.id === activeId);
     const flow = guidedFlows[activeId];
     if (flow) return <WorkflowRunner key={activeId} process={process} flow={flow} callMode={callMode} onBack={onBack} onCopied={onCopied} />;
     return <ProcessBrief process={process} onBack={onBack} />;
   }
-  return <ProcessCatalog favorites={favorites} onOpen={onOpen} onToggleFavorite={onToggleFavorite} />;
+  if (showCatalog) {
+    return <ProcessCatalog favorites={favorites} onOpen={onOpen} onToggleFavorite={onToggleFavorite} onUseSelector={() => setShowCatalog(false)} />;
+  }
+  return <TaskSelector onOpen={onOpen} onViewAll={() => setShowCatalog(true)} />;
 }
 
-function ProcessCatalog({ favorites, onOpen, onToggleFavorite }) {
+function TaskSelector({ onOpen, onViewAll }) {
+  const [category, setCategory] = useState("");
+  const [workflowId, setWorkflowId] = useState("");
+  const selectedGroup = taskSelector.find(([label]) => label === category);
+  const choices = (selectedGroup?.[1] || []).map((id) => workflows.find((workflow) => workflow.id === id)).filter(Boolean);
+  const selectedWorkflow = workflows.find((workflow) => workflow.id === workflowId);
+
+  function reset() {
+    setCategory("");
+    setWorkflowId("");
+  }
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="Guided task selector"
+        title="What do you need to do?"
+        description="Start with the customer’s need. The selector narrows the 30-process catalog and confirms the exact task before the guide begins."
+        action={<button className="secondary-button" type="button" onClick={onViewAll}>View all 30 processes</button>}
+      />
+      <section className="task-selector panel" aria-live="polite">
+        <div className="selector-progress">
+          <span className={category ? "complete" : "current"}>1. Customer need</span>
+          <span className={workflowId ? "complete" : category ? "current" : ""}>2. Situation</span>
+          <span className={selectedWorkflow ? "current" : ""}>3. Confirm</span>
+        </div>
+        {!category && (
+          <div>
+            <span className="eyebrow">Step 1 of 3</span>
+            <h2>Choose the closest customer need</h2>
+            <div className="task-category-grid">
+              {taskSelector.map(([label, ids]) => (
+                <button type="button" key={label} onClick={() => setCategory(label)}>
+                  <span className="mini-icon blue"><Icon name={label.includes("Product") ? "wind" : label.includes("Security") ? "shield" : "route"} size={20} /></span>
+                  <span><strong>{label}</strong><small>{ids.length} {ids.length === 1 ? "process" : "processes"}</small></span>
+                  <Icon name="chevron" size={18} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {category && !workflowId && (
+          <div>
+            <button className="back-button" type="button" onClick={reset}><Icon name="back" size={17} />Choose another need</button>
+            <span className="eyebrow">Step 2 of 3 · {category}</span>
+            <h2>What specifically happened?</h2>
+            <div className="task-choice-list">
+              {choices.map((workflow) => (
+                <button type="button" key={workflow.id} onClick={() => setWorkflowId(workflow.id)}>
+                  <span><strong>{workflow.title}</strong><small>{workflow.summary}</small></span>
+                  <Icon name="arrow" size={18} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {selectedWorkflow && (
+          <div className="task-confirm">
+            <button className="back-button" type="button" onClick={() => setWorkflowId("")}><Icon name="back" size={17} />Change situation</button>
+            <span className="eyebrow">Step 3 of 3 · Confirm the task</span>
+            <h2>You selected:</h2>
+            <div className="selection-path"><span>{category}</span><Icon name="chevron" size={18} /><strong>{selectedWorkflow.title}</strong></div>
+            <p>{selectedWorkflow.summary}</p>
+            <div className="confirmation-actions">
+              <button className="secondary-button" type="button" onClick={reset}>Choose a different task</button>
+              <button className="primary-button" type="button" onClick={() => onOpen(selectedWorkflow.id)}>Yes, start this process <Icon name="arrow" size={17} /></button>
+            </div>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function ProcessCatalog({ favorites, onOpen, onToggleFavorite, onUseSelector }) {
   const [category, setCategory] = useState("All");
   const [text, setText] = useState("");
   const categories = ["All", ...new Set(workflows.map((item) => item.category))];
@@ -476,7 +555,7 @@ function ProcessCatalog({ favorites, onOpen, onToggleFavorite }) {
         eyebrow="Enhanced Guided Process Navigator"
         title="Follow the work, step by step"
         description="Start with a fully guided process when available. Processes with unresolved policy or live-system dependencies show the exact reason they are not safe to automate."
-        action={<div className="metric-card"><strong>30</strong><span>mapped workflows</span></div>}
+        action={<button className="secondary-button" type="button" onClick={onUseSelector}>Use task selector</button>}
       />
       <section className="catalog-controls" aria-label="Filter processes">
         <label className="field search-field"><span>Find a process</span><div><Icon name="search" size={18} /><input value={text} onChange={(event) => setText(event.target.value)} placeholder="Try warranty, noise, shipment…" /></div></label>
@@ -660,27 +739,34 @@ function GuidanceBlock({ title, text, quote = false }) {
 
 function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied }) {
   const [tab, setTab] = useState("Email");
+  const [details, setDetails] = useState({ customer: "", owner: "", checkpoint: "" });
   const answerLines = flow.steps.map((step) => `${step.title}: ${answers[step.id] || "Not provided"}`);
   const pending = answerLines.filter((line) => /pending|awaiting|missing|not yet|unclear|confirmation/i.test(line));
   const completed = answerLines.filter((line) => !pending.includes(line));
+  const customer = details.customer || "[Customer Name]";
+  const owner = details.owner || "[Owner]";
+  const checkpoint = details.checkpoint || "[Next Checkpoint]";
+  const readiness = pending.length || !details.owner || !details.checkpoint ? "Draft — Review Required" : "Ready to Send";
+  const confirmedText = completed.map((line) => `• ${line}`).join("\n") || "• No completed action has been confirmed.";
+  const pendingText = pending.map((line) => `• ${line}`).join("\n") || "• No workflow decision is pending; confirm any remaining live-system follow-through.";
   const outputs = {
-    Email: `Hi [Customer Name],\n\nThank you for providing the details for your ${flow.title.toLowerCase()} case. We confirmed the following:\n\n${completed.map((line) => `• ${line}`).join("\n")}\n\n${pending.length ? `Still pending:\n${pending.map((line) => `• ${line}`).join("\n")}\n\n` : ""}The next confirmed step is [Next Step], owned by [Owner]. We will not present a pending approval, claim, replacement, or refund as complete.\n\nBest,\nMedify Air Support`,
-    Chat: `Thanks for working through that with me. Confirmed: ${completed.map((line) => line.replace(": ", " — ")).join("; ")}. ${pending.length ? `Still pending: ${pending.join("; ")}. ` : ""}The next step is [Next Step], owned by [Owner].`,
-    Voice: `I can confirm what is complete so far: ${completed.join("; ")}. ${pending.length ? `The items still pending are ${pending.join("; ")}. ` : ""}The next action is [Next Step], and I will document who owns it.`,
+    Email: `Subject: Update Regarding ${flow.title}\n\nHi ${customer},\n\nThank you for providing the information regarding your ${flow.title.toLowerCase()} request.\n\nHere is what has been confirmed:\n${confirmedText}\n\nCurrent pending items:\n${pendingText}\n\nThe next checkpoint is ${checkpoint}, and the current owner is ${owner}. We will provide the next confirmed update once that step is complete.\n\nBest,\nMedify Air Support`,
+    Chat: `Thank you for confirming those details. Here is the current status for your ${flow.title.toLowerCase()} request: ${completed.map((line) => line.replace(": ", " — ")).join("; ") || "no completed action has been confirmed yet"}. ${pending.length ? `Still pending: ${pending.join("; ")}. ` : ""}The next checkpoint is ${checkpoint}, owned by ${owner}.`,
+    Voice: `Thank you for going through those details with me. I can confirm the following: ${completed.join("; ") || "no final action has been completed yet"}. ${pending.length ? `The items still pending are ${pending.join("; ")}. ` : ""}The next checkpoint is ${checkpoint}, and the current owner is ${owner}.`,
     Notes: [
       "Spoke With: Not provided",
-      "Name on the Account: Not provided",
+      `Name on the Account: ${details.customer || "Not provided"}`,
       "Order Num: Not provided",
       "Email Address: Not provided",
       "Contact #: Not provided",
       `Reason for Calling: ${flow.title}`,
-      `ACTION TAKEN: ${answerLines.join(" | ")}`,
+      `ACTION TAKEN: ${answerLines.join(" | ")} | Pending owner: ${details.owner || "Not provided"} | Next checkpoint: ${details.checkpoint || "Not provided"}`,
       "Offered FC/Cross Sell: Not provided",
       "AC Call ID: Not provided",
       "JA:"
     ].join("\n")
   };
-  const missing = ["Customer name", "Owner", "Exact next checkpoint", ...pending.map((line) => line.split(":")[0])];
+  const missing = [...(!details.customer ? ["Customer name"] : []), ...(!details.owner ? ["Owner"] : []), ...(!details.checkpoint ? ["Exact next checkpoint"] : []), ...pending.map((line) => line.split(":")[0])];
 
   return (
     <section className="workflow-review">
@@ -689,11 +775,16 @@ function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied })
         eyebrow={`${process.id} · Review`}
         title="Review confirmed facts and outputs"
         description="Every line below is based on the choices confirmed in this active session. Placeholders remain where the workflow does not have a verified value."
-        action={<StatusBadge status={pending.length ? "Awaiting follow-up" : "Completed"} />}
+        action={<StatusBadge status={readiness} />}
       />
       <div className="review-grid">
         <section className="panel">
           <h2>Case summary</h2>
+          <div className="review-fields">
+            <label className="field"><span>Customer name</span><input value={details.customer} onChange={(event) => setDetails((current) => ({ ...current, customer: event.target.value }))} placeholder="Optional until known" /></label>
+            <label className="field"><span>Pending owner <em>Required</em></span><input value={details.owner} onChange={(event) => setDetails((current) => ({ ...current, owner: event.target.value }))} placeholder="Agent, L2, customer, carrier…" /></label>
+            <label className="field"><span>Next checkpoint <em>Required</em></span><input value={details.checkpoint} onChange={(event) => setDetails((current) => ({ ...current, checkpoint: event.target.value }))} placeholder="Specific next step or review time" /></label>
+          </div>
           <div className="summary-list">{answerLines.map((line) => <div key={line}><Icon name="check" size={17} /><span>{line}</span></div>)}</div>
           <div className="pending-box"><strong>Exact pending next step</strong><p>{pending.length ? `${pending.join("; ")}. Assign [Owner] and [Next Checkpoint].` : "No pending workflow decision. Confirm any live-system follow-through before closing."}</p></div>
           <h3>Missing-information checklist</h3>
@@ -703,7 +794,7 @@ function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied })
           <div className="tab-row" role="tablist" aria-label="Output channel">
             {Object.keys(outputs).map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}
           </div>
-          <div className="output-heading"><div><span className="eyebrow">Copy-ready</span><h2>{tab} output</h2></div><CopyButton text={outputs[tab]} onCopied={onCopied} /></div>
+          <div className="output-heading"><div><span className="eyebrow">{readiness}</span><h2>{tab} output</h2></div><CopyButton text={outputs[tab]} onCopied={onCopied} /></div>
           <pre className="output-text">{outputs[tab]}</pre>
           <div className="output-warning"><Icon name="alert" size={17} /><span>Review placeholders and current live-system state before sending or saving.</span></div>
         </section>
@@ -722,6 +813,8 @@ function Finder({ onOpenProduct }) {
   const [advanced, setAdvanced] = useState(false);
   const [ceiling, setCeiling] = useState("8");
   const [openPlan, setOpenPlan] = useState(false);
+  const [connectedRooms, setConnectedRooms] = useState("1");
+  const [concern, setConcern] = useState("General air quality");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
@@ -743,7 +836,7 @@ function Finder({ onOpenProduct }) {
     const effective = squareFeet * (height / 8);
     const eligible = products.filter((item) => item.finderEligible && item.coverage >= effective).sort((a, b) => a.coverage - b.coverage);
     setError("");
-    setResult({ inputArea, squareFeet, effective, height, eligible });
+    setResult({ inputArea, squareFeet, effective, height, eligible, concern, connectedRooms: Number(connectedRooms) || 1 });
   }
 
   const reset = () => {
@@ -752,6 +845,8 @@ function Finder({ onOpenProduct }) {
     setWidth("");
     setCeiling("8");
     setOpenPlan(false);
+    setConnectedRooms("1");
+    setConcern("General air quality");
     setResult(null);
     setError("");
   };
@@ -788,6 +883,8 @@ function Finder({ onOpenProduct }) {
           {advanced && (
             <div className="advanced-fields">
               <label className="field"><span>Ceiling height</span><div className="input-suffix"><input type="number" min="0" step="any" value={ceiling} onChange={(event) => setCeiling(event.target.value)} /><b>ft</b></div><small>Planning adjustment: floor area × ceiling height ÷ 8.</small></label>
+              <label className="field"><span>Connected rooms</span><div className="input-suffix"><input type="number" min="1" step="1" value={connectedRooms} onChange={(event) => setConnectedRooms(event.target.value)} /><b>rooms</b></div><small>Enter the combined floor area above; multiple connected rooms trigger assisted review.</small></label>
+              <label className="field"><span>Main concern</span><select value={concern} onChange={(event) => setConcern(event.target.value)}>{["General air quality", "Smoke", "Pets", "Allergies", "Dust", "Odors"].map((item) => <option key={item}>{item}</option>)}</select></label>
               <label className="switch-row"><input type="checkbox" checked={openPlan} onChange={(event) => setOpenPlan(event.target.checked)} /><span><strong>Open-plan or connected space</strong><small>Results will be marked for assisted review.</small></span></label>
             </div>
           )}
@@ -811,6 +908,7 @@ function Finder({ onOpenProduct }) {
 }
 
 function FinderResults({ result, openPlan, onOpenProduct }) {
+  const [selectedId, setSelectedId] = useState("");
   const best = result.eligible[0];
   const inputDisplay = Math.round(result.squareFeet * 10) / 10;
   const effectiveDisplay = Math.round(result.effective * 10) / 10;
@@ -828,7 +926,7 @@ function FinderResults({ result, openPlan, onOpenProduct }) {
         <div><span className="eyebrow">Sizing result</span><h2>{best.model} is the recommended best fit</h2><p>Entered area: {inputDisplay.toLocaleString()} sq ft{result.height !== 8 ? ` · adjusted to ${effectiveDisplay.toLocaleString()} sq ft for a ${result.height}-ft ceiling` : ""}.</p></div>
         <div className="result-capacity"><strong>+{Math.round(best.coverage - result.effective).toLocaleString()}</strong><span>sq ft capacity above effective area</span></div>
       </div>
-      {openPlan && <div className="estimate-banner"><Icon name="alert" size={18} /><span><strong>Assisted review recommended.</strong> The official basis assumes a closed room; connected areas can change real-world performance.</span></div>}
+      {(openPlan || result.connectedRooms > 1) && <div className="estimate-banner"><Icon name="alert" size={18} /><span><strong>Assisted review recommended.</strong> The official basis assumes one closed room; connected areas can change real-world performance.</span></div>}
       <div className="result-cards">
         {result.eligible.map((product, index) => (
           <article className={`result-card ${index === 0 ? "recommended" : ""}`} key={product.id}>
@@ -839,12 +937,46 @@ function FinderResults({ result, openPlan, onOpenProduct }) {
               <p>{index === 0 ? "Smallest approved active model that meets this effective room size." : `Offers ${Math.round(product.coverage - best.coverage).toLocaleString()} sq ft more published capacity than the best fit.`}</p>
               <dl className="mini-specs"><div><dt>30-min coverage</dt><dd>{product.coverage.toLocaleString()} sq ft</dd></div><div><dt>Smoke CADR</dt><dd>{product.cadr} CFM</dd></div><div><dt>Capacity margin</dt><dd>+{Math.round(product.coverage - result.effective).toLocaleString()} sq ft</dd></div></dl>
               <button className="secondary-button full" type="button" onClick={() => onOpenProduct(product.id)}>View detailed specifications <Icon name="arrow" size={16} /></button>
+              <button className="primary-button full" type="button" onClick={() => setSelectedId(product.id)}>Select for customer response <Icon name="message" size={16} /></button>
               <a className="source-link" href={product.source} target="_blank" rel="noreferrer">Official source <Icon name="external" size={14} /></a>
             </div>
           </article>
         ))}
       </div>
       <div className="basis-note"><Icon name="shield" size={18} /><span><strong>Basis for every card:</strong> highest-speed smoke CADR, closed room, 8-ft ceiling, 2 ACH / every 30 minutes. Last verified {VERIFIED_ON}.</span></div>
+      {selectedId && <FinderCustomerOutput result={result} product={products.find((item) => item.id === selectedId)} openPlan={openPlan} />}
+    </section>
+  );
+}
+
+function FinderCustomerOutput({ result, product, openPlan }) {
+  const [tab, setTab] = useState("Email");
+  const [customerName, setCustomerName] = useState("");
+  const room = Math.round(result.squareFeet * 10) / 10;
+  const effective = Math.round(result.effective * 10) / 10;
+  const margin = Math.max(0, Math.round(product.coverage - result.effective));
+  const connectedNote = openPlan || result.connectedRooms > 1
+    ? "Because the space is open-plan or includes connected rooms, this is a planning recommendation and should be reviewed after confirming the combined area and airflow."
+    : "This recommendation assumes one closed room with an 8-foot ceiling.";
+  const greeting = customerName.trim() || "[Customer Name]";
+  const outputs = {
+    Email: `Subject: Air Purifier Recommendation for Your Space\n\nHi ${greeting},\n\nThank you for providing the size of your space.\n\nBased on the information provided, your ${room.toLocaleString()} sq ft space would be best suited for the ${product.model}. Its verified coverage is ${product.coverage.toLocaleString()} sq ft every 30 minutes in a closed room with an 8-foot ceiling. After the ceiling-height adjustment, the effective requirement is ${effective.toLocaleString()} sq ft, giving approximately ${margin.toLocaleString()} sq ft of additional published capacity.\n\nKey specifications:\n• Recommended coverage: ${product.coverage.toLocaleString()} sq ft every 30 minutes\n• CADR: ${product.cadr} CFM\n• Filtration: ${product.filtration}\n• Fan speeds: ${product.speeds}\n• Noise level: ${product.sound}\n• Dimensions: ${product.dimensions}\n• Filter: ${product.filter}\n• Filter life: ${product.filterLife}\n• Controls and features: ${product.controls}\n\nMain concern noted: ${result.concern}.\n\n${connectedNote}\n\nYou can review the model here:\n${product.source}\n\nPlease let us know if the room dimensions or layout differ so we can refine the recommendation.\n\nBest,\nMedify Air Support`,
+    "Call script": `Thank you for providing the room size. Based on the ${room.toLocaleString()} square foot space you described, the model I would recommend is the ${product.model}.\n\nIts verified coverage is ${product.coverage.toLocaleString()} square feet every 30 minutes, based on a closed room with an 8-foot ceiling. Your adjusted requirement is approximately ${effective.toLocaleString()} square feet, which gives about ${margin.toLocaleString()} square feet of additional published capacity.\n\nIt has ${product.speeds} fan speeds and uses ${product.filtration.toLowerCase()}. I also noted that your main concern is ${result.concern.toLowerCase()}.\n\nBefore we finalize the recommendation, may I confirm whether the room is open to another area and whether the measurements include all connected spaces?`,
+    Chat: `Based on the ${room.toLocaleString()} sq ft space you provided, the ${product.model} is the best verified fit. It covers up to ${product.coverage.toLocaleString()} sq ft every 30 minutes under the official closed-room, 8-ft-ceiling basis, leaving about ${margin.toLocaleString()} sq ft of published capacity above the adjusted requirement. ${connectedNote}`,
+    Notes: `Spoke With: Not provided\nName on the Account: ${customerName || "Not provided"}\nOrder Num: Not provided\nEmail Address: Not provided\nContact #: Not provided\nReason for Calling: Air purifier recommendation for ${room.toLocaleString()} sq ft; concern: ${result.concern}\nACTION TAKEN: Entered room area ${room.toLocaleString()} sq ft; effective area ${effective.toLocaleString()} sq ft after ceiling adjustment. Selected ${product.model}; verified 30-minute coverage ${product.coverage.toLocaleString()} sq ft; capacity margin approximately ${margin.toLocaleString()} sq ft. ${connectedNote}\nOffered FC/Cross Sell: Not provided\nAC Call ID: Not provided\nJA:`
+  };
+
+  return (
+    <section className="panel finder-output">
+      <div className="output-heading">
+        <div><span className="eyebrow">Customer-ready recommendation</span><h2>{product.model} response package</h2></div>
+        <CopyButton text={outputs[tab]} label={`Copy ${tab}`} />
+      </div>
+      <label className="field output-name"><span>Customer name <small>Optional</small></span><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Used only in this browser session" /></label>
+      <div className="confirmed-facts"><span><strong>{room.toLocaleString()} sq ft</strong> entered area</span><span><strong>{effective.toLocaleString()} sq ft</strong> effective area</span><span><strong>{product.coverage.toLocaleString()} sq ft</strong> verified coverage</span><span><strong>+{margin.toLocaleString()} sq ft</strong> capacity margin</span></div>
+      <div className="tab-row" role="tablist" aria-label="Recommendation output">{Object.keys(outputs).map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}</div>
+      <pre className="output-text">{outputs[tab]}</pre>
+      <div className="output-warning"><Icon name="alert" size={17} /><span>Confirm the room layout and review placeholders before sending. This recommendation does not guarantee medical outcomes.</span></div>
     </section>
   );
 }
