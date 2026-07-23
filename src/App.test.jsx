@@ -79,3 +79,25 @@ describe("Purifier Finder customer response", () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("Process Playbook and agent coaching", () => {
+  it("opens the playbook and shows coached process guidance", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Process playbook" }));
+
+    expect(screen.getByRole("heading", { name: "Learn why each decision matters" })).toBeTruthy();
+    expect(screen.getByText("Process Playbook & Agent Coaching")).toBeTruthy();
+    expect(screen.getByText(/coached processes/i)).toBeTruthy();
+  });
+
+  it("shows choice-specific coaching in a guided process", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /warranty intake.*eligibility and evidence/i }));
+    fireEvent.click(screen.getByLabelText("Model known, revision unclear"));
+
+    expect(screen.getByText("Agent Decision Coach")).toBeTruthy();
+    expect(screen.getByText("Choose this when")).toBeTruthy();
+    expect(screen.getByText("Do not choose this when")).toBeTruthy();
+    expect(screen.getAllByText("Evidence required").length).toBeGreaterThan(0);
+  });
+});

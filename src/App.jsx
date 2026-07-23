@@ -4,6 +4,7 @@ import {
   conflicts,
   guidedFlows,
   noteHeadings,
+  processPlaybooks,
   products,
   scriptLibrary,
   sources,
@@ -57,6 +58,7 @@ function Icon({ name, size = 20 }) {
 const navItems = [
   { id: "home", label: "Home", icon: "home" },
   { id: "processes", label: "Guided processes", icon: "route" },
+  { id: "playbook", label: "Process playbook", icon: "book" },
   { id: "finder", label: "Purifier finder", icon: "wind" },
   { id: "products", label: "Products & filters", icon: "book" },
   { id: "scripts", label: "Scripts & notes", icon: "message" },
@@ -318,6 +320,7 @@ export default function App() {
               onCopied={(message = "Copied to clipboard") => setToast(message)}
             />
           )}
+          {view === "playbook" && <ProcessPlaybook />}
           {view === "finder" && <Finder onOpenProduct={openProduct} onCopied={(message = "Copied to clipboard") => setToast(message)} />}
           {view === "products" && (
             <ProductLibrary
@@ -630,6 +633,88 @@ function ProcessBrief({ process, onBack }) {
   );
 }
 
+function ProcessPlaybook() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+  const categories = ["All", ...new Set(processPlaybooks.map((item) => item.category))];
+  const filtered = processPlaybooks.filter((item) => {
+    const matchesCategory = category === "All" || item.category === category;
+    const searchable = `${item.id} ${item.title} ${item.category} ${item.overview} ${item.scenario}`;
+    return matchesCategory && normalize(searchable).includes(normalize(query));
+  });
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="Process Playbook & Agent Coaching"
+        title="Learn why each decision matters"
+        description="Use this training view to understand when to choose each process, what evidence is required, what may be communicated, and what must remain pending."
+        action={<StatusBadge status={`${processPlaybooks.length} coached processes`} />}
+      />
+      <section className="catalog-controls" aria-label="Filter process playbook">
+        <label className="field search-field"><span>Find a coached process</span><div><Icon name="search" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try refund, damaged shipment, MA-40…" /></div></label>
+        <label className="field"><span>Category</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
+      </section>
+      <section className="playbook-list" aria-label={`${filtered.length} playbook entries`}>
+        {filtered.map((item) => (
+          <details className="playbook-card" key={item.id}>
+            <summary>
+              <span className="process-id">{item.id}</span>
+              <span><strong>{item.title}</strong><small>{item.category} · {item.steps.length} coached decisions</small></span>
+              <StatusBadge status={item.status} />
+            </summary>
+            <div className="playbook-body">
+              <section>
+                <h3>When to use this process</h3>
+                <p>{item.whenToUse}</p>
+                <h3>Plain-language overview</h3>
+                <p>{item.overview}</p>
+                <h3>Anonymized scenario</h3>
+                <p>{item.scenario}</p>
+              </section>
+              <section>
+                <h3>Evidence checklist</h3>
+                <ul>{item.evidence.map((entry) => <li key={entry}>{entry}</li>)}</ul>
+                {!!item.conflictWarnings.length && (
+                  <>
+                    <h3>Conflict warnings</h3>
+                    <ul className="conflict-list">{item.conflictWarnings.map((entry) => <li key={entry}>{entry}</li>)}</ul>
+                  </>
+                )}
+              </section>
+              <section className="playbook-decisions">
+                <h3>Decision coaching</h3>
+                {item.steps.map((step) => (
+                  <details key={step.id}>
+                    <summary><strong>{step.question}</strong></summary>
+                    <div>
+                      <p><b>Why it matters:</b> {step.why}</p>
+                      <p><b>Evidence:</b> {step.evidence}</p>
+                      <p><b>Never promise:</b> {step.notPromise}</p>
+                      {step.choices.map((choice) => {
+                        const coach = step.coaching?.[choice];
+                        return (
+                          <article className="coach-example" key={choice}>
+                            <h4>{choice}</h4>
+                            <p><b>Choose this when:</b> {coach?.chooseWhen || `The case record supports “${choice}.”`}</p>
+                            <p><b>Do not choose this when:</b> {coach?.doNotChoose || "The state is only assumed or requested."}</p>
+                            <p><b>Customer-safe wording:</b> {coach?.customerSafe || step.ask}</p>
+                            <p><b>What happens next:</b> {coach?.next || step.action}</p>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ))}
+              </section>
+            </div>
+          </details>
+        ))}
+      </section>
+    </>
+  );
+}
+
 function WorkflowRunner({ process, flow, callMode, onBack, onCopied }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -709,6 +794,20 @@ function WorkflowRunner({ process, flow, callMode, onBack, onCopied }) {
               </label>
             ))}
           </fieldset>
+          {answer && (
+            <section className="decision-coach" aria-live="polite">
+              <span className="eyebrow">Agent Decision Coach</span>
+              <h3>{answer}</h3>
+              <div className="coach-grid">
+                <p><strong>Choose this when</strong>{current.coaching?.[answer]?.chooseWhen || `The case evidence supports “${answer}.”`}</p>
+                <p><strong>Do not choose this when</strong>{current.coaching?.[answer]?.doNotChoose || "The status is only assumed, requested, or not visible in the responsible record."}</p>
+                <p><strong>Evidence required</strong>{current.coaching?.[answer]?.evidence || current.evidence}</p>
+                <p><strong>Customer-safe wording</strong>{current.coaching?.[answer]?.customerSafe || current.ask}</p>
+                <p><strong>Never promise</strong>{current.coaching?.[answer]?.neverPromise || current.notPromise}</p>
+                <p><strong>What happens next</strong>{current.coaching?.[answer]?.next || current.action}</p>
+              </div>
+            </section>
+          )}
           <label className={`completion-check ${!answer ? "disabled" : ""}`}>
             <input type="checkbox" disabled={!answer} checked={isConfirmed} onChange={(event) => setConfirmed((existing) => ({ ...existing, [current.id]: event.target.checked }))} />
             <span><strong>I completed or verified this step</strong><small>This records the selected state as factual for this active session.</small></span>
@@ -821,9 +920,17 @@ function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied })
           </details>
 
           <ResponseSummaryList title="Confirmed case facts" items={responsePackage.confirmedFacts} empty="No customer-facing fact is safe to state yet." />
+          <ResponseSummaryList title="Evidence received" items={responsePackage.evidenceReceived} empty="No evidence item has been marked received by the selected path." tone="success" />
+          <ResponseSummaryList title="Evidence still required" items={responsePackage.evidenceRequired} empty="No additional evidence is required by the selected path." tone="danger" />
           <ResponseSummaryList title="Completed actions" items={responsePackage.completedActions} empty="No operational action has been confirmed as complete." tone="success" />
           <ResponseSummaryList title="Pending actions" items={responsePackage.pendingActions} empty="No workflow action is currently pending." tone="warning" />
+          <ResponseSummaryList title="Customer action required" items={responsePackage.customerActions} empty="No customer action is required by the selected path." tone="warning" />
+          <ResponseSummaryList title="Internal action or approval required" items={responsePackage.internalActions} empty="No internal action or approval is required by the selected path." tone="warning" />
           <ResponseSummaryList title="Missing-information checklist" items={responsePackage.missingInformation} empty="No required information is missing from the selected path." tone="danger" />
+          <section className={`readiness-explanation ${responsePackage.readiness === "Ready to Send" || responsePackage.readiness === "Completed" ? "ready" : "blocked"}`}>
+            <Icon name={responsePackage.readiness === "Ready to Send" || responsePackage.readiness === "Completed" ? "check" : "alert"} size={18} />
+            <div><strong>Why this output is {responsePackage.readiness === "Ready to Send" ? "ready" : "not ready"}</strong><p>{readinessExplanation(responsePackage)}</p></div>
+          </section>
         </section>
         <section className="panel output-panel">
           <div className="tab-row" role="tablist" aria-label="Output channel">
@@ -866,6 +973,17 @@ function ResponseSummaryList({ title, items, empty, tone = "neutral" }) {
       </div>
     </section>
   );
+}
+
+function readinessExplanation(responsePackage) {
+  if (responsePackage.readiness === "Ready to Send") return "Required information is complete, no unresolved source conflict is selected, and no pending approval or unsupported completion claim blocks the response.";
+  if (responsePackage.readiness === "Completed") return "The selected path confirms a completed or resolved state. Review the customer details and reference before sending.";
+  if (responsePackage.readiness === "Awaiting Customer") return `The case still needs customer information or evidence${responsePackage.missingInformation.length ? `: ${responsePackage.missingInformation.join("; ")}` : "."}`;
+  if (responsePackage.readiness === "Awaiting Approval") return "An authorized internal decision is still pending, so the requested outcome cannot be presented as complete.";
+  if (responsePackage.readiness === "Escalated") return "The selected path requires an escalation or safety review before a normal completion message may be used.";
+  if (responsePackage.readiness === "Needs Confirmation") return "A source or policy conflict is unresolved. The tool blocks unsupported completion wording until an approved decision is available.";
+  if (responsePackage.missingInformation.length) return `Required information is incomplete: ${responsePackage.missingInformation.join("; ")}`;
+  return "The selected path contains a pending, blocked, approved-but-incomplete, or unresolved operational state that requires review.";
 }
 
 function Finder({ onOpenProduct, onCopied }) {
