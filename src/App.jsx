@@ -12,6 +12,11 @@ import {
   taskSelector,
   workflows
 } from "./data";
+import {
+  buildFinderResponse,
+  buildWorkflowResponse,
+  OUTPUT_CHANNELS
+} from "./responseEngine";
 
 const ICON_PATHS = {
   home: <><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></>,
@@ -313,7 +318,7 @@ export default function App() {
               onCopied={(message = "Copied to clipboard") => setToast(message)}
             />
           )}
-          {view === "finder" && <Finder onOpenProduct={openProduct} />}
+          {view === "finder" && <Finder onOpenProduct={openProduct} onCopied={(message = "Copied to clipboard") => setToast(message)} />}
           {view === "products" && (
             <ProductLibrary
               activeId={activeProduct}
@@ -739,34 +744,51 @@ function GuidanceBlock({ title, text, quote = false }) {
 
 function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied }) {
   const [tab, setTab] = useState("Email");
-  const [details, setDetails] = useState({ customer: "", owner: "", checkpoint: "" });
-  const answerLines = flow.steps.map((step) => `${step.title}: ${answers[step.id] || "Not provided"}`);
-  const pending = answerLines.filter((line) => /pending|awaiting|missing|not yet|unclear|confirmation/i.test(line));
-  const completed = answerLines.filter((line) => !pending.includes(line));
-  const customer = details.customer || "[Customer Name]";
-  const owner = details.owner || "[Owner]";
-  const checkpoint = details.checkpoint || "[Next Checkpoint]";
-  const readiness = pending.length || !details.owner || !details.checkpoint ? "Draft — Review Required" : "Ready to Send";
-  const confirmedText = completed.map((line) => `• ${line}`).join("\n") || "• No completed action has been confirmed.";
-  const pendingText = pending.map((line) => `• ${line}`).join("\n") || "• No workflow decision is pending; confirm any remaining live-system follow-through.";
-  const outputs = {
-    Email: `Subject: Update Regarding ${flow.title}\n\nHi ${customer},\n\nThank you for providing the information regarding your ${flow.title.toLowerCase()} request.\n\nHere is what has been confirmed:\n${confirmedText}\n\nCurrent pending items:\n${pendingText}\n\nThe next checkpoint is ${checkpoint}, and the current owner is ${owner}. We will provide the next confirmed update once that step is complete.\n\nBest,\nMedify Air Support`,
-    Chat: `Thank you for confirming those details. Here is the current status for your ${flow.title.toLowerCase()} request: ${completed.map((line) => line.replace(": ", " — ")).join("; ") || "no completed action has been confirmed yet"}. ${pending.length ? `Still pending: ${pending.join("; ")}. ` : ""}The next checkpoint is ${checkpoint}, owned by ${owner}.`,
-    Voice: `Thank you for going through those details with me. I can confirm the following: ${completed.join("; ") || "no final action has been completed yet"}. ${pending.length ? `The items still pending are ${pending.join("; ")}. ` : ""}The next checkpoint is ${checkpoint}, and the current owner is ${owner}.`,
-    Notes: [
-      "Spoke With: Not provided",
-      `Name on the Account: ${details.customer || "Not provided"}`,
-      "Order Num: Not provided",
-      "Email Address: Not provided",
-      "Contact #: Not provided",
-      `Reason for Calling: ${flow.title}`,
-      `ACTION TAKEN: ${answerLines.join(" | ")} | Pending owner: ${details.owner || "Not provided"} | Next checkpoint: ${details.checkpoint || "Not provided"}`,
-      "Offered FC/Cross Sell: Not provided",
-      "AC Call ID: Not provided",
-      "JA:"
-    ].join("\n")
-  };
-  const missing = [...(!details.customer ? ["Customer name"] : []), ...(!details.owner ? ["Owner"] : []), ...(!details.checkpoint ? ["Exact next checkpoint"] : []), ...pending.map((line) => line.split(":")[0])];
+  const [details, setDetails] = useState({
+    spokeWith: "",
+    customer: "",
+    order: "",
+    email: "",
+    contact: "",
+    model: "",
+    caseDetail: "",
+    reference: "",
+    owner: "",
+    checkpoint: "",
+    callId: ""
+  });
+  const [editedOutputs, setEditedOutputs] = useState({});
+  const responsePackage = buildWorkflowResponse({
+    workflowId: process.id,
+    flow,
+    answers,
+    details
+  });
+  const output = editedOutputs[tab] ?? responsePackage.outputs[tab];
+
+  useEffect(() => {
+    setEditedOutputs({});
+  }, [answers, details, process.id]);
+
+  function updateDetail(field, value) {
+    setDetails((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetCurrentOutput() {
+    setEditedOutputs((current) => {
+      const next = { ...current };
+      delete next[tab];
+      return next;
+    });
+  }
+
+  const detailLabel = process.id === "WF-012"
+    ? "Approved explanation or reported issue"
+    : process.id === "WF-005"
+      ? "Affected item or approved resolution detail"
+      : process.id === "WF-009"
+        ? "Returned item or approved explanation"
+        : "Case detail";
 
   return (
     <section className="workflow-review">
@@ -774,29 +796,55 @@ function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied })
       <PageHeading
         eyebrow={`${process.id} · Review`}
         title="Review confirmed facts and outputs"
-        description="Every line below is based on the choices confirmed in this active session. Placeholders remain where the workflow does not have a verified value."
-        action={<StatusBadge status={readiness} />}
+        description="The response engine separates verified facts, completed work, pending work, and customer requests. Internal ownership never appears in customer-facing copy."
+        action={<StatusBadge status={responsePackage.readiness} />}
       />
       <div className="review-grid">
         <section className="panel">
           <h2>Case summary</h2>
-          <div className="review-fields">
-            <label className="field"><span>Customer name</span><input value={details.customer} onChange={(event) => setDetails((current) => ({ ...current, customer: event.target.value }))} placeholder="Optional until known" /></label>
-            <label className="field"><span>Pending owner <em>Required</em></span><input value={details.owner} onChange={(event) => setDetails((current) => ({ ...current, owner: event.target.value }))} placeholder="Agent, L2, customer, carrier…" /></label>
-            <label className="field"><span>Next checkpoint <em>Required</em></span><input value={details.checkpoint} onChange={(event) => setDetails((current) => ({ ...current, checkpoint: event.target.value }))} placeholder="Specific next step or review time" /></label>
-          </div>
-          <div className="summary-list">{answerLines.map((line) => <div key={line}><Icon name="check" size={17} /><span>{line}</span></div>)}</div>
-          <div className="pending-box"><strong>Exact pending next step</strong><p>{pending.length ? `${pending.join("; ")}. Assign [Owner] and [Next Checkpoint].` : "No pending workflow decision. Confirm any live-system follow-through before closing."}</p></div>
-          <h3>Missing-information checklist</h3>
-          <ul className="checklist">{missing.map((item) => <li key={item}>{item}</li>)}</ul>
+          <details className="case-detail-fields" open>
+            <summary>Session-only case details</summary>
+            <p>These values improve the reply and notes. They are cleared when the page refreshes and are never saved to local storage.</p>
+            <div className="review-fields">
+              <label className="field"><span>Spoke with <small>Notes only</small></span><input value={details.spokeWith} onChange={(event) => updateDetail("spokeWith", event.target.value)} /></label>
+              <label className="field"><span>Name on the account <small>Optional</small></span><input value={details.customer} onChange={(event) => updateDetail("customer", event.target.value)} /></label>
+              <label className="field"><span>Order number</span><input value={details.order} onChange={(event) => updateDetail("order", event.target.value)} /></label>
+              <label className="field"><span>Email address <small>Notes only</small></span><input type="email" value={details.email} onChange={(event) => updateDetail("email", event.target.value)} /></label>
+              <label className="field"><span>Contact number <small>Notes only</small></span><input value={details.contact} onChange={(event) => updateDetail("contact", event.target.value)} /></label>
+              {process.id === "WF-012" && <label className="field"><span>Exact model and revision</span><input value={details.model} onChange={(event) => updateDetail("model", event.target.value)} placeholder="Example: MA-40 standard non-UV" /></label>}
+              <label className="field wide"><span>{detailLabel}</span><textarea rows="3" value={details.caseDetail} onChange={(event) => updateDetail("caseDetail", event.target.value)} /></label>
+              <label className="field"><span>Confirmed reference or tracking</span><input value={details.reference} onChange={(event) => updateDetail("reference", event.target.value)} /></label>
+              <label className="field"><span>Pending owner <small>Internal only</small></span><input value={details.owner} onChange={(event) => updateDetail("owner", event.target.value)} placeholder="Agent, L2, customer, carrier…" /></label>
+              <label className="field"><span>Next checkpoint <small>Internal only</small></span><input value={details.checkpoint} onChange={(event) => updateDetail("checkpoint", event.target.value)} placeholder="Specific next action or review point" /></label>
+              <label className="field"><span>AC Call ID <small>Notes only</small></span><input value={details.callId} onChange={(event) => updateDetail("callId", event.target.value)} /></label>
+            </div>
+          </details>
+
+          <ResponseSummaryList title="Confirmed case facts" items={responsePackage.confirmedFacts} empty="No customer-facing fact is safe to state yet." />
+          <ResponseSummaryList title="Completed actions" items={responsePackage.completedActions} empty="No operational action has been confirmed as complete." tone="success" />
+          <ResponseSummaryList title="Pending actions" items={responsePackage.pendingActions} empty="No workflow action is currently pending." tone="warning" />
+          <ResponseSummaryList title="Missing-information checklist" items={responsePackage.missingInformation} empty="No required information is missing from the selected path." tone="danger" />
         </section>
         <section className="panel output-panel">
           <div className="tab-row" role="tablist" aria-label="Output channel">
-            {Object.keys(outputs).map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}
+            {OUTPUT_CHANNELS.map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}
           </div>
-          <div className="output-heading"><div><span className="eyebrow">{readiness}</span><h2>{tab} output</h2></div><CopyButton text={outputs[tab]} onCopied={onCopied} /></div>
-          <pre className="output-text">{outputs[tab]}</pre>
-          <div className="output-warning"><Icon name="alert" size={17} /><span>Review placeholders and current live-system state before sending or saving.</span></div>
+          <div className="output-heading">
+            <div><span className="eyebrow">{responsePackage.readiness}</span><h2>{responsePackage.suggestedTitle}</h2></div>
+            <div className="output-actions">
+              <button className="secondary-button compact" type="button" onClick={resetCurrentOutput}><Icon name="rotate" size={16} />Reset response</button>
+              <CopyButton text={output} onCopied={onCopied} label={`Copy ${tab}`} />
+            </div>
+          </div>
+          <label className="sr-only" htmlFor={`workflow-output-${process.id}`}>Edit {tab} output</label>
+          <textarea
+            id={`workflow-output-${process.id}`}
+            className="output-text editable-output"
+            value={output}
+            onChange={(event) => setEditedOutputs((current) => ({ ...current, [tab]: event.target.value }))}
+            aria-label={`Edit ${tab} output`}
+          />
+          <div className="output-warning"><Icon name="alert" size={17} /><span>Review placeholders and the current live-system state before sending or saving. Customer fields remain in memory only.</span></div>
         </section>
       </div>
       <div className="review-actions"><button className="secondary-button" type="button" onClick={onRestart}><Icon name="rotate" size={17} />Restart process</button><button className="primary-button" type="button" onClick={onBack}>Change an answer</button></div>
@@ -804,7 +852,23 @@ function WorkflowReview({ process, flow, answers, onBack, onRestart, onCopied })
   );
 }
 
-function Finder({ onOpenProduct }) {
+function ResponseSummaryList({ title, items, empty, tone = "neutral" }) {
+  return (
+    <section className={`response-summary ${tone}`}>
+      <h3>{title}</h3>
+      <div className="summary-list">
+        {(items.length ? items : [empty]).map((item) => (
+          <div key={item}>
+            <Icon name={items.length ? (tone === "warning" || tone === "danger" ? "alert" : "check") : "info"} size={17} />
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Finder({ onOpenProduct, onCopied }) {
   const [mode, setMode] = useState("area");
   const [unit, setUnit] = useState("sqft");
   const [area, setArea] = useState("");
@@ -902,16 +966,31 @@ function Finder({ onOpenProduct }) {
           <div className="method-warning"><Icon name="info" size={18} /><p>MA-112 PRO and discontinued models are excluded. Open-plan layouts and unusual ceilings are estimates, not lab-certified room claims.</p></div>
         </aside>
       </div>
-      {result && <FinderResults result={result} openPlan={openPlan} onOpenProduct={onOpenProduct} />}
+      {result && <FinderResults result={result} openPlan={openPlan} onOpenProduct={onOpenProduct} onCopied={onCopied} />}
     </>
   );
 }
 
-function FinderResults({ result, openPlan, onOpenProduct }) {
+function FinderResults({ result, openPlan, onOpenProduct, onCopied }) {
   const [selectedId, setSelectedId] = useState("");
+  const cardsRef = useRef(null);
+  const composerRef = useRef(null);
   const best = result.eligible[0];
   const inputDisplay = Math.round(result.squareFeet * 10) / 10;
   const effectiveDisplay = Math.round(result.effective * 10) / 10;
+
+  useEffect(() => {
+    if (!selectedId || !composerRef.current) return;
+    composerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    composerRef.current.focus({ preventScroll: true });
+  }, [selectedId]);
+
+  function changeSelectedModel() {
+    setSelectedId("");
+    cardsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    cardsRef.current?.focus({ preventScroll: true });
+  }
+
   if (!best) {
     return (
       <section className="no-fit" aria-live="polite">
@@ -927,55 +1006,103 @@ function FinderResults({ result, openPlan, onOpenProduct }) {
         <div className="result-capacity"><strong>+{Math.round(best.coverage - result.effective).toLocaleString()}</strong><span>sq ft capacity above effective area</span></div>
       </div>
       {(openPlan || result.connectedRooms > 1) && <div className="estimate-banner"><Icon name="alert" size={18} /><span><strong>Assisted review recommended.</strong> The official basis assumes one closed room; connected areas can change real-world performance.</span></div>}
-      <div className="result-cards">
+      <div className="result-cards" ref={cardsRef} tabIndex="-1">
         {result.eligible.map((product, index) => (
-          <article className={`result-card ${index === 0 ? "recommended" : ""}`} key={product.id}>
-            <div className="result-card-label">{index === 0 ? "Recommended best fit" : "Suitable alternative"}</div>
+          <article className={`result-card ${index === 0 ? "recommended" : ""} ${selectedId === product.id ? "selected" : ""}`} key={product.id}>
+            <div className="result-card-label">{selectedId === product.id ? "Selected for response" : index === 0 ? "Recommended best fit" : "Suitable alternative"}</div>
             <div className="product-image"><img src={product.image} alt={`${product.model} ${product.revision} air purifier`} /></div>
             <div className="result-card-content">
               <div className="product-title-row"><div><h3>{product.model}</h3><span>{product.revision}</span></div><StatusBadge status="Active" /></div>
               <p>{index === 0 ? "Smallest approved active model that meets this effective room size." : `Offers ${Math.round(product.coverage - best.coverage).toLocaleString()} sq ft more published capacity than the best fit.`}</p>
               <dl className="mini-specs"><div><dt>30-min coverage</dt><dd>{product.coverage.toLocaleString()} sq ft</dd></div><div><dt>Smoke CADR</dt><dd>{product.cadr} CFM</dd></div><div><dt>Capacity margin</dt><dd>+{Math.round(product.coverage - result.effective).toLocaleString()} sq ft</dd></div></dl>
               <button className="secondary-button full" type="button" onClick={() => onOpenProduct(product.id)}>View detailed specifications <Icon name="arrow" size={16} /></button>
-              <button className="primary-button full" type="button" onClick={() => setSelectedId(product.id)}>Select for customer response <Icon name="message" size={16} /></button>
+              <button
+                className="primary-button full"
+                type="button"
+                onClick={() => setSelectedId(product.id)}
+                aria-pressed={selectedId === product.id}
+                data-testid={`select-response-${product.id}`}
+              >
+                {selectedId === product.id ? "Selected for response" : "Select for customer response"} <Icon name={selectedId === product.id ? "check" : "message"} size={16} />
+              </button>
               <a className="source-link" href={product.source} target="_blank" rel="noreferrer">Official source <Icon name="external" size={14} /></a>
             </div>
           </article>
         ))}
       </div>
+      <div className="sr-only" role="status" aria-live="polite">
+        {selectedId ? `${products.find((item) => item.id === selectedId)?.model} customer response generated.` : ""}
+      </div>
       <div className="basis-note"><Icon name="shield" size={18} /><span><strong>Basis for every card:</strong> highest-speed smoke CADR, closed room, 8-ft ceiling, 2 ACH / every 30 minutes. Last verified {VERIFIED_ON}.</span></div>
-      {selectedId && <FinderCustomerOutput result={result} product={products.find((item) => item.id === selectedId)} openPlan={openPlan} />}
+      {selectedId && (
+        <div className="composer-anchor" ref={composerRef} tabIndex="-1" data-testid="finder-response-composer">
+          <FinderCustomerOutput
+            result={result}
+            product={products.find((item) => item.id === selectedId)}
+            openPlan={openPlan}
+            onChangeModel={changeSelectedModel}
+            onCopied={onCopied}
+          />
+        </div>
+      )}
     </section>
   );
 }
 
-function FinderCustomerOutput({ result, product, openPlan }) {
+function FinderCustomerOutput({ result, product, openPlan, onChangeModel, onCopied }) {
   const [tab, setTab] = useState("Email");
   const [customerName, setCustomerName] = useState("");
+  const [editedOutputs, setEditedOutputs] = useState({});
   const room = Math.round(result.squareFeet * 10) / 10;
   const effective = Math.round(result.effective * 10) / 10;
   const margin = Math.max(0, Math.round(product.coverage - result.effective));
-  const connectedNote = openPlan || result.connectedRooms > 1
-    ? "Because the space is open-plan or includes connected rooms, this is a planning recommendation and should be reviewed after confirming the combined area and airflow."
-    : "This recommendation assumes one closed room with an 8-foot ceiling.";
-  const greeting = customerName.trim() || "[Customer Name]";
-  const outputs = {
-    Email: `Subject: Air Purifier Recommendation for Your Space\n\nHi ${greeting},\n\nThank you for providing the size of your space.\n\nBased on the information provided, your ${room.toLocaleString()} sq ft space would be best suited for the ${product.model}. Its verified coverage is ${product.coverage.toLocaleString()} sq ft every 30 minutes in a closed room with an 8-foot ceiling. After the ceiling-height adjustment, the effective requirement is ${effective.toLocaleString()} sq ft, giving approximately ${margin.toLocaleString()} sq ft of additional published capacity.\n\nKey specifications:\n• Recommended coverage: ${product.coverage.toLocaleString()} sq ft every 30 minutes\n• CADR: ${product.cadr} CFM\n• Filtration: ${product.filtration}\n• Fan speeds: ${product.speeds}\n• Noise level: ${product.sound}\n• Dimensions: ${product.dimensions}\n• Filter: ${product.filter}\n• Filter life: ${product.filterLife}\n• Controls and features: ${product.controls}\n\nMain concern noted: ${result.concern}.\n\n${connectedNote}\n\nYou can review the model here:\n${product.source}\n\nPlease let us know if the room dimensions or layout differ so we can refine the recommendation.\n\nBest,\nMedify Air Support`,
-    "Call script": `Thank you for providing the room size. Based on the ${room.toLocaleString()} square foot space you described, the model I would recommend is the ${product.model}.\n\nIts verified coverage is ${product.coverage.toLocaleString()} square feet every 30 minutes, based on a closed room with an 8-foot ceiling. Your adjusted requirement is approximately ${effective.toLocaleString()} square feet, which gives about ${margin.toLocaleString()} square feet of additional published capacity.\n\nIt has ${product.speeds} fan speeds and uses ${product.filtration.toLowerCase()}. I also noted that your main concern is ${result.concern.toLowerCase()}.\n\nBefore we finalize the recommendation, may I confirm whether the room is open to another area and whether the measurements include all connected spaces?`,
-    Chat: `Based on the ${room.toLocaleString()} sq ft space you provided, the ${product.model} is the best verified fit. It covers up to ${product.coverage.toLocaleString()} sq ft every 30 minutes under the official closed-room, 8-ft-ceiling basis, leaving about ${margin.toLocaleString()} sq ft of published capacity above the adjusted requirement. ${connectedNote}`,
-    Notes: `Spoke With: Not provided\nName on the Account: ${customerName || "Not provided"}\nOrder Num: Not provided\nEmail Address: Not provided\nContact #: Not provided\nReason for Calling: Air purifier recommendation for ${room.toLocaleString()} sq ft; concern: ${result.concern}\nACTION TAKEN: Entered room area ${room.toLocaleString()} sq ft; effective area ${effective.toLocaleString()} sq ft after ceiling adjustment. Selected ${product.model}; verified 30-minute coverage ${product.coverage.toLocaleString()} sq ft; capacity margin approximately ${margin.toLocaleString()} sq ft. ${connectedNote}\nOffered FC/Cross Sell: Not provided\nAC Call ID: Not provided\nJA:`
-  };
+  const responsePackage = useMemo(() => buildFinderResponse({
+    result,
+    product,
+    openPlan,
+    customer: customerName
+  }), [customerName, openPlan, product, result]);
+  const output = editedOutputs[tab] ?? responsePackage.outputs[tab];
+
+  useEffect(() => {
+    setEditedOutputs({});
+  }, [customerName, openPlan, product, result]);
+
+  function resetCurrentOutput() {
+    setEditedOutputs((current) => {
+      const next = { ...current };
+      delete next[tab];
+      return next;
+    });
+  }
 
   return (
-    <section className="panel finder-output">
+    <section className="panel finder-output" aria-labelledby="finder-response-heading">
       <div className="output-heading">
-        <div><span className="eyebrow">Customer-ready recommendation</span><h2>{product.model} response package</h2></div>
-        <CopyButton text={outputs[tab]} label={`Copy ${tab}`} />
+        <div><span className="eyebrow">Customer-ready recommendation generated</span><h2 id="finder-response-heading">{product.model} response package</h2></div>
+        <div className="output-actions">
+          <button className="secondary-button compact" type="button" onClick={onChangeModel}><Icon name="back" size={16} />Change model</button>
+          <button className="secondary-button compact" type="button" onClick={resetCurrentOutput}><Icon name="rotate" size={16} />Reset response</button>
+          <CopyButton text={output} onCopied={onCopied} label={`Copy ${tab}`} />
+        </div>
       </div>
       <label className="field output-name"><span>Customer name <small>Optional</small></span><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Used only in this browser session" /></label>
       <div className="confirmed-facts"><span><strong>{room.toLocaleString()} sq ft</strong> entered area</span><span><strong>{effective.toLocaleString()} sq ft</strong> effective area</span><span><strong>{product.coverage.toLocaleString()} sq ft</strong> verified coverage</span><span><strong>+{margin.toLocaleString()} sq ft</strong> capacity margin</span></div>
-      <div className="tab-row" role="tablist" aria-label="Recommendation output">{Object.keys(outputs).map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}</div>
-      <pre className="output-text">{outputs[tab]}</pre>
+      <div className="tab-row" role="tablist" aria-label="Recommendation output">{OUTPUT_CHANNELS.map((item) => <button role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} type="button" key={item} onClick={() => setTab(item)}>{item}</button>)}</div>
+      <label className="sr-only" htmlFor="finder-editable-output">Edit {tab} recommendation</label>
+      <textarea
+        id="finder-editable-output"
+        className="output-text editable-output"
+        value={output}
+        onChange={(event) => setEditedOutputs((current) => ({ ...current, [tab]: event.target.value }))}
+        aria-label={`Edit ${tab} recommendation`}
+      />
+      <details className="more-details">
+        <summary>More product details</summary>
+        <dl>
+          {responsePackage.moreDetails.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        </dl>
+      </details>
       <div className="output-warning"><Icon name="alert" size={17} /><span>Confirm the room layout and review placeholders before sending. This recommendation does not guarantee medical outcomes.</span></div>
     </section>
   );
