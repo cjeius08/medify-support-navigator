@@ -278,18 +278,13 @@ export const workflows = workflowRows.map(([id, title, category, status, summary
 }));
 
 export const taskSelector = [
-  ["Order or delivery", ["WF-001", "WF-002", "WF-003", "WF-004", "WF-005", "WF-006", "WF-007", "WF-008"]],
-  ["Return or refund", ["WF-009", "WF-010", "WF-011"]],
-  ["Warranty or replacement", ["WF-012"]],
+  ["Orders & delivery", ["WF-001", "WF-002", "WF-003", "WF-004", "WF-005", "WF-006", "WF-007", "WF-008"]],
+  ["Returns & refunds", ["WF-009", "WF-010", "WF-011"]],
+  ["Warranty & replacement", ["WF-012"]],
   ["Product troubleshooting", ["WF-013", "WF-014", "WF-015", "WF-016", "WF-017"]],
-  ["Filter or Filter Club", ["WF-015", "WF-022", "WF-023", "WF-024"]],
-  ["Product recommendation", ["WF-019", "WF-020"]],
-  ["Product information", ["WF-018", "WF-021"]],
-  ["Cancellation or order change", ["WF-007", "WF-008"]],
-  ["Marketplace or reseller", ["WF-025"]],
-  ["Escalation or internal follow-up", ["WF-026", "WF-027", "WF-028"]],
-  ["Customer communication or notes", ["WF-029"]],
-  ["Security or sensitive information", ["WF-030"]]
+  ["Products & services", ["WF-018", "WF-019", "WF-020", "WF-021"]],
+  ["Filter Club", ["WF-022", "WF-023", "WF-024"]],
+  ["Notes & follow-up", ["WF-026", "WF-027", "WF-028", "WF-029", "WF-030"]]
 ];
 
 const commonSources = {

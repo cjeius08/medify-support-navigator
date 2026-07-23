@@ -478,74 +478,47 @@ function Processes({ activeId, favorites, callMode, onBack, onOpen, onToggleFavo
 }
 
 function TaskSelector({ onOpen, onViewAll }) {
-  const [category, setCategory] = useState("");
-  const [workflowId, setWorkflowId] = useState("");
-  const selectedGroup = taskSelector.find(([label]) => label === category);
-  const choices = (selectedGroup?.[1] || []).map((id) => workflows.find((workflow) => workflow.id === id)).filter(Boolean);
-  const selectedWorkflow = workflows.find((workflow) => workflow.id === workflowId);
-
-  function reset() {
-    setCategory("");
-    setWorkflowId("");
-  }
+  const [openCategory, setOpenCategory] = useState("");
 
   return (
     <>
       <PageHeading
-        eyebrow="Guided task selector"
-        title="What do you need to do?"
-        description="Start with the customer’s need. The selector narrows the 30-process catalog and confirms the exact task before the guide begins."
+        eyebrow="Guided processes"
+        title="What does the customer need help with?"
+        description="Open a category, choose the closest issue, and answer one clear question at a time."
         action={<button className="secondary-button" type="button" onClick={onViewAll}>View all 30 processes</button>}
       />
-      <section className="task-selector panel" aria-live="polite">
-        <div className="selector-progress">
-          <span className={category ? "complete" : "current"}>1. Customer need</span>
-          <span className={workflowId ? "complete" : category ? "current" : ""}>2. Situation</span>
-          <span className={selectedWorkflow ? "current" : ""}>3. Confirm</span>
-        </div>
-        {!category && (
-          <div>
-            <span className="eyebrow">Step 1 of 3</span>
-            <h2>Choose the closest customer need</h2>
-            <div className="task-category-grid">
-              {taskSelector.map(([label, ids]) => (
-                <button type="button" key={label} onClick={() => setCategory(label)}>
-                  <span className="mini-icon blue"><Icon name={label.includes("Product") ? "wind" : label.includes("Security") ? "shield" : "route"} size={20} /></span>
-                  <span><strong>{label}</strong><small>{ids.length} {ids.length === 1 ? "process" : "processes"}</small></span>
+      <section className="task-selector panel" aria-label="Guided process categories">
+        <div className="process-dropdowns">
+          {taskSelector.map(([label, ids]) => {
+            const isOpen = openCategory === label;
+            const choices = ids.map((id) => workflows.find((workflow) => workflow.id === id)).filter(Boolean);
+            return (
+              <section className={`process-dropdown ${isOpen ? "open" : ""}`} key={label}>
+                <button
+                  type="button"
+                  className="process-dropdown-toggle"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenCategory(isOpen ? "" : label)}
+                >
+                  <span className="mini-icon blue"><Icon name={label.includes("Product") ? "wind" : "route"} size={20} /></span>
+                  <span><strong>{label}</strong><small>Choose an issue</small></span>
                   <Icon name="chevron" size={18} />
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {category && !workflowId && (
-          <div>
-            <button className="back-button" type="button" onClick={reset}><Icon name="back" size={17} />Choose another need</button>
-            <span className="eyebrow">Step 2 of 3 · {category}</span>
-            <h2>What specifically happened?</h2>
-            <div className="task-choice-list">
-              {choices.map((workflow) => (
-                <button type="button" key={workflow.id} onClick={() => setWorkflowId(workflow.id)}>
-                  <span><strong>{workflow.title}</strong><small>{workflow.summary}</small></span>
-                  <Icon name="arrow" size={18} />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {selectedWorkflow && (
-          <div className="task-confirm">
-            <button className="back-button" type="button" onClick={() => setWorkflowId("")}><Icon name="back" size={17} />Change situation</button>
-            <span className="eyebrow">Step 3 of 3 · Confirm the task</span>
-            <h2>You selected:</h2>
-            <div className="selection-path"><span>{category}</span><Icon name="chevron" size={18} /><strong>{selectedWorkflow.title}</strong></div>
-            <p>{selectedWorkflow.summary}</p>
-            <div className="confirmation-actions">
-              <button className="secondary-button" type="button" onClick={reset}>Choose a different task</button>
-              <button className="primary-button" type="button" onClick={() => onOpen(selectedWorkflow.id)}>Yes, start this process <Icon name="arrow" size={17} /></button>
-            </div>
-          </div>
-        )}
+                {isOpen && (
+                  <div className="process-dropdown-menu">
+                    {choices.map((workflow) => (
+                      <button type="button" key={workflow.id} onClick={() => onOpen(workflow.id)}>
+                        <span><strong>{workflow.title}</strong><small>{workflow.summary}</small></span>
+                        <Icon name="arrow" size={18} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
       </section>
     </>
   );

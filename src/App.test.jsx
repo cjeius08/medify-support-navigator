@@ -101,3 +101,19 @@ describe("Process Playbook and agent coaching", () => {
     expect(screen.getAllByText("Evidence required").length).toBeGreaterThan(0);
   });
 });
+
+describe("Guided process navigation", () => {
+  it("uses simple dropdown groups and keeps Products & services", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Guided processes" }));
+
+    const products = screen.getByRole("button", { name: /products & services/i });
+    expect(products.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(products);
+
+    expect(products.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: /manual request/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /product detail profile/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /marketplace or reseller/i })).toBeNull();
+  });
+});

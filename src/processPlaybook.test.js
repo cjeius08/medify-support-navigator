@@ -85,4 +85,27 @@ describe("advanced guided-process structure", () => {
       }
     }
   });
+
+  it("writes a natural paperless-manual response", () => {
+    const response = build("WF-018", {
+      "manual-state": "Exact model confirmed; customer only needs the official manual",
+      communication: "The verified manual or setup request facts are ready to send"
+    }, { model: "MA-40", customer: "Sherry" });
+
+    expect(response.outputs.Email).toContain("paperless approach");
+    expect(response.outputs.Email).toContain("https://medifyair.com/pages/product-manuals");
+    expect(response.outputs.Email).not.toMatch(/exact model and manual with|contact us about your manual/i);
+    expect(response.outputs["Call Script"]).toMatch(/I can send you the PDF|download it/i);
+  });
+
+  it("does not describe a pending cancellation as completed", () => {
+    const response = build("WF-007", {
+      "cancellation-state": "Cancellation was requested and is still pending",
+      communication: "The order cancellation response requires authorized review"
+    });
+
+    expect(response.outputs.Email).toContain("still being reviewed");
+    expect(response.outputs.Email).toContain("not confirmed as canceled");
+    expect(response.outputs.Email).not.toMatch(/cancellation has been completed/i);
+  });
 });

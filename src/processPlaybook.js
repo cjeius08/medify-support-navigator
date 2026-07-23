@@ -235,6 +235,7 @@ export function createAdvancedFlows(verified) {
         standardCommunicationStep("carrier transit", verified)
       ]
     }),
+    "WF-007": cancellationFlow(verified),
     "WF-003": flow({
       title: "Delivered but not received",
       purpose: "Document delivery-location checks, preserve the unresolved waiting-period conflict, and avoid promising a carrier-claim remedy.",
@@ -510,6 +511,63 @@ function manualFlow(verified) {
         verified
       }),
       standardCommunicationStep("manual or setup request", verified)
+    ]
+  });
+}
+
+function cancellationFlow(verified) {
+  return flow({
+    title: "Order cancellation",
+    purpose: "Check whether the order can still be canceled and clearly separate a request from a completed cancellation.",
+    evidenceChecklist: ["Order number", "Current fulfillment status", "Cancellation request", "Confirmed cancellation result"],
+    scenario: "A customer asks to cancel an order, but the cancellation has not yet been confirmed.",
+    steps: [
+      guidedStep({
+        id: "cancellation-state",
+        title: "Check what has actually happened",
+        question: "What is the current cancellation status?",
+        options: [
+          option("Customer asked to cancel, but the request has not been submitted", {
+            status: "awaiting_internal_review",
+            pending: "The cancellation request still needs to be submitted.",
+            internal: "Customer requested cancellation; request not submitted"
+          }),
+          option("Cancellation was requested and is still pending", {
+            status: "awaiting_internal_review",
+            completed: "The cancellation request was submitted.",
+            pending: "The cancellation result has not been confirmed.",
+            internal: "Cancellation requested; result pending"
+          }),
+          option("Cancellation was completed and confirmed in the order system", {
+            status: "completed",
+            completed: "The order cancellation was completed.",
+            internal: "Cancellation completed",
+            required: [{ field: "reference", label: "Cancellation confirmation or order reference", kind: "internal" }]
+          }),
+          option("The order is already in fulfillment and cannot be canceled in the order system", {
+            status: "blocked",
+            fact: "The order has already entered fulfillment and cannot be canceled in the order system.",
+            pending: "The available delivery or return option still needs to be explained.",
+            internal: "Cancellation unavailable after fulfillment"
+          }),
+          option("The order status cannot be checked yet", {
+            status: "blocked",
+            missing: "Current order status",
+            pending: "The cancellation request cannot be confirmed until the order is checked.",
+            internal: "Order lookup required before cancellation update"
+          })
+        ],
+        need: "Order number, current fulfillment status, and the confirmed result of any cancellation attempt.",
+        why: "A customer request does not mean the order was canceled.",
+        ask: "May I have the order number so I can check whether it can still be canceled?",
+        evidence: "Current order-system status and cancellation confirmation.",
+        check: "Confirm the final result in the order system.",
+        action: "Tell the customer whether the request is pending, completed, or no longer available.",
+        notPromise: "Do not say the order is canceled until the order system confirms it.",
+        result: "A clear cancellation update and next step.",
+        verified
+      }),
+      standardCommunicationStep("order cancellation", verified)
     ]
   });
 }
