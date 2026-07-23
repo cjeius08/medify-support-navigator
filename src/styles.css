@@ -964,6 +964,89 @@ tbody th { min-width: 140px; color: var(--muted); }
   .toast { right: 14px; bottom: 88px; left: 14px; text-align: center; }
 }
 
+.decision-coach {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--brand-soft);
+}
+.decision-coach h3 { margin: 5px 0 14px; }
+.coach-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.coach-grid p {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.coach-grid strong { display: block; margin-bottom: 4px; color: var(--ink); }
+.playbook-list { display: grid; gap: 14px; }
+.playbook-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.playbook-card > summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+  list-style: none;
+}
+.playbook-card > summary::-webkit-details-marker { display: none; }
+.playbook-card > summary span:nth-child(2) { display: grid; gap: 4px; }
+.playbook-card > summary small { color: var(--muted); }
+.playbook-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--line);
+}
+.playbook-body > section { padding-top: 18px; }
+.playbook-body h3 { margin: 0 0 8px; }
+.playbook-body p, .playbook-body li { color: var(--muted); line-height: 1.55; }
+.playbook-decisions { grid-column: 1 / -1; }
+.playbook-decisions > details {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-alt);
+}
+.playbook-decisions > details > summary { padding: 14px; cursor: pointer; }
+.playbook-decisions > details > div { padding: 0 14px 14px; }
+.coach-example {
+  margin-top: 12px;
+  padding: 14px;
+  border-left: 3px solid var(--brand);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.coach-example h4, .coach-example p { margin: 0 0 7px; }
+.conflict-list { color: var(--danger); }
+.readiness-explanation {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.readiness-explanation.ready { background: var(--success-soft); }
+.readiness-explanation.blocked { background: var(--warning-soft); }
+.readiness-explanation p { margin: 4px 0 0; color: var(--muted); }
+
+@media (max-width: 680px) {
+  .coach-grid, .playbook-body { grid-template-columns: 1fr; }
+  .playbook-card > summary { grid-template-columns: auto 1fr; }
+  .playbook-card > summary .status-badge { grid-column: 2; justify-self: start; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }

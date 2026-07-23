@@ -1,3 +1,5 @@
+import { buildGuidedFlows, buildProcessPlaybooks } from "./processPlaybook.js";
+
 export const VERIFIED_ON = "July 23, 2026";
 const ASSET_BASE = import.meta.env?.BASE_URL ?? "/";
 
@@ -582,85 +584,8 @@ const specializedGuidedFlows = {
   }
 };
 
-function createGeneralFlow(process) {
-  return {
-    title: process.title,
-    purpose: `${process.summary} Follow the verified state from intake through customer communication without recording a requested or pending action as complete.`,
-    channel: "All",
-    status: process.status,
-    source: "Current official policy, model source, and approved internal procedure",
-    steps: [
-      {
-        id: "intake",
-        title: "Confirm the exact request",
-        question: "Is the customer’s exact situation and requested outcome confirmed?",
-        choices: ["Confirmed", "Partially confirmed", "Missing essential information", "Different process is needed"],
-        need: "Customer request, affected order/product/subscription, purchase channel, and relevant dates.",
-        why: "The same topic can require a different action depending on the purchase channel and current case state.",
-        ask: "To make sure I follow the correct process, may I confirm what happened and what outcome you are requesting?",
-        evidence: "Order, product, account, or conversation details needed for this specific task.",
-        check: "Match the request to the correct workflow and do not collect information that is not operationally needed.",
-        action: "Record confirmed facts and list each missing item separately.",
-        notPromise: "Do not promise the requested outcome before eligibility and system state are verified.",
-        result: "Correct task selected with a complete intake or an explicit Awaiting Customer state.",
-        source: "Current approved support process",
-        verified: VERIFIED_ON
-      },
-      {
-        id: "verification",
-        title: "Verify evidence and policy",
-        question: "What is the current verification state?",
-        choices: ["Required information verified", "Awaiting customer evidence", "Live-system check required", "Policy conflict — Needs Confirmation"],
-        need: "The evidence, current official policy, and live-system record required for the selected task.",
-        why: "A customer request, uploaded document, or elapsed timeframe does not prove eligibility or completion.",
-        ask: "I’m checking the information required for this request. I’ll confirm the next step once the applicable details are verified.",
-        evidence: "Only evidence required by the applicable current process.",
-        check: "Use the current official source first; preserve conflicts and route unresolved rules to the accountable owner.",
-        action: "Label the case Awaiting Customer, Awaiting Approval, Needs Confirmation, or ready for action.",
-        notPromise: "Do not invent a policy, exception, approval, date, tracking event, refund, replacement, or account change.",
-        result: "A documented eligibility state and a safe next action.",
-        source: "Official Medify source + approved internal procedure",
-        verified: VERIFIED_ON
-      },
-      {
-        id: "action-state",
-        title: "Confirm the actual action state",
-        question: "Which state is verified in the responsible system?",
-        choices: ["Information requested", "Action requested — pending", "Approval granted — action not completed", "Action completed and reference confirmed", "Escalated", "Resolved without further action"],
-        need: "Completed action, pending action, owner, confirmation/reference, and next checkpoint.",
-        why: "Requested, approved, created, processed, shipped, received, and resolved are different states.",
-        ask: "Here is what has been completed and what is still pending.",
-        evidence: "Live-system confirmation for any action described as completed.",
-        check: "Confirm the system event and reference before choosing a completed state.",
-        action: "Record completed and pending actions separately with the next owner and checkpoint.",
-        notPromise: "Do not convert a request or approval into a completed action.",
-        result: "One accurate operational state ready for channel-specific output.",
-        source: "Responsible live system or dated owner decision",
-        verified: VERIFIED_ON
-      },
-      {
-        id: "communication",
-        title: "Prepare the customer update",
-        question: "Is the response ready to send?",
-        choices: ["Ready to Send", "Draft — Review Required", "Awaiting Customer", "Awaiting Approval", "Needs Confirmation", "Escalated", "Completed"],
-        need: "Confirmed facts, customer action, internal action, pending item, owner, checkpoint, and prohibited promises.",
-        why: "The customer message and internal notes must describe the same case state.",
-        ask: "I’ll summarize the confirmed status, anything needed from you, and what happens next.",
-        evidence: "No additional evidence unless the selected status requires it.",
-        check: "Review names, numbers, dates, model/revision, links, placeholders, and every completion claim.",
-        action: "Generate email, chat, voice, and internal notes from the confirmed selections.",
-        notPromise: "Do not send while required information is missing or the output still contains unresolved placeholders.",
-        result: "Channel-ready wording or a clearly labeled draft with blockers.",
-        source: "Approved communication safeguards",
-        verified: VERIFIED_ON
-      }
-    ]
-  };
-}
-
-export const guidedFlows = Object.fromEntries(
-  workflows.map((process) => [process.id, specializedGuidedFlows[process.id] || createGeneralFlow(process)])
-);
+export const guidedFlows = buildGuidedFlows(workflows, specializedGuidedFlows, VERIFIED_ON);
+export const processPlaybooks = buildProcessPlaybooks(guidedFlows, workflows);
 
 export const sources = [
   ["SRC-101", "Process & Product Updates 2026", "Internal procedure updates", "Verified", "Updates through Jul 9, 2026", "https://sites.google.com/wagmisolutions.io/medify-air-internal-kb/process-product-updates-2026"],

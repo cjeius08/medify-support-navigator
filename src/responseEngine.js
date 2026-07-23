@@ -619,8 +619,11 @@ const unique = (items) => [...new Set(items.filter(Boolean))];
 const customerName = (details) => clean(details.customer) || "[Customer Name]";
 const fieldOr = (value, placeholder) => clean(value) || `[${placeholder}]`;
 
-export function getChoiceSemantic(workflowId, stepId, answer) {
-  return CHOICE_SEMANTICS[workflowId]?.[stepId]?.[answer] || GENERAL_SEMANTICS[answer] || semantic({
+export function getChoiceSemantic(workflowId, stepId, answer, step) {
+  return CHOICE_SEMANTICS[workflowId]?.[stepId]?.[answer]
+    || step?.coaching?.[answer]?.semantic
+    || GENERAL_SEMANTICS[answer]
+    || semantic({
     status: "blocked",
     pending: "This selection does not yet have an approved response rule.",
     internal: `Unmapped response selection: ${stepId}`,
@@ -634,13 +637,22 @@ function analyzeWorkflow({ workflowId, flow, answers, details }) {
     return {
       step,
       answer,
-      semantic: getChoiceSemantic(workflowId, step.id, answer)
+      semantic: getChoiceSemantic(workflowId, step.id, answer, step)
     };
   });
   const required = selections.flatMap((selection) => selection.semantic.required || []);
   const missingFields = required
     .filter((requirement) => !clean(details[requirement.field]))
     .map((requirement) => ({ ...requirement }));
+  const evidenceRequired = unique(selections
+    .filter((selection) => ["awaiting_customer", "blocked"].includes(selection.semantic.status))
+    .map((selection) => selection.step.evidence));
+  const evidenceReceived = unique(selections
+    .filter((selection) => ["verified_fact", "completed", "resolved", "awaiting_internal_review", "approved_not_completed"].includes(selection.semantic.status))
+    .map((selection) => selection.step.evidence));
+  const internalActions = unique(selections
+    .filter((selection) => ["awaiting_internal_review", "approved_not_completed", "blocked", "escalated"].includes(selection.semantic.status))
+    .map((selection) => selection.semantic.pending));
   return {
     selections,
     statuses: selections.map((selection) => selection.semantic.status),
@@ -652,7 +664,10 @@ function analyzeWorkflow({ workflowId, flow, answers, details }) {
     completedActions: unique(selections.map((selection) => selection.semantic.completed)),
     pendingActions: unique(selections.map((selection) => selection.semantic.pending)),
     customerActions: unique(selections.map((selection) => selection.semantic.customerAction)),
+    internalActions,
     internalFacts: unique(selections.map((selection) => selection.semantic.internal)),
+    evidenceReceived,
+    evidenceRequired,
     missingFields
   };
 }
@@ -660,6 +675,7 @@ function analyzeWorkflow({ workflowId, flow, answers, details }) {
 function determineReadiness(analysis) {
   const { statuses, missingInformation, pendingActions, missingFields } = analysis;
   if (statuses.includes("escalated")) return "Escalated";
+  if (statuses.includes("blocked") && analysis.selections.some(({ answer, semantic }) => /needs confirmation|conflict/i.test(`${answer} ${semantic.internal}`))) return "Needs Confirmation";
   if (statuses.includes("blocked")) return "Draft — Review Required";
   if (statuses.includes("awaiting_customer") || missingFields.some((item) => item.kind === "customer")) return "Awaiting Customer";
   if (statuses.includes("approved_not_completed") || missingFields.some((item) => item.kind === "internal")) return "Draft — Review Required";
@@ -859,7 +875,13 @@ function composeReturn({ answers, details, analysis }) {
 function composeGeneral({ flow, details, analysis }) {
   const title = flow.title.toLowerCase();
   const action = formatCustomerActions(analysis.customerActions);
-  let statusLine = "We have documented the verified information for your request.";
+  const confirmed = analysis.confirmedFacts.length
+    ? analysis.confirmedFacts.join(" ")
+    : "We have documented the information that can be safely confirmed so far.";
+  const completed = analysis.completedActions.length
+    ? analysis.completedActions.join(" ")
+    : "";
+  let statusLine = confirmed;
   if (analysis.statuses.includes("escalated")) {
     statusLine = "The request has been escalated for the appropriate authorized review.";
   } else if (analysis.statuses.includes("blocked")) {
@@ -873,13 +895,31 @@ function composeGeneral({ flow, details, analysis }) {
   } else if (analysis.statuses.includes("awaiting_internal_review")) {
     statusLine = "The request is still under review, so no unconfirmed outcome has been promised.";
   }
-  const requestLine = action || "We will confirm the next safe step after the remaining information or review is complete.";
-  const email = `Hi ${customerName(details)},\n\nThank you for contacting us about your ${title} request.\n\n${statusLine}\n\n${requestLine}\n\nBest,\nMedify Air Support`;
+  const pendingLine = analysis.pendingActions.length
+    ? analysis.pendingActions.join(" ")
+    : "";
+  const requestLine = action || pendingLine || "No additional customer information is required based on the selected path.";
+  const emailParts = [
+    `Hi ${customerName(details)},`,
+    `Thank you for contacting us about your ${title} request.`,
+    statusLine,
+    completed,
+    requestLine,
+    "Please let us know if you have questions about the confirmed next step.",
+    "Best,\nMedify Air Support"
+  ].filter(Boolean);
+  const email = emailParts.join("\n\n");
+  const chatParts = [statusLine, completed, action || pendingLine].filter(Boolean).slice(0, 3);
+  const callParts = [
+    `I understand you’re contacting us about ${title}.`,
+    statusLine,
+    action ? `The next thing I need from you is: ${action}` : pendingLine
+  ].filter(Boolean);
   return {
     outputs: {
       Email: email,
-      Chat: `${statusLine} ${requestLine}`,
-      "Call Script": `Thank you for confirming the details. ${statusLine} ${requestLine}`,
+      Chat: chatParts.join(" "),
+      "Call Script": callParts.join(" "),
       "Internal Notes": makeInternalNotes({ details, reason: flow.title, analysis })
     },
     suggestedTitle: "Suggested customer response"
@@ -888,7 +928,6 @@ function composeGeneral({ flow, details, analysis }) {
 
 export function buildWorkflowResponse({ workflowId, flow, answers, details = {} }) {
   const analysis = analyzeWorkflow({ workflowId, flow, answers, details });
-  const readiness = determineReadiness(analysis);
   const composer = workflowId === "WF-012"
     ? composeWarranty
     : workflowId === "WF-005"
@@ -896,9 +935,16 @@ export function buildWorkflowResponse({ workflowId, flow, answers, details = {} 
       : workflowId === "WF-009"
         ? composeReturn
         : composeGeneral;
+  const composed = composer({ flow, answers, details, analysis });
+  let readiness = determineReadiness(analysis);
+  if (readiness === "Ready to Send" && OUTPUT_CHANNELS
+    .filter((channel) => channel !== "Internal Notes")
+    .some((channel) => /\[[^\]]+\]/.test(composed.outputs[channel]))) {
+    readiness = "Draft — Missing Information";
+  }
   return {
     ...analysis,
-    ...composer({ flow, answers, details, analysis }),
+    ...composed,
     readiness
   };
 }
