@@ -258,6 +258,41 @@ code { border-radius: 6px; background: var(--surface-alt); padding: 3px 6px; }
 
 /* Guided task selector */
 .task-selector { padding: clamp(24px, 4vw, 42px); }
+.process-dropdowns { display: grid; gap: 12px; }
+.process-dropdown { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.process-dropdown-toggle {
+  width: 100%;
+  min-height: 72px;
+  padding: 15px 18px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.process-dropdown-toggle > span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+.process-dropdown-toggle small, .process-dropdown-menu small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.process-dropdown.open .process-dropdown-toggle { background: var(--brand-soft); }
+.process-dropdown.open .process-dropdown-toggle > .icon:last-child { transform: rotate(90deg); }
+.process-dropdown-menu { display: grid; border-top: 1px solid var(--line); }
+.process-dropdown-menu button {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  padding: 15px 18px 15px 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.process-dropdown-menu button:last-child { border-bottom: 0; }
+.process-dropdown-menu button > span { display: grid; gap: 3px; flex: 1; }
+.process-dropdown-menu button:hover { background: var(--surface-muted); }
 .selector-progress { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 34px; }
 .selector-progress span { border-top: 4px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 800; padding-top: 9px; }
 .selector-progress span.current { border-color: var(--brand); color: var(--brand-strong); }

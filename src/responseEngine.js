@@ -926,6 +926,69 @@ function composeGeneral({ flow, details, analysis }) {
   };
 }
 
+function composeManualRequest({ answers, details, analysis }) {
+  const state = answers["manual-state"];
+  const model = clean(details.model);
+  let emailBody;
+  let chat;
+  let call;
+
+  if (state === "Model or revision is not confirmed") {
+    emailBody = "We’d be happy to send you the correct manual. Could you please share the model number shown on the label of your air purifier? Once we have it, we can send you the matching PDF.";
+    chat = "We’d be happy to send the correct manual. What model number is shown on the label of your air purifier?";
+    call = "I can help you get the correct manual. May I have the model number shown on the label of your air purifier? Once I have that, I can send the matching PDF.";
+  } else if (state === "The request is actually a troubleshooting issue") {
+    emailBody = `Thank you for letting us know. Since you need help with how the unit is working, we’ll first confirm the exact model${model ? `, ${model},` : ""} and then walk through the correct steps for that unit.`;
+    chat = `It sounds like you need troubleshooting help rather than only a manual. Let’s confirm the exact model first so we can give you the correct steps.`;
+    call = "It sounds like the unit needs troubleshooting rather than only a copy of the manual. Let’s confirm the exact model first, and then I’ll guide you through the correct steps.";
+  } else {
+    const modelText = model ? ` for your ${model}` : "";
+    const setupLine = state === "Exact model confirmed; customer also needs setup guidance"
+      ? " If you tell us which setup step you’re working on, we’ll also be happy to help."
+      : "";
+    emailBody = `Medify Air has moved to a paperless approach, so printed manuals are no longer included with our air purifiers. You can download the official manual${modelText} from our Product Manuals page:\n\nhttps://medifyair.com/pages/product-manuals\n\nWe can also send you the matching PDF directly.${setupLine}`;
+    chat = `Our manuals are now digital as part of Medify Air’s paperless approach. You can download the manual${modelText} at https://medifyair.com/pages/product-manuals, or we can send you the PDF directly.${setupLine}`;
+    call = `We’ve moved to a paperless approach, so printed manuals are no longer included with the purifier. I can send you the PDF for${model ? ` the ${model}` : " your exact model"}, or you can download it from the Product Manuals page on our website.${setupLine}`;
+  }
+
+  return {
+    outputs: {
+      Email: `Hi ${customerName(details)},\n\nThank you for reaching out. ${emailBody}\n\nPlease let us know which option is easier for you, and we’ll be happy to help.\n\nBest,\nMedify Air Support`,
+      Chat: chat,
+      "Call Script": call,
+      "Internal Notes": makeInternalNotes({ details, reason: `Manual or setup assistance${model ? ` for ${model}` : ""}`, analysis })
+    },
+    suggestedTitle: "Suggested manual response"
+  };
+}
+
+function composeCancellation({ answers, details, analysis }) {
+  const state = answers["cancellation-state"];
+  let update;
+
+  if (state === "Customer asked to cancel, but the request has not been submitted") {
+    update = "I understand that you’d like to cancel the order. We still need to check the order status and submit the cancellation request, so the order is not canceled yet.";
+  } else if (state === "Cancellation was requested and is still pending") {
+    update = "Your cancellation request has been submitted and is still being reviewed. The order is not confirmed as canceled yet, but we’ll update you as soon as the result is available.";
+  } else if (state === "Cancellation was completed and confirmed in the order system") {
+    update = `Your order cancellation has been completed${clean(details.order) ? ` for order ${details.order}` : ""}.`;
+  } else if (state === "The order is already in fulfillment and cannot be canceled in the order system") {
+    update = "The order has already entered fulfillment, so we’re unable to cancel it in the order system. We can still explain the available next option based on the shipment status.";
+  } else {
+    update = "I understand that you’d like to cancel the order. We first need to check its current status before we can confirm whether cancellation is still possible.";
+  }
+
+  return {
+    outputs: {
+      Email: `Hi ${customerName(details)},\n\nThank you for reaching out about your order. ${update}\n\nPlease let us know if you have any questions while we complete the next step.\n\nBest,\nMedify Air Support`,
+      Chat: update,
+      "Call Script": `I understand you’d like to cancel the order. ${update.replace(/^I understand that you’d like to cancel the order\.?\s*/i, "")}`.trim(),
+      "Internal Notes": makeInternalNotes({ details, reason: `Order cancellation${clean(details.order) ? ` for order ${details.order}` : ""}`, analysis })
+    },
+    suggestedTitle: "Suggested cancellation response"
+  };
+}
+
 export function buildWorkflowResponse({ workflowId, flow, answers, details = {} }) {
   const analysis = analyzeWorkflow({ workflowId, flow, answers, details });
   const composer = workflowId === "WF-012"
@@ -934,7 +997,11 @@ export function buildWorkflowResponse({ workflowId, flow, answers, details = {} 
       ? composeDamagedShipment
       : workflowId === "WF-009"
         ? composeReturn
-        : composeGeneral;
+        : workflowId === "WF-018"
+          ? composeManualRequest
+          : workflowId === "WF-007"
+            ? composeCancellation
+            : composeGeneral;
   const composed = composer({ flow, answers, details, analysis });
   let readiness = determineReadiness(analysis);
   if (readiness === "Ready to Send" && OUTPUT_CHANNELS
