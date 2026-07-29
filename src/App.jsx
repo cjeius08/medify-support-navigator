@@ -36,8 +36,7 @@ export default function App() {
   const running = Boolean(start && !stop);
   const seconds = useMemo(() => start ? Math.max(0, Math.floor(((stop || now) - start) / 1000)) : 0, [start, stop, now]);
   const noteRows = Object.entries(fields).map(([label, value]) => label === "JA" ? `JA${value ? `: ${value}` : ""}` : `${label}: ${value || "Not provided"}`);
-  const report = [`Call Started: ${when(start)}`, `Call Ended: ${when(stop)}`, `Call Duration: ${elapsed(seconds)}`, "", ...noteRows].join("\n");
-  const savedForCurrentCall = reports.some((item) => item.start === start && item.stop === stop);
+  const report = const report = noteRows.join("\n");  const savedForCurrentCall = reports.some((item) => item.start === start && item.stop === stop);
   const groupedReports = useMemo(() => {
     const groups = reports.reduce((all, item) => {
       const key = periodKey(reportDate(item), reportType);
