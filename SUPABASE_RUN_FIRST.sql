@@ -58,6 +58,9 @@ create policy "reports: own inserts" on public.medify_call_reports for insert to
 with check (agent_id = auth.uid() and exists (select 1 from public.medify_profiles where id = auth.uid() and is_active));
 create policy "reports: own deletes or creator" on public.medify_call_reports for delete to authenticated
 using (agent_id = auth.uid() or public.medify_is_creator());
+create policy "reports: own updates or creator" on public.medify_call_reports for update to authenticated
+using (agent_id = auth.uid() or public.medify_is_creator())
+with check (agent_id = auth.uid() or public.medify_is_creator());
 
 create or replace function public.medify_redeem_invite(p_code text, p_username text, p_initials text)
 returns public.medify_profiles language plpgsql security definer set search_path = public
@@ -94,7 +97,7 @@ $$;
 
 revoke all on public.medify_profiles, public.medify_invite_codes, public.medify_call_reports from anon;
 grant select, insert, update on public.medify_profiles to authenticated;
-grant select, insert, delete on public.medify_call_reports to authenticated;
+grant select, insert, update, delete on public.medify_call_reports to authenticated;
 grant execute on function public.medify_redeem_invite(text, text, text) to authenticated;
 grant execute on function public.medify_create_invite(text, text) to authenticated;
 
