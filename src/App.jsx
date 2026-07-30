@@ -168,9 +168,12 @@ export default function App() {
     setReports((current) => current.map((item) => item.id === editingReport.id ? updated : item));
     setEditingReport(null);
     setToast("Call time updated.");
-    if (profile?.id && editingReport.remote) {
-      const { error } = await supabase.from("medify_call_reports").update({ started_at: new Date(nextStart).toISOString(), stopped_at: new Date(nextStop).toISOString(), duration_seconds: nextSeconds }).eq("id", editingReport.id).eq("agent_id", profile.id);
+    if (profile?.id) {
+      let query = supabase.from("medify_call_reports").update({ started_at: new Date(nextStart).toISOString(), stopped_at: new Date(nextStop).toISOString(), duration_seconds: nextSeconds }).eq("agent_id", profile.id);
+      query = editingReport.remote ? query.eq("id", editingReport.id) : query.eq("started_at", new Date(editingReport.start).toISOString()).eq("stopped_at", new Date(editingReport.stop).toISOString());
+      const { error } = await query;
       if (error) setToast(`Updated on this device, but online update failed: ${error.message}`);
+      else setToast("Call time updated and saved.");
     }
   };
   const copy = () => navigator.clipboard?.writeText(report).then(() => setToast("Copied to clipboard")).catch(() => setToast("Copy was blocked. Please select the text manually."));
