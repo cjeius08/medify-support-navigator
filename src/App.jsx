@@ -15,12 +15,17 @@ const readAgentInitials = () => { const saved = localStorage.getItem("medify-age
 const remoteToLocal = (row) => ({ id: row.id, start: new Date(row.started_at).getTime(), stop: new Date(row.stopped_at).getTime(), seconds: row.duration_seconds, fields: row.note_fields || {}, callDriver: row.call_driver, savedAt: new Date(row.created_at).getTime() });
 const detectCallDriver = (fields) => {
   const notes = `${fields["Reason for Calling"] || ""} ${fields["ACTION TAKEN"] || ""}`.toLowerCase();
+  if (/(filter club|subscription|filter\b).*(cancel|cancell?ation|stop|skip)|(?:cancel|cancell?ation|stop|skip).*(filter club|subscription|filter\b)/.test(notes)) return "Filter Club Cancellation";
   if (/filter club|subscription|subscribe|filter\b|skip.*(order|shipment)|next (order|shipment)/.test(notes)) return "Filter Club";
-  if (/return|refund|cancel(?!.*subscription)|send.*back/.test(notes)) return "Return / Refund / Cancellation";
+  if (/return|refund|send.*back/.test(notes)) return "Return / Refund";
+  if (/cancel|cancell?ation/.test(notes)) return "Order Cancellation";
   if (/warranty|replacement|replace.*unit|defective/.test(notes)) return "Warranty / Replacement";
-  if (/not working|won't turn|will not turn|noise|rattle|squeak|smell|odor|red light|filter light|troubleshoot|airflow|power/.test(notes)) return "Troubleshooting";
+  if (/not working|won't turn|will not turn|noise|rattle|squeak|smell|odor|red light|filter light|troubleshoot|troubleshooting|diagnos|reset|airflow|power/.test(notes)) return "Troubleshooting";
+  if (/(ups|carrier|package|shipment|delivery).*(lost|missing)|(?:lost|missing).*(ups|carrier|package|shipment|delivery)/.test(notes)) return "UPS Lost";
+  if (/(ups|carrier|package|shipment|delivery).*(damaged|damage|broken)|(?:damaged|damage|broken).*(ups|carrier|package|shipment|delivery)/.test(notes)) return "UPS Damaged";
+  if (/discount|coupon|promo|promotion|price match|price adjustment/.test(notes)) return "Discount";
+  if (/hsa|fsa|flex spending|medical necessity/.test(notes)) return "HSA/FSA";
   if (/tracking|track\b|shipping|shipment|delivery|delivered|package|address|carrier|ups|order status/.test(notes)) return "Order / Shipping";
-  if (/payment|charge|charged|discount|coupon|promo|fsa|hsa|price|invoice/.test(notes)) return "Payment / Discount / FSA";
   return "General Inquiry";
 };
 const reportDate = (record) => new Date(record.stop || record.start || record.savedAt);
