@@ -67,6 +67,7 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [editingReport, setEditingReport] = useState(null);
   const [editStart, setEditStart] = useState("");
+  const [editMinutes, setEditMinutes] = useState("");
   const [editSeconds, setEditSeconds] = useState("");
   const running = Boolean(start && !stop);
   const seconds = useMemo(() => start ? Math.max(0, Math.floor(((stop || now) - start) / 1000)) : 0, [start, stop, now]);
@@ -143,12 +144,14 @@ export default function App() {
   };
   const clearCall = () => { setFields(blank); setEmailFields(blankEmail); setStart(null); setStop(null); setNow(Date.now()); setView("notes"); setToast("Current call cleared. Saved reports were kept."); };
   const clearHistory = () => { if (window.confirm("Clear all saved call reports on this device? This cannot be undone.")) { setReports([]); setToast("All saved report history was cleared."); } };
-  const beginEditReport = (item) => { setEditingReport(item); setEditStart(localDateTime(item.start)); setEditSeconds(String(item.seconds)); };
+  const beginEditReport = (item) => { setEditingReport(item); setEditStart(localDateTime(item.start)); setEditMinutes(String(Math.floor(item.seconds / 60))); setEditSeconds(String(item.seconds % 60)); };
   const saveEditedReport = async () => {
     const nextStart = new Date(editStart).getTime();
-    const nextSeconds = Number(editSeconds);
+    const nextMinutes = Number(editMinutes);
+    const remainingSeconds = Number(editSeconds);
+    const nextSeconds = (nextMinutes * 60) + remainingSeconds;
     const nextStop = nextStart + (nextSeconds * 1000);
-    if (!Number.isFinite(nextStart) || !Number.isInteger(nextSeconds) || nextSeconds < 0) { setToast("Please enter a valid duration in whole seconds."); return; }
+    if (!Number.isFinite(nextStart) || !Number.isInteger(nextMinutes) || !Number.isInteger(remainingSeconds) || nextMinutes < 0 || remainingSeconds < 0 || remainingSeconds > 59) { setToast("Please enter valid minutes and seconds. Seconds must be from 0 to 59."); return; }
     const updated = { ...editingReport, start: nextStart, stop: nextStop, seconds: nextSeconds };
     setReports((current) => current.map((item) => item.id === editingReport.id ? updated : item));
     setEditingReport(null);
