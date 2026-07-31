@@ -77,3 +77,11 @@ body{background:#f1f7fa;color:#1b2d3c}.app{background:#f1f7fa}
 .status,.metrics span{background:#edf2f5;color:#5d7080}.metrics b{color:#075b91}.rows div{border-color:#e1ebef}.call-list details{border-color:#dce8ed;background:#fbfdfe}.call-list summary small{color:#6b7d89}.empty-state{border-color:#b7ced9;background:#f8fcfe;color:#617484}.report-tabs{background:#fff;border-color:#d7e3e9}.report-filters input,.report-filters select{background:#fff;color:#172d3d}.edit-overlay{background:rgba(16,46,76,.38)}.edit-dialog{background:#fff}.toast{background:#12334d;color:#fff}
 .page:has(.timer-card){display:block}.page:has(.timer-card)>.timer-card,.page:has(.timer-card)>section.card,.page:has(.timer-card)>.bottom{grid-column:auto;grid-row:auto}.home-saved-reports{display:none}
 @media(max-width:760px){.header{align-items:flex-start;flex-direction:column;padding:14px 18px}.nav{order:3;margin:0;width:100%;gap:4px}.header-actions{width:100%;justify-content:space-between}.timer-card{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions button{flex:1}.page{width:min(100% - 24px,1040px);padding:30px 0 60px}.bottom>button{width:100%}}
+
+/* Compact Call Notes fields */
+.fields:has(.note-field){grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fields:has(.note-field) .field{min-width:0;gap:4px}
+.fields:has(.note-field) input,.fields:has(.note-field) select{min-height:36px;padding:7px 9px;font-size:12px}
+.fields:has(.note-field) .note-field textarea{min-height:58px;height:58px;padding:7px 9px;font-size:12px;line-height:1.35}
+.note-field{grid-column:span 1;min-width:0}
+@media(max-width:560px){.fields:has(.note-field){grid-template-columns:1fr}.note-field{grid-column:1}}
