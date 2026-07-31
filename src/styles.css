@@ -86,3 +86,9 @@ body{background:#f1f7fa;color:#1b2d3c}.app{background:#f1f7fa}
 .note-field{grid-column:span 1;min-width:0}
 /* Keep Call Notes in a compact two-column layout even in a narrow window. */
 @media(max-width:560px){.fields:has(.note-field){grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.fields:has(.note-field) .field span{font-size:10px}.fields:has(.note-field) input,.fields:has(.note-field) select,.fields:has(.note-field) .note-field textarea{font-size:11px;padding:6px 7px}.fields:has(.note-field) .note-field textarea{height:54px;min-height:54px}}
+
+.email-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.email-fields .field{min-width:0;gap:4px}.email-fields input,.email-fields select{min-height:36px;padding:7px 9px;font-size:12px}
+.email-fields .email-note-field textarea{height:58px;min-height:58px;padding:7px 9px;font-size:12px;line-height:1.35}
+.invite-row{align-items:flex-start}.invite-row code{display:block;margin-top:4px;color:#17658f;font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}.invite-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.invite-actions button{min-height:30px;font-size:11px;padding:5px 8px}
+@media(max-width:560px){.email-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.email-fields .field span{font-size:10px}.email-fields input,.email-fields select,.email-fields .email-note-field textarea{font-size:11px;padding:6px 7px}.email-fields .email-note-field textarea{height:54px;min-height:54px}.invite-row{flex-direction:column}.invite-actions{width:100%;justify-content:flex-start}}

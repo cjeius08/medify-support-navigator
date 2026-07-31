@@ -16,12 +16,14 @@ create table public.medify_profiles (
 
 create table public.medify_invite_codes (
   id uuid primary key default gen_random_uuid(),
+  code_value text,
   code_hash text not null,
   role public.medify_role not null default 'agent',
   created_by uuid references public.medify_profiles(id) on delete set null,
   used_by uuid unique references public.medify_profiles(id) on delete set null,
   used_at timestamptz,
   revoked_at timestamptz,
+  deactivated_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -38,6 +40,10 @@ create table public.medify_call_reports (
 );
 
 create index medify_reports_agent_date on public.medify_call_reports(agent_id, stopped_at desc);
+
+-- Safe additions for existing installations.
+alter table public.medify_invite_codes add column if not exists code_value text;
+alter table public.medify_invite_codes add column if not exists deactivated_at timestamptz;
 
 alter table public.medify_profiles enable row level security;
 alter table public.medify_invite_codes enable row level security;
@@ -76,7 +82,7 @@ begin
   if p_username !~ '^[a-z0-9_]{3,24}$' then raise exception 'Use 3-24 lowercase letters, numbers, or underscores.'; end if;
   if p_initials not in ('JA', 'FA') then raise exception 'Choose a valid initials option.'; end if;
   select * into code_row from public.medify_invite_codes
-    where used_at is null and revoked_at is null and crypt(p_code, code_hash) = code_hash
+    where used_at is null and revoked_at is null and deactivated_at is null and crypt(p_code, code_hash) = code_hash
     limit 1 for update;
   if code_row.id is null then raise exception 'That access code is invalid, used, or revoked.'; end if;
   insert into public.medify_profiles (id, username, initials, role)
@@ -94,8 +100,8 @@ begin
   if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
   if length(trim(p_code)) < 8 then raise exception 'Use an access code with at least 8 characters.'; end if;
   if p_initials not in ('JA', 'FA') then raise exception 'Choose a valid initials option.'; end if;
-  insert into public.medify_invite_codes (code_hash, role, created_by)
-    values (crypt(p_code, gen_salt('bf')), 'agent', auth.uid()) returning id into invite_id;
+  insert into public.medify_invite_codes (code_value, code_hash, role, created_by)
+    values (trim(p_code), crypt(p_code, gen_salt('bf')), 'agent', auth.uid()) returning id into invite_id;
   return invite_id;
 end;
 $$;
@@ -111,12 +117,35 @@ begin
 end;
 $$;
 
+create or replace function public.medify_deactivate_invite(p_id uuid)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+begin
+  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
+  update public.medify_invite_codes set deactivated_at = now()
+    where id = p_id and used_at is null and revoked_at is null and deactivated_at is null;
+  return found;
+end;
+$$;
+
+create or replace function public.medify_delete_invite(p_id uuid)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+begin
+  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
+  delete from public.medify_invite_codes where id = p_id;
+  return found;
+end;
+$$;
+
 revoke all on public.medify_profiles, public.medify_invite_codes, public.medify_call_reports from anon;
 grant select, insert, update on public.medify_profiles to authenticated;
 grant select, insert, update, delete on public.medify_call_reports to authenticated;
 grant execute on function public.medify_redeem_invite(text, text, text) to authenticated;
 grant execute on function public.medify_create_invite(text, text) to authenticated;
 grant execute on function public.medify_revoke_invite(uuid) to authenticated;
+grant execute on function public.medify_deactivate_invite(uuid) to authenticated;
+grant execute on function public.medify_delete_invite(uuid) to authenticated;
 
 -- IMPORTANT: choose a private Creator code, then replace CHANGE_THIS_CREATOR_CODE before running.
 insert into public.medify_invite_codes (code_hash, role)
