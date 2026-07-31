@@ -84,4 +84,5 @@ body{background:#f1f7fa;color:#1b2d3c}.app{background:#f1f7fa}
 .fields:has(.note-field) input,.fields:has(.note-field) select{min-height:36px;padding:7px 9px;font-size:12px}
 .fields:has(.note-field) .note-field textarea{min-height:58px;height:58px;padding:7px 9px;font-size:12px;line-height:1.35}
 .note-field{grid-column:span 1;min-width:0}
-@media(max-width:560px){.fields:has(.note-field){grid-template-columns:1fr}.note-field{grid-column:1}}
+/* Keep Call Notes in a compact two-column layout even in a narrow window. */
+@media(max-width:560px){.fields:has(.note-field){grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.fields:has(.note-field) .field span{font-size:10px}.fields:has(.note-field) input,.fields:has(.note-field) select,.fields:has(.note-field) .note-field textarea{font-size:11px;padding:6px 7px}.fields:has(.note-field) .note-field textarea{height:54px;min-height:54px}}
