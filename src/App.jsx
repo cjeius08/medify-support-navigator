@@ -231,7 +231,7 @@ export default function App() {
 
   return <main className="app">
     <header className="header">
-      <button className="brand" type="button" onClick={() => setView("notes")}><img src={`${import.meta.env.BASE_URL}medify-logo.svg`} alt="Medify Air" /><span>Support tools</span></button>
+      <button className="brand" type="button" onClick={() => setView("notes")}><img src={`${import.meta.env.BASE_URL}medify-logo.svg`} alt="Medify Air" /><span>Navigator</span></button>
       <nav className="nav" aria-label="Main navigation"><button className={view === "notes" ? "nav-button active" : "nav-button"} onClick={() => setView("notes")}>Call notes</button><button className={view === "email" ? "nav-button active" : "nav-button"} onClick={() => setView("email")}>Email notes</button><button className={view === "reports" ? "nav-button active" : "nav-button"} onClick={() => setView("reports")}>Reports <b>{reports.length}</b></button><button className={view === "drivers" ? "nav-button active" : "nav-button"} onClick={() => setView("drivers")}>Call drivers</button>{profile.role === "creator" && <button className={view === "admin" ? "nav-button active" : "nav-button"} onClick={() => setView("admin")}>Admin</button>}</nav>
       <div className="header-actions">{view === "summary" && <button className="text-button" onClick={() => setView("notes")}>← Back to notes</button>}<button className="clear-button" onClick={clearCall}>Clear for next call</button><button className="text-button" onClick={signOut}>Sign out</button></div>
     </header>
