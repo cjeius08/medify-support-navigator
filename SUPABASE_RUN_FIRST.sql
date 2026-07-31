@@ -47,6 +47,11 @@ create or replace function public.medify_is_creator()
 returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.medify_profiles where id = auth.uid() and role = 'creator' and is_active) $$;
 
+create policy "invites: creator reads" on public.medify_invite_codes for select to authenticated
+using (public.medify_is_creator());
+create policy "invites: creator updates" on public.medify_invite_codes for update to authenticated
+using (public.medify_is_creator()) with check (public.medify_is_creator());
+
 create policy "profiles: own or creator" on public.medify_profiles for select to authenticated
 using (id = auth.uid() or public.medify_is_creator());
 create policy "profiles: creator updates" on public.medify_profiles for update to authenticated
@@ -95,11 +100,23 @@ begin
 end;
 $$;
 
+create or replace function public.medify_revoke_invite(p_id uuid)
+returns boolean language plpgsql security definer set search_path = public
+as $$
+begin
+  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
+  update public.medify_invite_codes set revoked_at = now()
+    where id = p_id and used_at is null and revoked_at is null;
+  return found;
+end;
+$$;
+
 revoke all on public.medify_profiles, public.medify_invite_codes, public.medify_call_reports from anon;
 grant select, insert, update on public.medify_profiles to authenticated;
 grant select, insert, update, delete on public.medify_call_reports to authenticated;
 grant execute on function public.medify_redeem_invite(text, text, text) to authenticated;
 grant execute on function public.medify_create_invite(text, text) to authenticated;
+grant execute on function public.medify_revoke_invite(uuid) to authenticated;
 
 -- IMPORTANT: choose a private Creator code, then replace CHANGE_THIS_CREATOR_CODE before running.
 insert into public.medify_invite_codes (code_hash, role)
