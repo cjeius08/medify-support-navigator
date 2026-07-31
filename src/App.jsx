@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase, usernameEmail } from "./supabase";
 
 const blank = { "Spoke With": "", "Name on the Account": "", "Order Num": "", "Email Address": "", "Contact #": "", "Reason for Calling": "", "ACTION TAKEN": "", "Offered FC/Cross Sell": "", "AC Call ID": "" };
@@ -76,6 +76,8 @@ export default function App() {
   const [editingReport, setEditingReport] = useState(null);
   const [editStart, setEditStart] = useState("");
   const [editTotalSeconds, setEditTotalSeconds] = useState("");
+  const dialogReturnFocusRef = useRef(null);
+  const pageHeadingRef = useRef(null);
   const running = Boolean(start && !stop);
   const seconds = useMemo(() => start ? Math.max(0, Math.floor(((stop || now) - start) / 1000)) : 0, [start, stop, now]);
   const noteRows = [...Object.entries(fields).map(([label, value]) => `${label}: ${value || "Not provided"}`), agentInitials];
@@ -142,6 +144,26 @@ export default function App() {
   useEffect(() => { localStorage.setItem("medify-agent-initials", agentInitials); }, [agentInitials]);
   useEffect(() => { localStorage.setItem("medify-active-call-draft", JSON.stringify({ fields, emailFields, start, stop, now })); }, [fields, emailFields, start, stop, now]);
   useEffect(() => { const draft = readDraft(); if (draft) { if (draft.fields) setFields(draft.fields); if (draft.emailFields) setEmailFields(draft.emailFields); if (draft.start) setStart(draft.start); if (draft.stop) setStop(draft.stop); if (draft.now) setNow(draft.now); } }, []);
+  useEffect(() => {
+    pageHeadingRef.current?.focus();
+  }, [view]);
+  useEffect(() => {
+    if (!editingReport) return undefined;
+    dialogReturnFocusRef.current = document.activeElement;
+    const dialog = document.querySelector(".edit-dialog");
+    const focusable = () => [...dialog.querySelectorAll("button, input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter((node) => !node.disabled);
+    dialog?.querySelector("input")?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); setEditingReport(null); return; }
+      if (event.key !== "Tab" || !dialog) return;
+      const nodes = focusable(); if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("keydown", onKeyDown); window.setTimeout(() => dialogReturnFocusRef.current?.focus?.(), 0); };
+  }, [editingReport]);
 
   const update = (label, value) => setFields((current) => ({ ...current, [label]: value }));
   const updateEmail = (label, value) => setEmailFields((current) => ({ ...current, [label]: value }));
@@ -239,15 +261,16 @@ export default function App() {
   if (authLoading) return <main className="app"><section className="page auth-page"><section className="card"><p className="eyebrow">Medify Support Navigator</p><h1>Loading secure access…</h1></section></section></main>;
   if (!session || !profile) return <main className="app"><section className="page auth-page"><div className="intro"><p className="eyebrow">Secure team workspace</p><h1>Medify Support Navigator</h1><p>Sign in with your username and PIN, or activate a one-time access code.</p></div><section className="card auth-card"><div className="heading"><div><h2>{authMode === "login" ? "Sign in" : "Activate access"}</h2><p className="auth-helper">No email address is required.</p></div><span className="tag">{authMode === "login" ? "Team account" : "Invite only"}</span></div><form className="fields" onSubmit={submitAuth}><label className="field"><span>Username</span><input required autoCapitalize="none" value={authFields.username} onChange={(event) => setAuthFields({ ...authFields, username: event.target.value })} /></label><label className="field"><span>PIN / passcode</span><input required minLength="8" type="password" value={authFields.password} onChange={(event) => setAuthFields({ ...authFields, password: event.target.value })} /></label>{authMode === "signup" && <><label className="field"><span>One-time access code</span><input required value={authFields.code} onChange={(event) => setAuthFields({ ...authFields, code: event.target.value })} /></label><label className="field"><span>Initials</span><select value={authFields.initials} onChange={(event) => setAuthFields({ ...authFields, initials: event.target.value })}><option value="JA">JA</option><option value="FA">FA</option></select></label></>}<div className="bottom"><button className="report-button" disabled={authBusy}>{authBusy ? "Please wait…" : authMode === "login" ? "Sign in" : "Activate account"}</button></div></form>{authError && <p className="auth-error" role="alert">{authError}</p>}<button className="text-button" onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>{authMode === "login" ? "I have an access code → Activate account" : "Already activated? → Sign in"}</button></section></section></main>;
 
+  const navButton = (id, label, count) => <button className={view === id ? "nav-button active" : "nav-button"} aria-current={view === id ? "page" : undefined} onClick={() => setView(id)}>{label}{count !== undefined && <b aria-label={`${count} saved reports`}>{count}</b>}</button>;
   return <main className="app">
     <header className="header">
       <button className="brand" type="button" onClick={() => setView("notes")}><img src={`${import.meta.env.BASE_URL}medify-logo.svg`} alt="Medify Air" /><span>Navigator</span></button>
-      <nav className="nav" aria-label="Main navigation"><button className={view === "notes" ? "nav-button active" : "nav-button"} onClick={() => setView("notes")}>Call notes</button><button className={view === "email" ? "nav-button active" : "nav-button"} onClick={() => setView("email")}>Email notes</button><button className={view === "reports" ? "nav-button active" : "nav-button"} onClick={() => setView("reports")}>Reports <b>{reports.length}</b></button><button className={view === "drivers" ? "nav-button active" : "nav-button"} onClick={() => setView("drivers")}>Call drivers</button>{profile.role === "creator" && <button className={view === "admin" ? "nav-button active" : "nav-button"} onClick={() => setView("admin")}>Admin</button>}</nav>
+      <nav className="nav" aria-label="Main navigation">{navButton("notes", "Call notes")}{navButton("email", "Email notes")}{navButton("reports", "Reports", reports.length)}{navButton("drivers", "Call drivers")}{profile.role === "creator" && navButton("admin", "Admin")}</nav>
       <div className="header-actions">{view === "summary" && <button className="text-button" onClick={() => setView("notes")}>← Back to notes</button>}<button className="clear-button" onClick={clearCall}>Clear for next call</button><button className="text-button" onClick={signOut}>Sign out</button></div>
     </header>
     {view === "notes" && <section className="page">
-      <div className="intro"><p className="eyebrow">Single-call workspace</p><h1>Call / Ticket Note Generator</h1><p>Start the timer when the call begins, add information as you go, then stop it before opening the report summary.</p></div>
-      <section className="timer-card"><div><p className="eyebrow">Call timer</p><strong className="timer" aria-live="polite">{elapsed(seconds)}</strong><p>{running ? "Call timer is running" : stop ? "Call timer stopped" : "Timer has not started"}</p></div><div className="actions"><button className="start-button" disabled={running} onClick={startTimer}>{start && stop ? "Start new timer" : "Start"}</button><button className="stop-button" disabled={!running} onClick={stopTimer}>Stop</button><button className="clear-button" onClick={clearCall}>Clear fields</button></div></section>
+      <div className="intro"><p className="eyebrow">Single-call workspace</p><h1 ref={pageHeadingRef} tabIndex="-1">Call / Ticket Note Generator</h1><p>Start the timer when the call begins, add information as you go, then stop it before opening the report summary.</p></div>
+      <section className="timer-card" aria-labelledby="timer-heading"><div><p className="eyebrow" id="timer-heading">Call timer</p><strong className="timer" aria-label={`Elapsed call time: ${elapsed(seconds)}`}>{elapsed(seconds)}</strong><p className="timer-status" role="status">{running ? "Call timer is running" : stop ? "Call timer stopped" : "Timer has not started"}</p></div><div className="actions"><button className="start-button" aria-label={start && stop ? "Start a new call timer" : "Start call timer"} disabled={running} onClick={startTimer}>{start && stop ? "Start new timer" : "Start"}</button><button className="stop-button" aria-label="Stop call timer and save report" disabled={!running} onClick={stopTimer}>Stop</button><button className="clear-button" onClick={clearCall}>Clear fields</button></div></section>
       <section className="card"><div className="heading"><div><p className="eyebrow">Call details</p><h2>Ticket information</h2></div><span className="tag">Call notes</span></div><div className="fields">{Object.entries(fields).map(([label, value]) => { const isNote = label === "Reason for Calling" || label === "ACTION TAKEN"; return <label className={isNote ? `field note-field ${label === "Reason for Calling" ? "note-reason" : "note-action"}` : "field"} key={label}><span>{label}</span>{isNote ? <textarea rows="2" value={value} placeholder={label === "Reason for Calling" ? "Why is the customer contacting us?" : "Write completed actions, pending actions, and next steps."} onChange={(e) => update(label, e.target.value)} /> : <input value={value} onChange={(e) => update(label, e.target.value)} />}</label>; })}<label className="field"><span>Your initials</span><select value={agentInitials} onChange={(e) => setAgentInitials(e.target.value)}>{agentInitialOptions.map((initials) => <option key={initials} value={initials}>{initials}</option>)}</select></label></div></section>
       <section className="card"><div className="heading"><div><p className="eyebrow">Copy-ready note</p><h2>Ticket note preview</h2></div><button className="secondary-button" onClick={copy}>Copy notes</button></div><pre>{report}</pre></section>
       <section className="card home-saved-reports"><div className="heading"><div><p className="eyebrow">Saved calls</p><h2>Saved Reports</h2></div><button className="secondary-button" onClick={() => setView("reports")}>View all reports</button></div><div className="call-list">{reports.slice(0, 3).map((item) => <details key={item.id}><summary><span><strong>{item.fields["Spoke With"] || "Unnamed caller"}</strong><small>{item.fields["Order Num"] ? `Order: ${item.fields["Order Num"]}` : when(item.stop)}</small></span><b>{elapsed(item.seconds)}</b></summary></details>)}</div></section>
