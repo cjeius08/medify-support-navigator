@@ -457,6 +457,11 @@ pre {
 .duration-inputs input { min-width: 0; }
 .duration-inputs > span { color: var(--ink-500); font-size: 20px; font-weight: 800; }
 .duration-preview { color: var(--ink-400); font-size: 12px; font-weight: 700; }
+.edit-time-tabs { display: flex; gap: 8px; }
+.edit-time-tabs button { padding: 6px 14px; font-size: 12px; }
+.edit-time-tabs button.active { border-color: var(--brand); background: var(--brand-100); color: var(--brand-dark); font-weight: 750; }
+.minsec-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+
 
 /* ---------- Auth screen ---------- */
 
