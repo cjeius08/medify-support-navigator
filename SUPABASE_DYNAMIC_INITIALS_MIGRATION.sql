@@ -31,6 +31,16 @@ begin
  if upper(trim(p_initials)) in ('JA','FA') and not p_active then raise exception 'JA and FA must remain active.'; end if;
  update public.medify_agent_initials set active=p_active where initials=upper(trim(p_initials)); return found;
 end; $$;
+create or replace function public.medify_delete_agent_initial(p_initials text) returns boolean language plpgsql security definer set search_path=public as $$
+declare v text:=upper(trim(p_initials)); used_count integer;
+begin
+ if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
+ if v in ('JA','FA') then raise exception 'JA and FA must remain.'; end if;
+ select count(*) into used_count from public.medify_profiles where initials=v;
+ if used_count>0 then raise exception 'This initials entry is assigned to an existing user. Deactivate it instead to preserve history.'; end if;
+ delete from public.medify_agent_initials where initials=v;
+ return found;
+end; $$;
 create or replace function public.medify_create_invite(p_code text,p_initials text default 'FA') returns uuid language plpgsql security definer set search_path=public as $$
 declare invite_id uuid; v text:=upper(trim(p_initials)); begin
  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
@@ -52,6 +62,7 @@ end; $$;
 grant select on public.medify_agent_initials to authenticated;
 grant execute on function public.medify_add_agent_initial(text) to authenticated;
 grant execute on function public.medify_set_agent_initial_active(text,boolean) to authenticated;
+grant execute on function public.medify_delete_agent_initial(text) to authenticated;
 grant execute on function public.medify_create_invite(text,text) to authenticated;
 grant execute on function public.medify_redeem_invite(text,text,text) to authenticated;
 commit;

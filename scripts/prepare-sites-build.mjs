@@ -1,4 +1,4 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, stat, writeFile } from "node:fs/promises";
 
 await mkdir("dist/server", { recursive: true });
 await mkdir("dist/.openai", { recursive: true });
@@ -14,4 +14,9 @@ await writeFile(
 `
 );
 
-await cp(".openai/hosting.json", "dist/.openai/hosting.json");
+try {
+  await stat(".openai/hosting.json");
+  await cp(".openai/hosting.json", "dist/.openai/hosting.json");
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+}
