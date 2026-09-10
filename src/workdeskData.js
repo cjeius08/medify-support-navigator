@@ -91,14 +91,22 @@ export function detectCallDriver(fields = {}) {
 }
 
 export function buildNote(fields, agentInitials) {
-  return [...Object.entries(fields).map(([key, value]) => `${key}: ${value || "Not provided"}`), `Agent Initials: ${agentInitials || "Not provided"}`].join("\n");
+  return [...Object.entries(fields).map(([key, value]) => `${key}: ${value || "Not provided"}`), agentInitials || "Not provided"].join("\n");
+}
+
+export function buildCallNote(fields = {}, agentInitials) {
+  const orderedFields = [
+    "Spoke With", "Name on the Account", "Order Num", "Email Address", "Contact #",
+    "Reason for Calling", "ACTION TAKEN", "Offered FC/Cross Sell", "AC Call ID"
+  ];
+  return [...orderedFields.map((key) => `${key}: ${fields[key] || "Not provided"}`), agentInitials || "Not provided"].join("\n");
 }
 
 export function buildFilterNote(filter, agentInitials) {
   const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => quantity > 0);
   return [
     "Swapped Filter Subscription", "Filter(s):", ...(selected.length ? selected.map(([sku, quantity]) => `${sku} x${quantity}`) : ["Not provided"]),
-    `Reason: ${filter.reason || "Not provided"}`, ...(filter.notes ? [`Additional Notes: ${filter.notes}`] : []), `Agent Initials: ${agentInitials || "Not provided"}`
+    `Reason: ${filter.reason || "Not provided"}`, ...(filter.notes ? [`Additional Notes: ${filter.notes}`] : []), agentInitials || "Not provided"
   ].join("\n");
 }
 
@@ -114,14 +122,14 @@ export function buildOrderNote(order, code, agentInitials) {
   const displayCode = (code?.[0] || "").replaceAll("XXXXXX", order["Order ID"] || "XXXXXX");
   return [
     ...CASE_FIELDS.map((field) => `${field}: ${order[field] || "Not provided"}`), `Category: ${order.category || "Not provided"}`,
-    `Reason Code: ${displayCode || "Not provided"}`, `Description: ${code?.[1] || "Not provided"}`, `Agent Initials: ${agentInitials || "Not provided"}`
+    `Reason Code: ${displayCode || "Not provided"}`, `Description: ${code?.[1] || "Not provided"}`, agentInitials || "Not provided"
   ].join("\n");
 }
 
 export function buildClaimNote(claim, agentInitials) {
   return [
     `Claim Number: ${claim["Claim Number"] || "Not provided"}`, `Tracking Number: ${claim["Tracking Number"] || "Not provided"}`,
-    `Claim Status: ${claim["Claim Status"] || "Not provided"}`, ...(claim.invoice ? ["Uploaded Invoice"] : []), `Agent Initials: ${agentInitials || "Not provided"}`
+    `Claim Status: ${claim["Claim Status"] || "Not provided"}`, ...(claim.invoice ? ["Uploaded Invoice"] : []), agentInitials || "Not provided"
   ].join("\n");
 }
 
