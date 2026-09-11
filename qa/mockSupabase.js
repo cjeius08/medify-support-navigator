@@ -17,8 +17,10 @@ export function sampleReports() {
   });
 }
 
-export function createMockSupabase({ signedIn = true, persist = false } = {}) {
+export function createMockSupabase({ signedIn = true, persist = false, profile = { id: "qa-user", username: "qa-user", initials: "JA", role: "creator", is_active: true }, users, functionErrors = {} } = {}) {
   let rows = persist ? JSON.parse(localStorage.getItem(storageKey) || "null") || sampleReports() : sampleReports();
+  let currentProfile = { ...profile };
+  let profiles = users || [currentProfile, { id: "fa-user", username: "fa-user", initials: "FA", role: "agent", is_active: true }, { id: "old-user", username: "old-user", initials: "CJ", role: "agent", is_active: false }];
   let listener;
   const session = signedIn ? { user: { id: "qa-user" } } : null;
   const commit = () => { if (persist) localStorage.setItem(storageKey, JSON.stringify(rows)); };
@@ -30,11 +32,21 @@ export function createMockSupabase({ signedIn = true, persist = false } = {}) {
       signInWithPassword: async () => ({ error: { message: "Example sign-in error. No authentication request was sent." } }),
       signUp: async () => ({ data: { session: null }, error: { message: "Example activation error. No account was created." } })
     },
+    functions: {
+      invoke: async (_name, { body }) => {
+        const action = body.action;
+        if (functionErrors[action]) return { data: null, error: { message: functionErrors[action] } };
+        if (action === "update-self") { currentProfile = { ...currentProfile, username: body.username }; profiles = profiles.map((item) => item.id === currentProfile.id ? currentProfile : item); return { data: { profile: currentProfile }, error: null }; }
+        if (action === "rename-user") { const target = profiles.find((item) => item.id === body.target_user_id); if (!target) return { data: null, error: { message: "User not found." } }; const updated = { ...target, username: body.username }; profiles = profiles.map((item) => item.id === target.id ? updated : item); return { data: { profile: updated }, error: null }; }
+        return { data: null, error: { message: "Unknown account action." } };
+      }
+    },
     rpc: async () => ({ data: `qa-${Date.now()}`, error: null }),
     from(table) {
       let operation = "select", payload, target;
       const result = () => {
-        if (table === "medify_profiles") return { data: { id: "qa-user", initials: "CJ", role: "creator" }, error: null };
+        if (table === "medify_profiles") return { data: target ? currentProfile : profiles, error: null };
+        if (table === "medify_user_presence") return { data: [], error: null };
         if (table === "medify_agent_initials") return { data: [{ initials: "CJ", active: true }, { initials: "FA", active: true }, { initials: "JA", active: true }], error: null };
         if (table === "medify_invite_codes") return { data: [], error: null };
         if (operation === "insert") { const row = { ...payload, id: `qa-saved-${Date.now()}` }; rows = [row, ...rows]; commit(); return { data: row, error: null }; }

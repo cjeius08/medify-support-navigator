@@ -43,7 +43,7 @@ describe("preserved workspace workflows", () => {
     click("Photos requested"); expect(screen.getByLabelText("ACTION TAKEN").value).toBe("Checked order.\nPhotos requested");
     fireEvent.click(screen.getByLabelText("Follow-up needed")); change("Follow-up Date", "2026-09-20"); change("Follow-up Note", "Review photos");
     fireEvent.click(tool("Call Notes").getAllByRole("button", {name:"Copy Note"})[0]);
-    await waitFor(() => expect(copyText).toHaveBeenCalledWith(buildCallNote({...BLANK_CALL, "Spoke With":"QA Caller", "Reason for Calling":"Warranty question", "ACTION TAKEN":"Checked order.\nPhotos requested"}, "CJ")));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith(buildCallNote({...BLANK_CALL, "Spoke With":"QA Caller", "Reason for Calling":"Warranty question", "ACTION TAKEN":"Checked order.\nPhotos requested"}, "JA")));
     expect(JSON.parse(localStorage.getItem("medify-active-call-draft")).followup).toEqual({needed:true,date:"2026-09-20",note:"Review photos"});
     click("Reset", tool("Call Notes")); expect(screen.getByLabelText("Spoke With").value).toBe(""); expect(screen.getByLabelText("Follow-up needed").checked).toBe(false);
   });
@@ -52,7 +52,7 @@ describe("preserved workspace workflows", () => {
     await openApp(); change("Reason", "Variant Error"); change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
     click("Decrease MA-50R-1"); change("Additional Notes", "Different variant received"); click("Copy Note", tool("Swapped Filter Subscription"));
-    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nAdditional Notes: Different variant received\nCJ"));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nAdditional Notes: Different variant received\nJA"));
     click("Recent"); expect(screen.getByRole("dialog",{name:"Recent utility notes"})).toBeTruthy(); click("Close recent notes");
     click("Remove MA-50R-1"); expect(screen.queryByLabelText("MA-50R-1 quantity")).toBeNull();
     change("Filter Model(s)", "ZZZZ"); expect(screen.getByText("No matching SKU. Try a model like MA-50.")).toBeTruthy();
@@ -73,11 +73,11 @@ describe("preserved workspace workflows", () => {
   it("preserves UPS claim fields and invoice flag, and editable general templates", async () => {
     await openApp(); const claim = tool("UPS Claim"), general = tool("Email / General Case Notes");
     change("Claim Number", "QA-CLAIM"); change("Tracking Number", "1Z-TEST"); change("Claim Status", "Package Search In Progress"); fireEvent.click(screen.getByLabelText("Uploaded Invoice")); click("Copy Note", claim);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Claim Number: QA-CLAIM\nTracking Number: 1Z-TEST\nClaim Status: Package Search In Progress\nUploaded Invoice\nCJ"));
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Claim Number: QA-CLAIM\nTracking Number: 1Z-TEST\nClaim Status: Package Search In Progress\nUploaded Invoice\nJA"));
     click("Reset", claim); expect(screen.getByLabelText("Uploaded Invoice").checked).toBe(false);
     change("Order ID", "QA-456", general); change("Saved template", "Warranty Photo Request"); expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
     change("Resolution", "Requested a clear photo", general); click("Copy Note", general);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Order ID: QA-456\nOrder Date: Not provided\nSKU: Not provided\nIssue: Warranty photo request\nResolution: Requested a clear photo\nCJ"));
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Order ID: QA-456\nOrder Date: Not provided\nSKU: Not provided\nIssue: Warranty photo request\nResolution: Requested a clear photo\nJA"));
     click("Reset", general); expect(general.getByLabelText("Issue").value).toBe("");
   });
 
@@ -150,6 +150,23 @@ describe("authentication presentation", () => {
     await screen.findByRole("alert");expect(signIn).toHaveBeenCalledWith({email:"qa-user@medify.local",password:"example-passcode"});
     click("I have an access code");expect(screen.getByLabelText("One-time access code")).toBeTruthy();change("One-time access code","qa-access-code");change("Assigned initials","FA");fireEvent.submit(button("Activate account").closest("form"));
     await waitFor(()=>expect(signUp).toHaveBeenCalledWith({email:"qa-user@medify.local",password:"example-passcode"}));
+  });
+});
+
+describe("account management", () => {
+  it("shows a regular user only their own Account controls", async () => {
+    mock.client = createMockSupabase({ profile: { id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, users: [{ id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, { id: "other-user", username: "other-user", initials: "CJ", role: "agent", is_active: true }] });
+    await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
+    expect(within(settings).getByRole("heading", { name: "Account" })).toBeTruthy(); expect(within(settings).getByText(/agent-user/)).toBeTruthy(); expect(within(settings).queryByText("User accounts")).toBeNull(); expect(within(settings).queryByRole("button", { name: "Save username" })).toBeNull();
+  });
+
+  it("lets JA see every registered username and marks the current account", async () => {
+    await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
+    await waitFor(() => expect(within(settings).getByText("User accounts")).toBeTruthy()); expect(within(settings).getByText(/JA \(you\)/)).toBeTruthy(); expect(within(settings).getByText("fa-user")).toBeTruthy(); expect(within(settings).getByText("old-user")).toBeTruthy(); expect(within(settings).getAllByText("Password reset needed")).toHaveLength(3);
+  });
+
+  it.each(["Authentication update failed: auth unavailable", "Profile update failed: profile unavailable"])("shows account service errors instead of success: %s", async (errorMessage) => {
+    await openApp(); mock.client.functions.invoke = vi.fn().mockResolvedValue({ data: null, error: { message: errorMessage } }); click("Settings"); const settings = within(screen.getByRole("dialog", { name: "Workspace settings" })); change("Username", "new_user", settings); click("Save account changes", settings); await waitFor(() => expect(settings.getByRole("status").textContent).toBe(errorMessage)); expect(settings.queryByText("Account details updated.")).toBeNull();
   });
 });
 
