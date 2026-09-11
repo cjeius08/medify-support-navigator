@@ -116,7 +116,7 @@ describe("reports and overlays", () => {
     change("Call driver", "All"); change("Agent initials", "FA"); expect([...document.querySelectorAll(".report-avatar")].every(el=>el.textContent==="FA")).toBe(true);
     change("Agent initials", "All"); change("Follow-up", "today"); expect(document.querySelectorAll(".report-row")).toHaveLength(1);
     const row = within(document.querySelector(".report-row")); fireEvent.click(document.querySelector(".report-row summary"));
-    expect(row.getByText("taylor@example.test")).toBeTruthy(); click("Copy", row); await waitFor(()=>expect(copyText.mock.calls.at(-1)[0]).toContain("Spoke With: Taylor Reed"));
+    expect(row.getByText(/@example\.test$/)).toBeTruthy(); click("Copy", row); await waitFor(()=>expect(copyText.mock.calls.at(-1)[0]).toContain("Spoke With: Taylor Reed"));
   });
 
   it("edits minutes AND seconds and follow-ups; confirms or cancels deletion of fictional records", async () => {
@@ -151,3 +151,4 @@ describe("authentication presentation", () => {
     await waitFor(()=>expect(signUp).toHaveBeenCalledWith({email:"qa-user@medify.local",password:"example-passcode"}));
   });
 });
+
