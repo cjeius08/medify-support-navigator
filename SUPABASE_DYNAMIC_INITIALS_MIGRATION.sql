@@ -8,7 +8,7 @@ create table if not exists public.medify_agent_initials (
   created_at timestamptz not null default now(),
   created_by uuid references public.medify_profiles(id) on delete set null
 );
-insert into public.medify_agent_initials (initials, active) values ('JA',true),('FA',true) on conflict (initials) do nothing;
+insert into public.medify_agent_initials (initials, active) values ('JA',true) on conflict (initials) do nothing;
 alter table public.medify_profiles drop constraint if exists medify_profiles_initials_check;
 alter table public.medify_profiles add constraint medify_profiles_initials_format_check check (initials=upper(initials) and initials ~ '^[A-Z0-9]{1,4}$') not valid;
 alter table public.medify_profiles validate constraint medify_profiles_initials_format_check;
@@ -19,6 +19,8 @@ alter table public.medify_invite_codes validate constraint medify_invite_codes_a
 alter table public.medify_agent_initials enable row level security;
 drop policy if exists "agent initials: authenticated reads" on public.medify_agent_initials;
 create policy "agent initials: authenticated reads" on public.medify_agent_initials for select to authenticated using (true);
+drop policy if exists "agent initials: public activation reads" on public.medify_agent_initials;
+create policy "agent initials: public activation reads" on public.medify_agent_initials for select to anon using (true);
 create or replace function public.medify_add_agent_initial(p_initials text) returns text language plpgsql security definer set search_path=public as $$
 declare v text:=upper(trim(p_initials)); begin
  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
@@ -28,14 +30,14 @@ exception when unique_violation then raise exception 'That initials entry alread
 create or replace function public.medify_set_agent_initial_active(p_initials text,p_active boolean) returns boolean language plpgsql security definer set search_path=public as $$
 begin
  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
- if upper(trim(p_initials)) in ('JA','FA') and not p_active then raise exception 'JA and FA must remain active.'; end if;
+ if upper(trim(p_initials)) = 'JA' and not p_active then raise exception 'JA must remain active.'; end if;
  update public.medify_agent_initials set active=p_active where initials=upper(trim(p_initials)); return found;
 end; $$;
 create or replace function public.medify_delete_agent_initial(p_initials text) returns boolean language plpgsql security definer set search_path=public as $$
 declare v text:=upper(trim(p_initials)); used_count integer;
 begin
  if not public.medify_is_creator() then raise exception 'Creator access required.'; end if;
- if v in ('JA','FA') then raise exception 'JA and FA must remain.'; end if;
+ if v = 'JA' then raise exception 'JA is the creator initials and cannot be removed.'; end if;
  select count(*) into used_count from public.medify_profiles where initials=v;
  if used_count>0 then raise exception 'This initials entry is assigned to an existing user. Deactivate it instead to preserve history.'; end if;
  delete from public.medify_agent_initials where initials=v;
@@ -60,6 +62,7 @@ declare c public.medify_invite_codes; p public.medify_profiles; v text:=upper(tr
  update public.medify_invite_codes set used_by=auth.uid(),used_at=now() where id=c.id; return p;
 end; $$;
 grant select on public.medify_agent_initials to authenticated;
+grant select on public.medify_agent_initials to anon;
 grant execute on function public.medify_add_agent_initial(text) to authenticated;
 grant execute on function public.medify_set_agent_initial_active(text,boolean) to authenticated;
 grant execute on function public.medify_delete_agent_initial(text) to authenticated;

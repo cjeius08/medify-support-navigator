@@ -9,8 +9,8 @@ begin
   if not public.medify_is_creator() then
     raise exception 'Creator access required.';
   end if;
-  if v in ('JA','FA') then
-    raise exception 'JA and FA must remain.';
+  if v = 'JA' then
+    raise exception 'JA is the creator initials and cannot be removed.';
   end if;
   select count(*) into used_count from public.medify_profiles where initials=v;
   if used_count > 0 then
