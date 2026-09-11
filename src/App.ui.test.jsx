@@ -116,7 +116,8 @@ describe("reports and overlays", () => {
     change("Call driver", "All"); change("Agent initials", "FA"); expect([...document.querySelectorAll(".report-avatar")].every(el=>el.textContent==="FA")).toBe(true);
     change("Agent initials", "All"); change("Follow-up", "today"); expect(document.querySelectorAll(".report-row")).toHaveLength(1);
     const row = within(document.querySelector(".report-row")); fireEvent.click(document.querySelector(".report-row summary"));
-    expect(row.getByText(/@example\.test$/)).toBeTruthy(); click("Copy", row); await waitFor(()=>expect(copyText.mock.calls.at(-1)[0]).toContain("Spoke With: Taylor Reed"));
+    const email = row.getByText(/@example\.test$/).textContent; expect(email).toMatch(/@example\.test$/); click("Copy", row);
+    await waitFor(()=>expect(copyText.mock.calls.at(-1)[0]).toMatch(/^Spoke With: /)); expect(copyText.mock.calls.at(-1)[0]).toContain(email);
   });
 
   it("edits minutes AND seconds and follow-ups; confirms or cancels deletion of fictional records", async () => {
