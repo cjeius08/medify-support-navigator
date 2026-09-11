@@ -126,9 +126,9 @@ export function buildOrderNote(order, code, agentInitials) {
   ].join("\n");
 }
 
-export function buildClaimNote(claim, agentInitials) {
+export function buildClaimNote(claim, agentInitials, number) {
   return [
-    `Claim Number: ${claim["Claim Number"] || "Not provided"}`, `Tracking Number: ${claim["Tracking Number"] || "Not provided"}`,
+    ...(number ? [`Claim ${number} — ${claim.type || "Damaged"}`] : [`Claim Type: ${claim.type || "Damaged"}`]), `Claim Number: ${claim["Claim Number"] || "Not provided"}`, `Tracking Number: ${claim["Tracking Number"] || "Not provided"}`,
     `Claim Status: ${claim["Claim Status"] || "Not provided"}`, ...(claim.invoice ? ["Uploaded Invoice"] : []), agentInitials || "Not provided"
   ].join("\n");
 }
