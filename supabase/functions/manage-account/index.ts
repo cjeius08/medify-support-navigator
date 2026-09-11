@@ -32,21 +32,28 @@ Deno.serve(async (request) => {
 
   let body: { action?: string; username?: string; password?: string; target_user_id?: string };
   try { body = await request.json(); } catch { return reply({ error: "Invalid request body." }, 400); }
-  if (body.action !== "update-self" && body.action !== "rename-user") return reply({ error: "Unknown account action." }, 400);
+  if (body.action !== "update-self" && body.action !== "rename-user" && body.action !== "reset_password") return reply({ error: "Unknown account action." }, 400);
   if (body.action === "rename-user" && body.password !== undefined) return reply({ error: "Admin username changes cannot set another user's password." }, 403);
   const username = body.username?.trim().toLowerCase() || "";
-  if (!usernamePattern.test(username)) return reply({ error: "Use 3-24 lowercase letters, numbers, or underscores." }, 400);
+  if (body.action !== "reset_password" && !usernamePattern.test(username)) return reply({ error: "Use 3-24 lowercase letters, numbers, or underscores." }, 400);
   if (body.password !== undefined && body.password.length < 8) return reply({ error: "Password must be at least 8 characters." }, 400);
+  if (body.action === "reset_password" && (!body.password || body.password.length < 8)) return reply({ error: "Temporary password must be at least 8 characters." }, 400);
 
   const { data: actor, error: actorError } = await admin.from("medify_profiles").select("id,username,initials,role,is_active").eq("id", authData.user.id).single();
   if (actorError || !actor || !actor.is_active) return reply({ error: "Your active profile could not be verified." }, 403);
   const isCreator = actor.initials === "JA" && actor.role === "creator";
-  const targetId = body.action === "rename-user" ? body.target_user_id : authData.user.id;
+  const targetId = body.action === "rename-user" || body.action === "reset_password" ? body.target_user_id : authData.user.id;
   if (!targetId || (targetId !== authData.user.id && !isCreator)) return reply({ error: "You may only update your own account." }, 403);
-  if (body.action === "rename-user" && targetId === authData.user.id) return reply({ error: "Use your own account form for this username." }, 400);
+  if ((body.action === "rename-user" || body.action === "reset_password") && targetId === authData.user.id) return reply({ error: "Use your own account form for this account." }, 400);
+  if (body.action === "reset_password" && !isCreator) return reply({ error: "Only the JA creator may reset another user's password." }, 403);
 
   const { data: target, error: targetError } = await admin.from("medify_profiles").select("id,username,initials,role,is_active").eq("id", targetId).single();
   if (targetError || !target) return reply({ error: "User account was not found." }, 404);
+  if (body.action === "reset_password") {
+    const { error: resetError } = await admin.auth.admin.updateUserById(targetId, { password: body.password });
+    if (resetError) return reply({ error: `Password reset failed: ${resetError.message}` }, 409);
+    return reply({ profile: target });
+  }
   const { data: duplicate, error: duplicateError } = await admin.from("medify_profiles").select("id").eq("username", username).neq("id", targetId).maybeSingle();
   if (duplicateError) return reply({ error: "Could not verify username availability." }, 500);
   if (duplicate) return reply({ error: "That username is already in use." }, 409);

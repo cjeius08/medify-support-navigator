@@ -36,6 +36,9 @@ export function createMockSupabase({ signedIn = true, persist = false, profile =
       invoke: async (_name, { body }) => {
         const action = body.action;
         if (functionErrors[action]) return { data: null, error: { message: functionErrors[action] } };
+        if (action === "reset_password" && (currentProfile.initials !== "JA" || currentProfile.role !== "creator")) return { data: null, error: { message: "Only the JA creator may reset another user's password." } };
+        if (action === "reset_password" && (!body.password || body.password.length < 8)) return { data: null, error: { message: "Temporary password must be at least 8 characters." } };
+        if (action === "reset_password") return { data: { profile: profiles.find((item) => item.id === body.target_user_id) }, error: null };
         if (action === "update-self") { currentProfile = { ...currentProfile, username: body.username }; profiles = profiles.map((item) => item.id === currentProfile.id ? currentProfile : item); return { data: { profile: currentProfile }, error: null }; }
         if (action === "rename-user") { const target = profiles.find((item) => item.id === body.target_user_id); if (!target) return { data: null, error: { message: "User not found." } }; const updated = { ...target, username: body.username }; profiles = profiles.map((item) => item.id === target.id ? updated : item); return { data: { profile: updated }, error: null }; }
         return { data: null, error: { message: "Unknown account action." } };

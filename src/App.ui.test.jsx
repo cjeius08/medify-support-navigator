@@ -157,12 +157,23 @@ describe("account management", () => {
   it("shows a regular user only their own Account controls", async () => {
     mock.client = createMockSupabase({ profile: { id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, users: [{ id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, { id: "other-user", username: "other-user", initials: "CJ", role: "agent", is_active: true }] });
     await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
-    expect(within(settings).getByRole("heading", { name: "Account" })).toBeTruthy(); expect(within(settings).getByText(/agent-user/)).toBeTruthy(); expect(within(settings).queryByText("User accounts")).toBeNull(); expect(within(settings).queryByRole("button", { name: "Save username" })).toBeNull();
+    expect(within(settings).getByRole("heading", { name: "Account" })).toBeTruthy(); expect(within(settings).getByText(/agent-user/)).toBeTruthy(); expect(within(settings).queryByText("User accounts")).toBeNull(); expect(within(settings).queryByRole("button", { name: "Save username" })).toBeNull(); expect(within(settings).queryByRole("button", { name: "Reset password" })).toBeNull();
+    const result = await mock.client.functions.invoke("manage-account", { body: { action: "reset_password", target_user_id: "other-user", password: "temporary-pass" } }); expect(result.error.message).toContain("Only the JA creator");
   });
 
   it("lets JA see every registered username and marks the current account", async () => {
     await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
     await waitFor(() => expect(within(settings).getByText("User accounts")).toBeTruthy()); expect(within(settings).getByText(/JA \(you\)/)).toBeTruthy(); expect(within(settings).getByText("fa-user")).toBeTruthy(); expect(within(settings).getByText("old-user")).toBeTruthy(); expect(within(settings).getAllByText("Password reset needed")).toHaveLength(3);
+  });
+
+  it("lets JA reset a non-JA user's password through the secure function", async () => {
+    await openApp(); click("Settings"); const settings = within(screen.getByRole("dialog", { name: "Workspace settings" })); await waitFor(() => expect(settings.getByText("User accounts")).toBeTruthy());
+    const invoke = vi.spyOn(mock.client.functions, "invoke"); fireEvent.click(settings.getAllByRole("button", { name: "Reset password" })[0]); const modal = within(screen.getByRole("dialog", { name: /Reset password for/ })); change("New temporary password", "temporary-pass", modal); change("Confirm temporary password", "temporary-pass", modal); click("Reset password", modal);
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("manage-account", { body: { action: "reset_password", target_user_id: "fa-user", password: "temporary-pass" } })); await waitFor(() => expect(screen.getByText("Password reset successfully. Give this temporary password to the user and ask them to change it after signing in.")).toBeTruthy());
+  });
+
+  it("rejects reset validation errors before invoking the secure function", async () => {
+    await openApp(); click("Settings"); const settings = within(screen.getByRole("dialog", { name: "Workspace settings" })); await waitFor(() => expect(settings.getByText("User accounts")).toBeTruthy()); fireEvent.click(settings.getAllByRole("button", { name: "Reset password" })[0]); const modal = within(screen.getByRole("dialog", { name: /Reset password for/ })); click("Reset password", modal); expect(modal.getByRole("alert").textContent).toContain("at least 8 characters"); change("New temporary password", "temporary-pass", modal); change("Confirm temporary password", "different-pass", modal); click("Reset password", modal); expect(modal.getByRole("alert").textContent).toContain("must match");
   });
 
   it.each(["Authentication update failed: auth unavailable", "Profile update failed: profile unavailable"])("shows account service errors instead of success: %s", async (errorMessage) => {
