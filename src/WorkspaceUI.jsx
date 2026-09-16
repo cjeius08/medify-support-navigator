@@ -2,9 +2,9 @@ import { useEffect, useId, useRef } from "react";
 import Icon from "./Icon";
 import { PERIODS } from "./workdeskData";
 
-export function ToolCard({ title, icon, children, open, onToggle, className = "", id }) {
+export function ToolCard({ title, icon, children, open, onToggle, className = "", id, onUse }) {
   const panelId = useId();
-  return <section id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`}>
+  return <section id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`} onFocusCapture={onUse} onClickCapture={onUse}>
     <h2 className="card-heading"><button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}>
       <span className="card-icon"><Icon name={icon}/></span><span>{title}</span>
       <Icon name="chevron" className="collapse-chevron"/>

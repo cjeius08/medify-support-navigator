@@ -1,127 +1,4 @@
-export const CALL_FIELDS = [
-  "Spoke With", "Name on the Account", "Order Num", "Email Address", "Contact #",
-  "Reason for Calling", "ACTION TAKEN", "Offered FC/Cross Sell", "AC Call ID"
-];
-
-export const CASE_FIELDS = ["Order ID", "Order Date", "SKU", "Issue", "Resolution"];
-
-export const BLANK_CALL = Object.fromEntries(CALL_FIELDS.map((field) => [field, ""]));
-export const BLANK_CASE = Object.fromEntries(CASE_FIELDS.map((field) => [field, ""]));
-
-export const FILTER_SKUS = [
-  "MA-10R-2", "MA-12PROPR-1", "MA-12PROUR-1", "MA-14R-1", "MA-14R-2", "MA-15R-1", "MA-15R-2",
-  "MA-18R-1", "MA-18R-2", "MA-22R-1", "MA-25R-1", "MA-25R-2", "MA-35R-B1", "MA-35R-B2",
-  "MA-40E-1", "MA-40E-2", "MA-40UR-1", "MA-45R-1", "MA-50R-1", "MA-50R-2", "MA-50UR-1",
-  "MA-50UR-2", "MA-112PROR-1", "MA-112PROUR-1", "MA-112UR-1", "MA-125UR-1", "MA-125UR-2"
-];
-
-export const ORDER_CODES = {
-  "Warranty Replacement": [
-    ["WR-01", "Noise / Sound"], ["WR-02", "Smell / Odor"], ["WR-03", "LED / Light / Control Panel Issue"],
-    ["WR-04", "Power / Cord Issue"], ["WR-05", "Damaged Upon Delivery"], ["WR-06", "Damaged / Defective Filter"],
-    ["WR-07", "Fan Issue (Fan not turning)"], ["WR-08", "Other Issue / Defect"]
-  ],
-  "Free Order": [
-    ["PR/Influencer Request", "PR/Influencer Orders"], ["Sample Request", ""], ["Free Order | Goodwill |", "Donation"],
-    ["Compensation", "Service Failure or Inconvenience"]
-  ],
-  "Reprocessed Order": [
-    ["Missed Promotion", "Promotion was Not Applied at Checkout"], ["Rebuy | XXXXXX", "Order Was Not Captured by Extensiv"],
-    ["Stuck Order | XXXXXX", "Tracking Number is Generated, but No Movement"], ["Missing Item | XXXXXX", "Incomplete Order Fulfillment"],
-    ["Unfulfilled | XXXXXX", "The entire order has not been fulfilled"]
-  ],
-  UPS: [
-    ["UPS | Lost | XXXXXX", "Tracking Shows No Movement"], ["UPS | Damaged | XXXXXX", "Physical Damage to the Package"],
-    ["UPS | Failed Delivery | XXXXXX", "Failed Delivery"]
-  ],
-  Amazon: [
-    ["Amazon | Lost | XXXXXX", "Tracking Shows No Movement"], ["Amazon | Damaged | XXXXXX", "Physical Damage to the Package"],
-    ["Amazon | Stuck Order | XXXXXX", "Unshipped / Unfulfilled order/item in Amazon"]
-  ]
-};
-
-export const ACTION_SNIPPETS = [
-  "Photos requested", "Replacement processed", "UPS claim submitted", "Return label sent",
-  "Troubleshooting completed", "Filter Club offered", "Address updated", "Subscription updated"
-];
-
-export const EMAIL_TEMPLATES = {
-  "Delivered â€” Not Received": { Issue: "Delivered â€” Not Received", Resolution: "" },
-  "Warranty Photo Request": { Issue: "Warranty photo request", Resolution: "Photos requested for warranty review." },
-  "Cancellation Confirmation": { Issue: "Cancellation request", Resolution: "Cancellation confirmed." },
-  "Wrong Filter Return": { Issue: "Wrong filter received", Resolution: "Return instructions provided." },
-  "Address Update": { Issue: "Address update", Resolution: "Address updated." },
-  "Subscription Cancellation": { Issue: "Subscription cancellation", Resolution: "Subscription cancellation processed." }
-};
-
-export const CLAIM_STATUSES = ["Claim Issued", "Package Search In Progress", "On Going"];
-export const PERIODS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
-
-export function readStorage(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
-}
-
-export function formatClock(seconds) {
-  const value = Math.max(0, Math.floor(seconds || 0));
-  return new Date(value * 1000).toISOString().slice(11, 19);
-}
-
-export function formatDuration(seconds) {
-  const value = Math.max(0, Math.round(seconds || 0));
-  const hours = Math.floor(value / 3600);
-  const minutes = Math.floor((value % 3600) / 60);
-  const rest = value % 60;
-  return hours ? `${hours}h ${minutes}m ${rest}s` : `${minutes}m ${rest}s`;
-}
-
-export function detectCallDriver(fields = {}) {
-  const text = `${fields["Reason for Calling"] || ""} ${fields["ACTION TAKEN"] || ""}`.toLowerCase();
-  if (/(filter club|subscription|filter\b).*(cancel|stop|skip)|(?:cancel|stop|skip).*(filter club|subscription|filter\b)/.test(text)) return "Filter Club Cancellation";
-  if (/filter club|subscription|subscribe|filter\b/.test(text)) return "Filter Club";
-  if (/return|refund/.test(text)) return "Return / Refund";
-  if (/cancel/.test(text)) return "Order Cancellation";
-  if (/warranty|replacement|defective/.test(text)) return "Warranty / Replacement";
-  if (/not working|noise|smell|odor|power|troubleshoot|reset/.test(text)) return "Troubleshooting";
-  if (/(ups|package|shipment|delivery).*(lost|missing)|(?:lost|missing).*(ups|package|shipment|delivery)/.test(text)) return "UPS Lost";
-  if (/(ups|package|shipment|delivery).*(damaged|damage|broken)/.test(text)) return "UPS Damaged";
-  if (/discount|coupon|promo/.test(text)) return "Discount";
-  if (/hsa|fsa/.test(text)) return "HSA/FSA";
-  if (/tracking|shipping|delivery|address|carrier|ups|order status/.test(text)) return "Order / Shipping";
-  return "General Inquiry";
-}
-
-export function buildNote(fields, agentInitials) {
-  return [...Object.entries(fields).map(([key, value]) => `${key}: ${value || "Not provided"}`), agentInitials || "Not provided"].join("\n");
-}
-
-export function buildCallNote(fields = {}, agentInitials) {
-  const orderedFields = [
-    "Spoke With", "Name on the Account", "Order Num", "Email Address", "Contact #",
-    "Reason for Calling", "ACTION TAKEN", "Offered FC/Cross Sell", "AC Call ID"
-  ];
-  return [...orderedFields.map((key) => `${key}: ${fields[key] || "Not provided"}`), agentInitials || "Not provided"].join("\n");
-}
-
-export function buildFilterNote(filter, agentInitials) {
-  const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => quantity > 0);
-  return [
-    "Swapped Filter Subscription", "Filter(s):", ...(selected.length ? selected.map(([sku, quantity]) => `${sku} x${quantity}`) : ["Not provided"]),
-    `Reason: ${filter.reason || "Not provided"}`, ...(filter.notes ? [`Additional Notes: ${filter.notes}`] : []), agentInitials || "Not provided"
-  ].join("\n");
-}
-
-export function replacementCode(category, reasonCode, orderId) {
-  const id = orderId?.trim() || "XXXXXX";
-  const resolved = (reasonCode || "").replaceAll("XXXXXX", id).trim();
-  if (!resolved) return [category, id].filter(Boolean).join(" | ");
-  const labelled = resolved.startsWith(`${category} | `) ? resolved : [category, resolved].join(" | ");
-  return labelled.includes(id) ? labelled : `${labelled} | ${id}`;
-}
-
-export function buildOrderNote(order, code, agentInitials) {
-  const displayCode = (code?.[0] || "").replaceAll("XXXXXX", order["Order ID"] || "XXXXXX");
-  return [
-    ...CASE_FIELDS.map((field) => `${field}: ${order[field] || "Not provided"}`), `Category: ${order.category || "Not provided"}`,
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíßÏzN‹Z–‹­¦ëeŠw¬Õ•áÁ½ÉÐ½¹ÍÐ11}%1L€ôl(€€‰MÁ½­”]¥Ñ ˆ°€‰9…µ”½¸Ñ¡”½Õ¹Ðˆ°€‰=É‘•È9Õ´ˆ°€‰µ…¥°‘‘É•ÍÌˆ°€‰½¹Ñ…Ð€Œˆ°(€€‰I•…Í½¸™½È…±±¥¹œˆ°€‰Q%=8Q-8ˆ°€‰=™™•É•½É½ÍÌM•±°ˆ°€‰…±°%ˆ)tì()•áÁ½ÉÐ½¹ÍÐM}%1L€ôl‰=É‘•È%ˆ°€‰=É‘•È…Ñ”ˆ°€‰M-Tˆ°€‰%ÍÍÕ”ˆ°€‰I•Í½±ÕÑ¥½¸‰tì()•áÁ½ÉÐ½¹ÍÐ	19-}10€ô=‰©•Ð¹™É½µ¹ÑÉ¥•Ì¡11}%1L¹µ…À ¡™¥•±¤€ôøm™¥•±°€ˆ‰t¤¤ì)•áÁ½ÉÐ½¹ÍÐ	19-}M€ô=‰©•Ð¹™É½µ¹ÑÉ¥•Ì¡M}%1L¹µ…À ¡™¥•±¤€ôøm™¥•±°€ˆ‰t¤¤ì()•áÁ½ÉÐ½¹ÍÐ%1QI}M-UL€ôl(€€‰5´ÄÁH´Èˆ°€‰5´ÄÉAI=AH´Äˆ°€‰5´ÄÉAI=UH´Äˆ°€‰5´ÄÑH´Äˆ°€‰5´ÄÑH´Èˆ°€‰5´ÄÕH´Äˆ°€‰5´ÄÕH´Èˆ°(€€‰5´ÄáH´Äˆ°€‰5´ÄáH´Èˆ°€‰5´ÈÉH´Äˆ°€‰5´ÈÕH´Äˆ°€‰5´ÈÕH´Èˆ°€‰5´ÌÕHµÄˆ°€‰5´ÌÕHµÈˆ°€‰5´ÌÕHµ\Äˆ°€‰5´ÌÕHµ\Èˆ°(€€‰5´ÐÁ´Äˆ°€‰5´ÐÁ´Èˆ°€‰5´ÐÁUH´Äˆ°€‰5´ÐÁUH´Èˆ°€‰5´ÐÕH´Äˆ°€‰5´ÐÕH´Èˆ°€‰5´ÔÁH´Äˆ°€‰5´ÔÁH´Èˆ°€‰5´ÔÁUH´Äˆ°(€€‰5´ÔÁUH´Èˆ°€‰5´ÄÄÉAI=H´Äˆ°€‰5´ÄÄÉAI=UH´Äˆ°€‰5´ÄÄÉH´Äˆ°€‰5´ÄÄÉH´Èˆ°€‰5´ÄÄÉUH´Äˆ°€‰5´ÄÈÕH´Äˆ°€‰5´ÄÈÕUH´Äˆ°€‰5´ÄÈÕUH´Èˆ°(€€‰5´ÄÀÀÁUH´Äˆ°€‰5´ÄÐÀÁUH´Äˆ°€‰5µIH´Èˆ°€‰5µM5IQH´Äˆ°€‰5µMµ…ÉÑH´Èˆ)tì()•áÁ½ÉÐ½¹ÍÐ5MQI}M-UL€ôl(€€‰5´ÄÀµÄˆ°€‰5´ÄÀµÈµY@ˆ°€‰5´ÄÁH´Èˆ°€‰5´ÄÉAI=AH´Äˆ°€‰5´ÄÉAI=UH´Äˆ°€‰5´ÄÐµÄˆ°€‰5´ÄÐµÈˆ°€‰5´ÄÐµ\Äˆ°€‰5´ÄÐµ\Èˆ°€‰5´ÄÐµ\ÈµY@ˆ°€‰5´ÄÑH´Äˆ°€‰5´ÄÑH´Èˆ°(€€‰5´ÄÔµLÄˆ°€‰5´ÄÔµLÈˆ°€‰5´ÄÔµM5IPµ\Äˆ°€‰5´ÄÔµ\Äˆ°€‰5´ÄÔµ\ÄµY@ˆ°€‰5´ÄÔµ\Èˆ°€‰5´ÄÕH´Äˆ°€‰5´ÄÕH´Èˆ°€‰5´ÄàµÄˆ°€‰5´ÄàµÈˆ°€‰5´Äàµ\Äˆ°€‰5´Äàµ\Èˆ°€‰5´ÄáH´Äˆ°€‰5´ÄáH´Èˆ°(€€‰5´ÈÈµÄˆ°€‰5´ÈÈµÈˆ°€‰5´ÈÈµ\Äˆ°€‰5´ÈÈµ\ÄµPˆ°€‰5´ÈÈµ\Èˆ°€‰5´ÈÉH´Äˆ°€‰5´ÈÔµÄˆ°€‰5´ÈÔµÈˆ°€‰5´ÈÔµLÄˆ°€‰5´ÈÔµLÈˆ°€‰5´ÈÔµ\Äˆ°€‰5´ÈÔµ\ÄµY@ˆ°€‰5´ÈÔµ\Èˆ°€‰5´ÈÔµ\ÈµY@ˆ°€‰5´ÈÕAH´Äˆ°€‰5´ÈÕH´Äˆ°€‰5´ÈÕH´Èˆ°(€€‰5´ÌÔµÄˆ°€‰5´ÌÔµLÄˆ°€‰5´ÌÔµ\Äˆ°€‰5´ÌÕHµÄˆ°€‰5´ÌÕHµÈˆ°€‰5´ÌÕHµ\Äˆ°€‰5´ÌÕHµ\Èˆ°€‰5´ÌÕLµÄˆ°€‰5´ÌÕLµLÄˆ°€‰5´ÌÕLµ\Äˆ°(€€‰5´ÐÀµÄˆ°€‰5´ÐÀµÈˆ°€‰5´ÐÀµ\Äˆ°€‰5´ÐÀµ\ÄµY@ˆ°€‰5´ÐÀµ\Èˆ°€‰5´ÐÁ´Äˆ°€‰5´ÐÁ´Èˆ°€‰5´ÐÁAH´Äˆ°€‰5´ÐÁUH´Äˆ°€‰5´ÐÁUH´Èˆ°€‰5´ÐÁUXµÄˆ°€‰5´ÐÁUXµÈˆ°€‰5´ÐÁUXµ\Äˆ°€‰5´ÐÁUXµ\ÄµY@ˆ°€‰5´ÐÁUXµ\Èˆ°(€€‰5´ÐÔµ\Äˆ°€‰5´ÐÕH´Äˆ°€‰5´ÐÕH´Èˆ°€‰5´ÔÀµÄˆ°€‰5´ÔÀµLÄˆ°€‰5´ÔÀµ\Äˆ°€‰5´ÔÀµ\ÄµPˆ°€‰5´ÔÁH´Äˆ°€‰5´ÔÁH´Èˆ°€‰5´ÔÁUH´Äˆ°€‰5´ÔÁUH´Èˆ°(€€‰5´ÄÄÈµÄˆ°€‰5´ÄÄÈµ\Äˆ°€‰5´ÄÄÈµ\ÄµAI<ˆ°€‰5´ÄÄÈµ\ÅAI<ˆ°€‰5´ÄÄÉAI<µ\Äˆ°€‰5´ÄÄÉAI=H´Äˆ°€‰5´ÄÄÉAI=UH´Äˆ°€‰5´ÄÄÉH´Äˆ°€‰5´ÄÄÉH´Èˆ°€‰5´ÄÄÉUH´Äˆ°€‰5´ÄÄÉUXµÄˆ°€‰5´ÄÄÉUXµ\Äˆ°(€€‰5´ÄÈÔµÄˆ°€‰5´ÄÈÔµ\Äˆ°€‰5´ÄÈÕH´Äˆ°€‰5´ÄÈÕUH´Äˆ°€‰5´ÄÈÕUH´Èˆ°€‰5´ÄÀÀÀµ\Äˆ°€‰5´ÄÀÀÁUH´Äˆ°€‰5´ÄÐÀÀµ\Äˆ°€‰5´ÄÐÀÁUH´Äˆ°€‰5µHµÄˆ°€‰5µIH´Èˆ°€‰5µA]IIµÄˆ°€‰5µA]IIµÄˆ°€‰5µM5IQH´Äˆ°€‰5µMµ…ÉÑH´Èˆ)tì()•áÁ½ÉÐ½¹ÍÐ=II}=L€ôì(€€‰]…ÉÉ…¹ÑäI•Á±…•µ•¹Ðˆèl(€€€l‰]H´ÀÄˆ°€‰9½¥Í”€¼M½Õ¹‰t°l‰]H´ÀÈˆ°€‰Mµ•±°€¼=‘½È‰t°l‰]H´ÀÌˆ°€‰1€¼1¥¡Ð€¼½¹ÑÉ½°A…¹•°%ÍÍÕ”‰t°(€€€l‰]H´ÀÐˆ°€‰A½Ý•È€¼½É%ÍÍÕ”‰t°l‰]H´ÀÔˆ°€‰…µ…•UÁ½¸•±¥Ù•Éä‰t°l‰]H´ÀØˆ°€‰…µ…•€¼•™•Ñ¥Ù”¥±Ñ•È‰t°(€€€l‰]H´ÀÜˆ°€‰…¸%ÍÍÕ”€¡…¸¹½ÐÑÕÉ¹¥¹œ¤‰t°l‰]H´Ààˆ°€‰=Ñ¡•È%ÍÍÕ”€¼•™•Ð‰t(€t°(€€‰É•”=É‘•Èˆèl(€€€l‰AH½%¹™±Õ•¹•ÈI•ÅÕ•ÍÐˆ°€‰AH½%¹™±Õ•¹•È=É‘•ÉÌ‰t°l‰M…µÁ±”I•ÅÕ•ÍÐˆ°€ˆ‰t°l‰É•”=É‘•Èð½½‘Ý¥±°ðˆ°€‰½¹…Ñ¥½¸‰t°(€€€l‰½µÁ•¹Í…Ñ¥½¸ˆ°€‰M•ÉÙ¥”…¥±ÕÉ”¿_=êÚ$z{-®éÜj×LDS.map((field) => `${field}: ${order[field] || "Not provided"}`), `Category: ${order.category || "Not provided"}`,
     `Reason Code: ${displayCode || "Not provided"}`, `Description: ${code?.[1] || "Not provided"}`, agentInitials || "Not provided"
   ].join("\n");
 }
@@ -180,6 +57,5 @@ export function trendPoints(reports, period) {
   });
   return labels.map((label, index) => ({ label, value: counts[index] }));
 }
-
 
 
