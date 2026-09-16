@@ -1,4 +1,178 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíë½õN‹Z–‹­¦ëeŠw¬Ô¼¼Ù¥Ñ•ÍÐµ•¹Ù¥É½¹µ•¹Ð©Í‘½´)¥µÁ½ÉÐì…Ð°±•…¹ÕÀ°™¥É•Ù•¹Ð°É•¹‘•È°ÍÉ••¸°Ý…¥Ñ½È°Ý¥Ñ¡¥¸ô™É½´€‰Ñ•ÍÑ¥¹œµ±¥‰É…Éä½É•…Ðˆì)¥µÁ½ÉÐì…™Ñ•É… °‰•™½É•… °‘•ÍÉ¥‰”°•áÁ•Ð°¥Ð°Ù¤ô™É½´€‰Ù¥Ñ•ÍÐˆì)¥µÁ½ÉÐìÉ•…Ñ•5½­MÕÁ…‰…Í”°Í…µÁ±•I•Á½ÉÑÌô™É½´€ˆ¸¸½Å„½µ½­MÕÁ…‰…Í”ˆì)¥µÁ½ÉÐì	19-}10°‰Õ¥±‘…±±9½Ñ”°Á•É¥½‘-•ä°™½Éµ…ÑÕÉ…Ñ¥½¸ô™É½´€ˆ¸½Ý½É­‘•Í­…Ñ„ˆì)¥µÁ½ÉÐÁÀ™É½´€ˆ¸½ÁÀˆì()½¹ÍÐµ½¬€ôÙ¤¹¡½¥ÍÑ•  ¤€ôø€¡ì±¥•¹Ðè¹Õ±°ô¤¤ì)Ù¤¹µ½¬ ˆ¸½ÍÕÁ…‰…Í”ˆ°€ ¤€ôø€¡ì•ÐÍÕÁ…‰…Í” ¤ìÉ•ÑÕÉ¸µ½¬¹±¥•¹Ðìô°ÕÍ•É¹…µ•µ…¥°è€¡¹…µ”¤€ôø€‘í¹…µ”¹Ñ½1½Ý•É…Í” ¤¹ÑÉ¥´ ¥õµ•‘¥™ä¹±½…±€ô¤¤ì)½¹ÍÐ½ÁåQ•áÐ€ôÙ¤¹™¸ ¤¹µ½­I•Í½±Ù•‘Y…±Õ”¡Õ¹‘•™¥¹•¤ì)½¹ÍÐ¡…¹”€ô€¡±…‰•°°Ù…±Õ”°É½½Ð€ôÍÉ••¸¤€ôø™¥É•Ù•¹Ð¹¡…¹”¡É½½Ð¹•Ñ	å1…‰•±Q•áÐ¡±…‰•°°ì•á…ÐèÑÉÕ”ô¤°ìÑ…É•ÐèìÙ…±Õ”ôô¤ì)½¹ÍÐ‰ÕÑÑ½¸€ô€¡¹…µ”°É½½Ð€ôÍÉ••¸¤€ôøÉ½½Ð¹•Ñ	åI½±” ‰‰ÕÑÑ½¸ˆ°ì¹…µ”°•á…ÐèÑÉÕ”ô¤ì)½¹ÍÐ±¥¬€ô€¡¹…µ”°É½½Ð€ôÍÉ••¸¤€ôø™¥É•Ù•¹Ð¹±¥¬¡‰ÕÑÑ½¸¡¹…µ”°É½½Ð¤¤ì)½¹ÍÐÑ½½°€ô€¡Ñ¥Ñ±”¤€ôøÝ¥Ñ¡¥¸¡‰ÕÑÑ½¸¡Ñ¥Ñ±”¤¹±½Í•ÍÐ ‰Í•Ñ¥½¸ˆ¤¤ì)½¹ÍÐ½Á•¹ÁÀ€ô…Íå¹Œ€ ¤€ôøìÉ•¹‘•È ñÁÀ¼ø¤ì…Ý…¥ÐÍÉ••¸¹™¥¹‘	åI½±” ‰‰ÕÑÑ½¸ˆ°ì¹…µ”è€‰]½É­•Í¬ˆ°•á…ÐèÑÉÕ”ô¤ì…Ý…¥ÐÝ…¥Ñ½È  ¤€ôø•áÁ•Ð¡)M=8¹Á…ÉÍ”¡±½…±MÑ½É…”¹•Ñ%Ñ•´ ‰µ•‘¥™äµ…±°µÉ•Á½ÉÑÌˆ¤¤¤¹Ñ½!…Ù•1•¹Ñ  ä¤¤ìôì()‰•™½É•…   ¤€ôøì(€±½…±MÑ½É…”¹±•…È ¤ìÙ¤¹±•…É±±5½­Ì ¤ìµ½¬¹±¥•¹Ð€ôÉ•…Ñ•5½­MÕÁ…‰…Í” ¤ì(€=‰©•Ð¹‘•™¥¹•AÉ½Á•ÉÑä¡¹…Ù¥…Ñ½È°€‰±¥Á‰½…Éˆ°ì½¹™¥ÕÉ…‰±”èÑÉÕ”°Ù…±Õ”èìÝÉ¥Ñ•Q•áÐè½ÁåQ•áÐôô¤ì(€Ù¤¹ÍÁå=¸¡Ý¥¹‘½Ü°€‰½¹™¥É´ˆ¤¹µ½­I•ÑÕÉ¹Y…±Õ”¡ÑÉÕ”¤ì(€!Q51¥…±½±•µ•¹Ð¹ÁÉ½Ñ½ÑåÁ”¹Í¡½Ý5½‘…°€ô™Õ¹Ñ¥½¸€ ¤ìÑ¡¥Ì¹Í•ÑÑÑÉ¥‰ÕÑ” ‰½Á•¸ˆ°€ˆˆ¤ìôì(€!Q51¥…±½±•µ•¹Ð¹ÁÉ½Ñ½ÑåÁ”¹±½Í”€ô™Õ¹Ñ¥½¸€ ¤ìÑ¡¥Ì¹É•µ½Ù•ÑÑÉ¥‰ÕÑ” ‰½Á•¸ˆ¤ìôì(€±•µ•¹Ð¹ÁÉ½Ñ½ÑåÁ”¹ÍÉ½±±%¹Ñ½Y¥•Ü€ôÙ¤¹™¸ ¤ì)ô¤ì)…™Ñ•É…   ¤€ôøì±•…¹ÕÀ ¤ìÙ¤¹ÕÍ•I•…±Q¥µ•ÉÌ ¤ìÙ¤¹É•ÍÑ½É•±±5½­Ì ¤ìô¤ì()‘•ÍÉ¥‰” ‰ÁÉ•Í•ÉÙ•Ý½É­ÍÁ…”Ý½É­™±½ÝÌˆ°€ ¤€ôøì(€¥Ð ‰¹…Ù¥…Ñ•Ì…±°‘•ÍÑ¥¹…Ñ¥½¹Ì…¹­••ÁÌ•¹Ñ•É•‘É…™ÑÌ…¹•… Ñ½½°Ì¥¹‘•Á•¹‘•¹Ð™½±ÍÑ…Ñ”ˆ°…Íå¹Œ€ ¤€ôøì(€€€…Ý…¥Ð½Á•¹ÁÀ ¤ì¡…¹” ‰MÁ½­”]¥Ñ ˆ°€‰E…±±•Èˆ¤ì(€€€™½È€¡½¹ÍÐÑ¥Ñ±”½˜l‰…±°9½Ñ•Ìˆ°€‰MÝ…ÁÁ•¥±Ñ•ÈMÕ‰ÍÉ¥ÁÑ¥½¸ˆ°€‰=É‘•È½‘•Ì€¼I•Á±…•µ•¹Ðˆ°€‰UAL±…¥´ˆ°€‰µ…¥°€¼•¹•É…°…Í”9½Ñ•Ì‰t¤ì(€€€€€±¥¬¡Ñ¥Ñ±”¤ì•áÁ•Ð¡‰ÕÑÑ½¸¡Ñ¥Ñ±”¤¹•ÑÑÑÉ¥‰ÕÑ” ‰…É¥„µ•áÁ…¹‘•ˆ¤¤¹Ñ½	” ‰™…±Í”ˆ¤ì(€€€€€±¥¬¡Ñ¥Ñ±”¤ì•áÁ•Ð¡‰ÕÑÑ½¸¡Ñ¥Ñ±”¤¹•ÑÑÑÉ¥‰ÕÑ” ‰…É¥„µ•áÁ…¹‘•ˆ¤¤¹Ñ½	” ‰ÑÉÕ”ˆ¤ì(€€€ô(€€€±¥¬ ‰…±°9½Ñ•Ìˆ¤ì±¥¬ ‰I•Á½ÉÑÌˆ¤ì•áÁ•Ð¡ÍÉ••¸¹•Ñ	åI½±” ‰¡•…‘¥¹œˆ°í¹…µ”è‰…±°I•Á½ÉÑÌ‰ô¤¤¹Ñ½	•QÉÕÑ¡ä ¤ì(€€€±¥¬ ‰…±°É¥Ù•ÉÌˆ¤ì•áÁ•Ð¡ÍÉ••¸¹•Ñ	åI½±” ‰¡•…‘¥¹œˆ°í¹…µ”è‰…±°É¥Ù•ÉÌ‰ô¤¤¹Ñ½	•QÉÕÑ¡ä ¤ì(€€€±¥¬ ‰]½É­•Í¬ˆ¤ì•áÁ•Ð¡‰ÕÑÑ½¸ ‰…±°9½Ñ•Ìˆ¤¹•ÑÑÑÉ¥‰ÕÑ” ‰…É¥„µ•áÁ…¹‘•ˆ¤¤¹Ñ½	” ‰™…±Í”ˆ¤ì(€€€±¥¬ ‰…±°9½Ñ•Ìˆ¤ì•áÁ•Ð¡ÍÉ••¸¹•Ñ	å1…‰•±Q•áÐ ‰MÁ½­”]¥Ñ ˆ¤¹Ù…±Õ”¤¹Ñ½	” ‰E…±±•Èˆ¤ì(€€€•áÁ•Ð¡)M=8¹Á…ÉÍ”¡±½…±MÑ½É…”¹•Ñ%Ñ•´ ‰µ•‘¥™äµ…Ñ¥Ù”µ…±°µ‘É…™Ðˆ¤¤¹™¥•±‘Íl‰MÁ½­”]¥Ñ ‰t¤¹Ñ½	” ‰E…±±•Èˆ¤ì(€ô¤ì((€¥Ð ‰ÁÉ•Í•ÉÙ•Ì…±°¹½Ñ”½ÕÑÁÕÐ°ÅÕ¥¬¥¹Í•ÉÐ°™½±±½ÜµÕÀ°½Áä…¹É•Í•Ðˆ°…Íå¹Œ€ ¤€ôøì(€€€…Ý…¥Ð½Á•¹ÁÀ ¤ì¡…¹” ‰MÁ½­”]¥Ñ ˆ°€‰E…±±•Èˆ¤ìŽ÷ÖÚ$z{-®éÜj×sync () => {
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createMockSupabase, sampleReports } from "../qa/mockSupabase";
+import { BLANK_CALL, buildCallNote, periodKey, formatDuration } from "./workdeskData";
+import App from "./App";
+
+const mock = vi.hoisted(() => ({ client: null }));
+vi.mock("./supabase", () => ({ get supabase() { return mock.client; }, usernameEmail: (name) => `${name.toLowerCase().trim()}@medify.local` }));
+const copyText = vi.fn().mockResolvedValue(undefined);
+const change = (label, value, root = screen) => fireEvent.change(root.getByLabelText(label, { exact: true }), { target: { value } });
+const button = (name, root = screen) => root.getByRole("button", { name, exact: true });
+const click = (name, root = screen) => fireEvent.click(button(name, root));
+const tool = (title) => within(button(title).closest("section"));
+const openApp = async () => { render(<App/>); await screen.findByRole("button", { name: "WorkDesk", exact: true }); await waitFor(() => expect(JSON.parse(localStorage.getItem("medify-call-reports"))).toHaveLength(9)); };
+
+beforeEach(() => {
+  localStorage.clear(); vi.clearAllMocks(); mock.client = createMockSupabase();
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: copyText } });
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  Element.prototype.scrollIntoView = vi.fn();
+});
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("preserved workspace workflows", () => {
+  it("navigates all destinations and keeps entered drafts and each tool's independent fold state", async () => {
+    await openApp(); change("Spoke With", "QA Caller");
+    for (const title of ["Call Notes", "Swapped Filter Subscription", "Order Codes / Replacement", "UPS Claim", "Email / General Case Notes"]) {
+      click(title); expect(button(title).getAttribute("aria-expanded")).toBe("false");
+      click(title); expect(button(title).getAttribute("aria-expanded")).toBe("true");
+    }
+    click("Call Notes"); click("Reports"); expect(screen.getByRole("heading", {name:"Call Reports"})).toBeTruthy();
+    click("Call Drivers"); expect(screen.getByRole("heading", {name:"Call Drivers"})).toBeTruthy();
+    click("WorkDesk"); expect(button("Call Notes").getAttribute("aria-expanded")).toBe("false");
+    click("Call Notes"); expect(screen.getByLabelText("Spoke With").value).toBe("QA Caller");
+    expect(JSON.parse(localStorage.getItem("medify-active-call-draft")).fields["Spoke With"]).toBe("QA Caller");
+  });
+
+  it("preserves call note output, quick insert, follow-up, copy and reset", async () => {
+    await openApp(); change("Spoke With", "QA Caller"); change("Reason for Calling", "Warranty question"); change("ACTION TAKEN", "Checked order.");
+    click("Photos requested"); expect(screen.getByLabelText("ACTION TAKEN").value).toBe("Checked order.\nPhotos requested");
+    fireEvent.click(screen.getByLabelText("Follow-up needed")); change("Follow-up Date", "2026-09-20"); change("Follow-up Note", "Review photos");
+    fireEvent.click(tool("Call Notes").getAllByRole("button", {name:"Copy Note"})[0]);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith(buildCallNote({...BLANK_CALL, "Spoke With":"QA Caller", "Reason for Calling":"Warranty question", "ACTION TAKEN":"Checked order.\nPhotos requested"}, "JA")));
+    expect(JSON.parse(localStorage.getItem("medify-active-call-draft")).followup).toEqual({needed:true,date:"2026-09-20",note:"Review photos"});
+    click("Reset", tool("Call Notes")); expect(screen.getByLabelText("Spoke With").value).toBe(""); expect(screen.getByLabelText("Follow-up needed").checked).toBe(false);
+  });
+
+  it("handles SKU searching, no matches, quantities, removal, variant and copied utility history", async () => {
+    await openApp(); change("Reason", "Variant Error"); change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
+    click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
+    click("Decrease MA-50R-1"); change("Additional Notes", "Different variant received"); click("Copy Note", tool("Swapped Filter Subscription"));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nAdditional Notes: Different variant received\nJA"));
+    click("Recent"); expect(screen.getByRole("dialog",{name:"Recent utility notes"})).toBeTruthy(); click("Close recent notes");
+    click("Remove MA-50R-1"); expect(screen.queryByLabelText("MA-50R-1 quantity")).toBeNull();
+    change("Filter Model(s)", "ZZZZ"); expect(screen.getByText("No matching SKU. Try a model like MA-50.")).toBeTruthy();
+    fireEvent.keyDown(screen.getByLabelText("Filter Model(s)"), {key:"Escape"}); expect(screen.queryByText("No matching SKU. Try a model like MA-50.")).toBeNull();
+    click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Swapped Filter");
+  });
+
+  it("keeps Call Notes actions easy to reach and adds searchable SKUs and quick inserts to case tools", async () => {
+    await openApp();
+    expect(tool("Call Notes").getByLabelText("Call Notes actions").className).toContain("call-notes-actions");
+    const order = tool("Order Codes / Replacement"), general = tool("Email / General Case Notes");
+    change("SKU", "ma-112", order); click("Select MA-112-B1", order); expect(order.getByLabelText("SKU").value).toBe("MA-112-B1");
+    click("Lost", order); click("Damaged", order); expect(order.getByLabelText("Issue").value).toBe("Lost\nDamaged");
+    click("Processed replacement", order); expect(order.getByLabelText("Resolution").value).toBe("Processed replacement");
+    change("SKU", "ma-40ur", general); click("Select MA-40UR-1", general); expect(general.getByLabelText("SKU").value).toBe("MA-40UR-1");
+    click("Warranty Replacement", general); click("Processed refund", general); expect(general.getByLabelText("Issue").value).toBe("Warranty Replacement"); expect(general.getByLabelText("Resolution").value).toBe("Processed refund");
+  });
+
+  it("keeps order code categories, operational warnings, note text and code copying", async () => {
+    await openApp(); const order = tool("Order Codes / Replacement");
+    change("Order ID", "QA-123", order); change("Category", "Amazon", order); change("Reason Code", "Amazon | Stuck Order | XXXXXX", order);
+    expect(order.getByText(/For unfulfilled Medify Air MCF orders only/)).toBeTruthy();
+    click("Copy Code", order); await waitFor(() => expect(copyText).toHaveBeenCalledWith("Amazon | Stuck Order | QA-123"));
+    change("Issue", "Unfulfilled order", order); change("Resolution", "Reviewed both orders", order); click("Copy Note", order);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Reason Code: Amazon | Stuck Order | QA-123"));
+    click("Reset", order); expect(order.getByLabelText("Order ID").value).toBe(""); expect(order.getByLabelText("Category").value).toBe("Warranty Replacement");
+  });
+
+  it("preserves UPS claim fields and invoice flag, and editable general templates", async () => {
+    await openApp(); const claim = tool("UPS Claim"), general = tool("Email / General Case Notes");
+    change("Claim Number", "QA-CLAIM"); change("Tracking Number", "1Z-TEST"); change("Claim Status", "Package Search In Progress"); fireEvent.click(screen.getByLabelText("Uploaded Invoice")); click("Copy Note", claim);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Claim Number: QA-CLAIM\nTracking Number: 1Z-TEST\nClaim Status: Package Search In Progress\nUploaded Invoice\nJA"));
+    click("Reset", claim); expect(screen.getByLabelText("Uploaded Invoice").checked).toBe(false);
+    change("Order ID", "QA-456", general); change("Saved template", "Warranty Photo Request"); expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
+    change("Resolution", "Requested a clear photo", general); click("Copy Note", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Order ID: QA-456\nOrder Date: Not provided\nSKU: Not provided\nIssue: Warranty photo request\nResolution: Requested a clear photo\nJA"));
+    click("Reset", general); expect(general.getByLabelText("Issue").value).toBe("");
+  });
+
+  it("keeps Start, Stop & Save, saved duration, New Call confirmation and persistence", async () => {
+    await openApp(); change("Spoke With", "Timer Fixture"); change("Reason for Calling", "Warranty replacement");
+    fireEvent.click(screen.getByLabelText("Follow-up needed")); change("Follow-up Date", "2026-09-20"); change("Follow-up Note", "Call back");
+    vi.useFakeTimers({toFake:["Date","setInterval","clearInterval"]});
+    click("Start"); expect(button("Start").disabled).toBe(true); expect(button("Stop & Save").disabled).toBe(false);
+    act(() => vi.advanceTimersByTime(73000)); expect(screen.getByText("00:01:13")).toBeTruthy();
+    click("Stop & Save"); await waitFor(() => expect(JSON.parse(localStorage.getItem("medify-call-reports"))).toHaveLength(10));
+    const saved = JSON.parse(localStorage.getItem("medify-call-reports"))[0]; expect(saved.seconds).toBe(73); expect(saved.fields["Spoke With"]).toBe("Timer Fixture"); expect(saved.callDriver).toBe("Warranty / Replacement"); expect(saved.followUpNote).toBe("Call back");
+    click("New Call"); expect(screen.getByLabelText("Spoke With").value).toBe("");
+    click("Start"); window.confirm.mockReturnValueOnce(false); click("New Call"); expect(button("Start").disabled).toBe(true);
+    click("New Call"); expect(button("Start").disabled).toBe(false);
+  });
+});
+
+describe("reports and overlays", () => {
+  it("updates real metrics for all five periods while preserving the existing newest-bucket logic", async () => {
+    await openApp(); click("Reports");
+    const reports = sampleReports().map(r=>({start:new Date(r.started_at).getTime(),stop:new Date(r.stopped_at).getTime(),seconds:r.duration_seconds}));
+    for (const period of ["Daily","Weekly","Monthly","Quarterly","Yearly"]) {
+      click(period); const latest = [...new Set(reports.map(r=>periodKey(r,period)))].sort().at(-1); const selected = reports.filter(r=>periodKey(r,period)===latest);
+      const metrics = document.querySelectorAll(".report-kpis article > b");
+      expect(metrics[0].textContent).toBe(String(selected.length)); expect(metrics[1].textContent).toBe(formatDuration(selected.reduce((n,r)=>n+r.seconds,0)));
+      expect(metrics[2].textContent).toBe(formatDuration(selected.reduce((n,r)=>n+r.seconds,0)/selected.length));
+      expect(document.querySelectorAll(".report-row")).toHaveLength(selected.length); expect(button(period).getAttribute("aria-pressed")).toBe("true");
+    }
+  });
+
+  it("keeps search and each filter, report details and saved-report copy", async () => {
+    await openApp(); click("Reports"); click("Yearly");
+    change("Search reports", "taylor@example.test"); expect(document.querySelectorAll(".report-row")).toHaveLength(1);
+    change("Search reports", "no-match"); expect(screen.getByText("No matching call reports")).toBeTruthy(); expect(document.querySelector(".kpi-text").textContent).toBe("â€”");
+    change("Search reports", ""); change("Call driver", "Filter Club"); expect(document.querySelectorAll(".report-row")).toHaveLength(1);
+    change("Call driver", "All"); change("Agent initials", "FA"); expect([...document.querySelectorAll(".report-avatar")].every(el=>el.textContent==="FA")).toBe(true);
+    change("Agent initials", "All"); change("Follow-up", "today"); expect(document.querySelectorAll(".report-row")).toHaveLength(1);
+    const row = within(document.querySelector(".report-row")); fireEvent.click(document.querySelector(".report-row summary"));
+    const email = row.getByText(/@example\.test$/).textContent; expect(email).toMatch(/@example\.test$/); click("Copy", row);
+    await waitFor(()=>expect(copyText.mock.calls.at(-1)[0]).toMatch(/^Spoke With: /)); expect(copyText.mock.calls.at(-1)[0]).toContain(email);
+  });
+
+  it("edits minutes AND seconds and follow-ups; confirms or cancels deletion of fictional records", async () => {
+    await openApp(); click("Reports"); fireEvent.click(document.querySelector(".report-row summary")); let row=within(document.querySelector(".report-row")); click("Edit",row);
+    let dialog=within(screen.getByRole("dialog",{name:"Edit call report"})); change("Minutes","12",dialog);change("Seconds","34",dialog);change("Follow-up note","Review fixture",dialog);click("Save changes",dialog);
+    await waitFor(()=>expect(JSON.parse(localStorage.getItem("medify-call-reports"))[0].seconds).toBe(754));
+    expect(document.querySelector(".report-duration").textContent).toBe("12m 34s");
+    click("Edit",row);dialog=within(screen.getByRole("dialog",{name:"Edit call report"}));change("Minutes","99",dialog);click("Cancel",dialog);expect(document.querySelector(".report-duration").textContent).toBe("12m 34s");
+    window.confirm.mockReturnValueOnce(false);click("Delete",row);expect(document.querySelectorAll(".report-row")).toHaveLength(2);
+    click("Delete",row);await waitFor(()=>expect(document.querySelectorAll(".report-row")).toHaveLength(1));
+  });
+
+  it("shows all driver periods, opens follow-up editor and closes settings with Escape", async () => {
+    await openApp();click("Reports");fireEvent.click(screen.getByRole("button",{name:"Edit follow-up for Alex Morgan"}));expect(screen.getByRole("dialog",{name:"Edit call report"})).toBeTruthy();click("Close Edit call report");
+    click("Call Drivers");for(const name of ["Daily","Weekly","Monthly","Quarterly","Yearly"]){click(name);expect(button(name).getAttribute("aria-pressed")).toBe("true");expect(document.querySelectorAll(".driver-bar").length).toBeGreaterThan(0);}
+    click("Settings");const settings=screen.getByRole("dialog",{name:"Workspace settings"});expect(within(settings).getByText("Team Management")).toBeTruthy();
+    fireEvent(settings,new Event("cancel",{bubbles:false,cancelable:true}));expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("tool search keeps its routing and Enter brings the existing tool into focus", async () => {
+    await openApp();click("UPS Claim");click("Reports");change("Find a workspace tool","claim");expect(button("UPS Claim").getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(screen.getByLabelText("Find a workspace tool"),{key:"Enter"});expect(Element.prototype.scrollIntoView).toHaveBeenCalled();expect(document.activeElement).toBe(screen.getByLabelText("Claim Number"));
+  });
+});
+
+describe("authentication presentation", () => {
+  it("retains username/passcode and activation fields without changing the auth requests", async () => {
+    mock.client=createMockSupabase({signedIn:false});const signIn=vi.spyOn(mock.client.auth,"signInWithPassword");const signUp=vi.spyOn(mock.client.auth,"signUp");render(<App/>);
+    await screen.findByRole("button",{name:"Sign in",exact:true});change("Username","qa-user");change("PIN / passcode","example-passcode");fireEvent.submit(button("Sign in").closest("form"));
+    await screen.findByRole("alert");expect(signIn).toHaveBeenCalledWith({email:"qa-user@medify.local",password:"example-passcode"});
+    click("I have an access code");expect(screen.getByLabelText("One-time access code")).toBeTruthy();change("One-time access code","qa-access-code");change("Assigned initials","FA");fireEvent.submit(button("Activate account").closest("form"));
+    await waitFor(()=>expect(signUp).toHaveBeenCalledWith({email:"qa-user@medify.local",password:"example-passcode"}));
+  });
+});
+
+describe("account management", () => {
+  it("shows a regular user only their own Account controls", async () => {
+    mock.client = createMockSupabase({ profile: { id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, users: [{ id: "agent-user", username: "agent-user", initials: "FA", role: "agent", is_active: true }, { id: "other-user", username: "other-user", initials: "CJ", role: "agent", is_active: true }] });
+    await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
+    expect(within(settings).getByRole("heading", { name: "Account" })).toBeTruthy(); expect(within(settings).getByText(/agent-user/)).toBeTruthy(); expect(within(settings).queryByText("User accounts")).toBeNull(); expect(within(settings).queryByRole("button", { name: "Save username" })).toBeNull(); expect(within(settings).queryByRole("button", { name: "Reset password" })).toBeNull();
+    const result = await mock.client.functions.invoke("manage-account", { body: { action: "reset_password", target_user_id: "other-user", password: "temporary-pass" } }); expect(result.error.message).toContain("Only the JA creator");
+  });
+
+  it("lets JA see every registered username and marks the current account", async () => {
     await openApp(); click("Settings"); const settings = screen.getByRole("dialog", { name: "Workspace settings" });
     await waitFor(() => expect(within(settings).getByText("User accounts")).toBeTruthy()); expect(within(settings).getByText(/JA \(you\)/)).toBeTruthy(); expect(within(settings).getByText("fa-user")).toBeTruthy(); expect(within(settings).getByText("old-user")).toBeTruthy(); expect(within(settings).getAllByText("Password reset needed")).toHaveLength(3);
   });
