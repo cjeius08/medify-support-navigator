@@ -465,3 +465,10 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+.jump-nav { position: sticky; top: 0; z-index: 8; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-small); background: #ffffffee; backdrop-filter: blur(8px); }
+.jump-nav button { border: 1px solid var(--border); border-radius: 999px; background: var(--surface-soft); color: var(--text); padding: 6px 10px; font-size: .75rem; cursor: pointer; }
+.jump-nav button:hover { background: var(--accent-soft); border-color: var(--accent); }
+.usage-heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.usage-heading-actions .period-tabs { margin: 0; }
+@media (max-width: 650px) { .usage-heading-actions { justify-content: stretch; } .usage-heading-actions > * { flex: 1 1 auto; } }
