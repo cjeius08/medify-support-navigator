@@ -64,10 +64,10 @@ describe("preserved workspace workflows", () => {
     await openApp();
     expect(tool("Call Notes").getByLabelText("Call Notes actions").className).toContain("call-notes-actions");
     const order = tool("Order Codes / Replacement"), general = tool("Email / General Case Notes");
-    change("SKU", "ma-112", order); click("Select MA-112-B1", order); expect(order.getByLabelText("SKU").value).toBe("MA-112-B1");
+    change("SKU", "ma-112", order); click("Select MA-112-B1", order); expect(order.getByText("MA-112-B1")).toBeTruthy(); change("SKU", "ma-112", order); click("Select MA-112-W1", order); expect(order.getByText("MA-112-W1")).toBeTruthy();
     click("Lost", order); click("Damaged", order); expect(order.getByLabelText("Issue").value).toBe("Lost\nDamaged");
     click("Processed replacement", order); expect(order.getByLabelText("Resolution").value).toBe("Processed replacement");
-    change("SKU", "ma-40ur", general); click("Select MA-40UR-1", general); expect(general.getByLabelText("SKU").value).toBe("MA-40UR-1");
+    change("SKU", "ma-40ur", general); click("Select MA-40UR-1", general); expect(general.getByText("MA-40UR-1")).toBeTruthy();
     click("Warranty Replacement", general); click("Processed refund", general); expect(general.getByLabelText("Issue").value).toBe("Warranty Replacement"); expect(general.getByLabelText("Resolution").value).toBe("Processed refund");
   });
 
