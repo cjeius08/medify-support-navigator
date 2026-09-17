@@ -69,7 +69,7 @@ export const EMAIL_TEMPLATES = {
   "Subscription Cancellation": { Issue: "Subscription cancellation", Resolution: "Subscription cancellation processed." }
 };
 
-export const CLAIM_STATUSES = ["Claim Issued", "Package Search In Progress", "On Going", "Disputed Claim"];
+export const CLAIM_STATUSES = ["Claim Issued", "Package Search In Progress", "On Going", "Disputed Claim", "Claim Approved for Payment"];
 export const PERIODS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
 
 export function readStorage(key, fallback) {
@@ -195,5 +195,4 @@ export function trendPoints(reports, period) {
   });
   return labels.map((label, index) => ({ label, value: counts[index] }));
 }
-
 
