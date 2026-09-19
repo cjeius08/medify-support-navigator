@@ -152,7 +152,7 @@ export function appendSnippet(current, snippet) {
   return current.trim() ? `${current.trim()}\n${snippet}` : snippet;
 }
 
-export function reportDate(report) { return new Date(report.stop || report.start); }
+export function reportDate(report) { return new Date(report.start || report.stop); }
 
 export function localDateKey(date) {
   const year = date.getFullYear();
