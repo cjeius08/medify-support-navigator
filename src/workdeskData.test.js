@@ -23,12 +23,28 @@ describe("WorkDesk helpers", () => {
     const originalTz = process.env.TZ;
     process.env.TZ = "Asia/Manila";
     try {
-      const afterMidnight = { stop: new Date("2026-09-18T16:30:00.000Z").getTime() };
-      const previousEvening = { stop: new Date("2026-09-18T15:30:00.000Z").getTime() };
+      const afterMidnight = { start: new Date("2026-09-18T16:30:00.000Z").getTime() };
+      const previousEvening = { start: new Date("2026-09-18T15:30:00.000Z").getTime() };
       expect(periodKey(afterMidnight, "Daily")).toBe("2026-09-19");
       expect(periodKey(previousEvening, "Daily")).toBe("2026-09-18");
       expect(periodKey(afterMidnight, "Weekly")).toBe("2026-09-14");
       expect(periodKey(previousEvening, "Weekly")).toBe("2026-09-14");
+    } finally {
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    }
+  });
+
+  it("keeps a cross-midnight call in the day and week where the call started", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "Asia/Manila";
+    try {
+      const report = {
+        start: new Date("2026-09-18T15:58:00.000Z").getTime(),
+        stop: new Date("2026-09-18T16:04:00.000Z").getTime()
+      };
+      expect(periodKey(report, "Daily")).toBe("2026-09-18");
+      expect(periodKey(report, "Weekly")).toBe("2026-09-14");
     } finally {
       if (originalTz === undefined) delete process.env.TZ;
       else process.env.TZ = originalTz;
