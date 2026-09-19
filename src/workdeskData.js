@@ -154,6 +154,13 @@ export function appendSnippet(current, snippet) {
 
 export function reportDate(report) { return new Date(report.stop || report.start); }
 
+export function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function followupState(report, now = new Date()) {
   const fields = report.fields || {};
   const needed = report.followUpNeeded ?? fields["Follow-up Needed"] === "Yes";
@@ -170,11 +177,11 @@ export function periodKey(report, period) {
   const date = reportDate(report);
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
-  if (period === "Daily") return date.toISOString().slice(0, 10);
+  if (period === "Daily") return localDateKey(date);
   if (period === "Weekly") {
-    const monday = new Date(date);
-    monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-    return monday.toISOString().slice(0, 10);
+    const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    monday.setDate(monday.getDate() - ((date.getDay() + 6) % 7));
+    return localDateKey(monday);
   }
   if (period === "Monthly") return `${year}-${String(month).padStart(2, "0")}`;
   return period === "Quarterly" ? `${year} Q${Math.floor((month - 1) / 3) + 1}` : `${year}`;
