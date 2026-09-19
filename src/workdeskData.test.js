@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, detectCallDriver, followupState, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, detectCallDriver, followupState, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
   it("creates a copyable replacement code with order number", () => {
@@ -17,6 +17,22 @@ describe("WorkDesk helpers", () => {
 
   it("identifies follow-ups due today", () => {
     expect(followupState({ followUpNeeded: true, followUpDate: "2026-09-10" }, new Date("2026-09-10T09:00:00"))).toBe("today");
+  });
+
+  it("groups call reports by the browser's local calendar date and Monday-based week", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "Asia/Manila";
+    try {
+      const afterMidnight = { stop: new Date("2026-09-18T16:30:00.000Z").getTime() };
+      const previousEvening = { stop: new Date("2026-09-18T15:30:00.000Z").getTime() };
+      expect(periodKey(afterMidnight, "Daily")).toBe("2026-09-19");
+      expect(periodKey(previousEvening, "Daily")).toBe("2026-09-18");
+      expect(periodKey(afterMidnight, "Weekly")).toBe("2026-09-14");
+      expect(periodKey(previousEvening, "Weekly")).toBe("2026-09-14");
+    } finally {
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    }
   });
 
   it("always copies call fields in the fixed support-note order", () => {
