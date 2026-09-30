@@ -16,6 +16,39 @@ export const FILTER_SKUS = [
   "MA-1000UR-1", "MA-1400UR-1", "MA-CARR-2", "MA-SMARTR-1", "MA-SmartR-2"
 ];
 
+export const FILTER_VARIANT_IDS = {
+  "MA-10R-2": "43720697348163",
+  "MA-112PROR-1": "43720703180867",
+  "MA-112PROUR-1": "43720703213635",
+  "MA-112R-1": "31576748982339",
+  "MA-112UR-1": "39674158383171",
+  "MA-125UR-1": "43720703311939",
+  "MA-125UR-2": "43720703344707",
+  "MA-12PROPR-1": "43720700690499",
+  "MA-12PROUR-1": "43720700657731",
+  "MA-14R-1": "43720703410243",
+  "MA-14R-2": "43720703443011",
+  "MA-15R-1": "43720703475779",
+  "MA-15R-2": "43720703508547",
+  "MA-18R-1": "43720703541315",
+  "MA-18R-2": "43720703574083",
+  "MA-22R-1": "43720703770691",
+  "MA-25R-1": "43720705409091",
+  "MA-25R-2": "43720705441859",
+  "MA-35R-B1": "43720705736771",
+  "MA-35R-B2": "43720705769539",
+  "MA-35R-W1": "43720705671235",
+  "MA-40E-1": "31576825987139",
+  "MA-40E-2": "31576826019907",
+  "MA-40UR-1": "39674100252739",
+  "MA-40UR-2": "39674100285507",
+  "MA-45R-1": "43720705835075",
+  "MA-50R-1": "43720696922179",
+  "MA-50R-2": "43720696987715",
+  "MA-50UR-1": "43720696954947",
+  "MA-50UR-2": "43720697020483"
+};
+
 export const MASTER_SKUS = [
   "MA-10-B1", "MA-10-B2-VP", "MA-10R-2", "MA-12PROPR-1", "MA-12PROUR-1", "MA-14-B1", "MA-14-B2", "MA-14-W1", "MA-14-W2", "MA-14-W2-VP", "MA-14R-1", "MA-14R-2",
   "MA-15-S1", "MA-15-S2", "MA-15-SMART-W1", "MA-15-W1", "MA-15-W1-VP", "MA-15-W2", "MA-15R-1", "MA-15R-2", "MA-18-B1", "MA-18-B2", "MA-18-W1", "MA-18-W2", "MA-18R-1", "MA-18R-2",
@@ -117,11 +150,52 @@ export function buildCallNote(fields = {}, agentInitials) {
   return [...orderedFields.map((key) => `${key}: ${fields[key] || "Not provided"}`), agentInitials || "Not provided"].join("\n");
 }
 
-export function buildFilterNote(filter, agentInitials) {
-  const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => quantity > 0);
+export function effectiveFilterRows(filter = {}) {
+  const grouped = new Map();
+  for (const [originalSku, quantityValue] of Object.entries(filter.selected || {})) {
+    const quantity = Number(quantityValue) || 0;
+    if (quantity <= 0) continue;
+    const conversion = filter.conversions?.[originalSku];
+    const targetSku = conversion?.sku?.trim() || originalSku;
+    const convertedQuantity = conversion?.sku ? (Number(conversion.quantity) > 0 ? Number(conversion.quantity) : quantity) : quantity;
+    grouped.set(targetSku, (grouped.get(targetSku) || 0) + convertedQuantity);
+  }
+  return [...grouped.entries()].map(([sku, quantity]) => ({ sku, quantity }));
+}
+
+export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_VARIANT_IDS) {
+  const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => Number(quantity) > 0);
+  const effective = effectiveFilterRows(filter);
+  const conversions = selected.flatMap(([originalSku, quantityValue]) => {
+    const conversion = filter.conversions?.[originalSku];
+    if (!conversion?.sku?.trim() || conversion.sku.trim() === originalSku) return [];
+    const originalQuantity = Number(quantityValue) || 0;
+    const convertedQuantity = Number(conversion.quantity) > 0 ? Number(conversion.quantity) : originalQuantity;
+    return [`Converted ${originalSku} x${originalQuantity} to ${conversion.sku.trim()} x${convertedQuantity}`];
+  });
+
+  const variantLines = effective.length === 1
+    ? [`New Variant ID#: ${variantIds[effective[0].sku] || ""}`]
+    : effective.length > 1
+      ? ["New Variant ID#:", ...effective.map(({ sku }) => `${sku}: ${variantIds[sku] || ""}`)]
+      : ["New Variant ID#:"];
+
+  const manualNotes = String(filter.notes || "").trim();
+  const additional = [...conversions, ...(manualNotes ? [manualNotes] : [])];
+  const additionalLines = !additional.length
+    ? []
+    : conversions.length
+      ? ["Additional Notes:", ...additional]
+      : [`Additional Notes: ${manualNotes}`];
+
   return [
-    "Swapped Filter Subscription", "Filter(s):", ...(selected.length ? selected.map(([sku, quantity]) => `${sku} x${quantity}`) : ["Not provided"]),
-    `Reason: ${filter.reason || "Not provided"}`, ...(filter.notes ? [`Additional Notes: ${filter.notes}`] : []), agentInitials || "Not provided"
+    "Swapped Filter Subscription",
+    "Filter(s):",
+    ...(effective.length ? effective.map(({ sku, quantity }) => `${sku} x${quantity}`) : ["Not provided"]),
+    `Reason: ${filter.reason || "Not provided"}`,
+    ...variantLines,
+    ...additionalLines,
+    agentInitials || "Not provided"
   ].join("\n");
 }
 
