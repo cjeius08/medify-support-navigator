@@ -52,12 +52,24 @@ describe("preserved workspace workflows", () => {
     await openApp(); change("Reason", "Variant Error"); change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
     click("Decrease MA-50R-1"); change("Additional Notes", "Different variant received"); click("Copy Note", tool("Swapped Filter Subscription"));
-    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nAdditional Notes: Different variant received\nJA"));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nNew Variant ID#: 43720696922179\nAdditional Notes: Different variant received\nJA"));
     click("Recent"); expect(screen.getByRole("dialog",{name:"Recent utility notes"})).toBeTruthy(); click("Close recent notes");
     click("Remove MA-50R-1"); expect(screen.queryByLabelText("MA-50R-1 quantity")).toBeNull();
     change("Filter Model(s)", "ZZZZ"); expect(screen.getByText("No matching SKU. Try a model like MA-50.")).toBeTruthy();
     fireEvent.keyDown(screen.getByLabelText("Filter Model(s)"), {key:"Escape"}); expect(screen.queryByText("No matching SKU. Try a model like MA-50.")).toBeNull();
-    click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Swapped Filter");
+    click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
+  });
+
+  it("uses the converted SKU as the final filter and variant ID while supporting multiple filters", async () => {
+    await openApp(); const filterTool = tool("Swapped Filter Subscription");
+    expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
+    change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
+    click("Convert", filterTool); change("Convert MA-50R-1 to", "MA-50R-2", filterTool); click("Use MA-50R-2", filterTool);
+    change("Converted quantity for MA-50R-1", "2", filterTool);
+    change("Filter Model(s)", "MA-15R-1"); click("Add MA-15R-1");
+    expect(filterTool.getByText("New Variant ID#: 43720696987715")).toBeTruthy();
+    click("Copy Note", filterTool);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Swapped Filter Subscription\nFilter(s):\nMA-50R-2 x2\nMA-15R-1 x1\nReason: Variant Error\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
   });
 
   it("keeps Call Notes actions easy to reach and adds searchable SKUs and quick inserts to case tools", async () => {
