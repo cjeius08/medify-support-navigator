@@ -60,6 +60,17 @@ describe("preserved workspace workflows", () => {
     click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
   });
 
+  it("defaults a converted filter quantity to one even when the original quantity is higher", async () => {
+    await openApp(); const filterTool = tool("Swapped Filter Subscription");
+    change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
+    click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
+    click("Convert", filterTool); change("Convert MA-50R-1 to", "MA-50R-2", filterTool); click("Use MA-50R-2", filterTool);
+    expect(filterTool.getByLabelText("Converted quantity for MA-50R-1").value).toBe("1");
+    click("Copy Note", filterTool);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Filter(s):\nMA-50R-2 x1"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Converted MA-50R-1 x2 to MA-50R-2 x1");
+  });
+
   it("uses the converted SKU as the final filter and variant ID while supporting multiple filters", async () => {
     await openApp(); const filterTool = tool("Swapped Filter Subscription");
     expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
