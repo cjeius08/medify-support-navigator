@@ -108,10 +108,38 @@ function ClaimCard({ claims, setClaims, text, copy, fold, toggle, onUse }) {
 }
 
 function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
-  const update = (field, value) => setGeneral({ ...general, [field]: value });
-  return <ToolCard id="tool-general" title="Email / General Case Notes" icon="mail" open={fold} onToggle={toggle} onUse={onUse}><div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { if (event.target.value) setGeneral({ ...general, ...EMAIL_TEMPLATES[event.target.value] }); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Templates are a starting point. You can edit every field.</small></div><div className="field-layout compact-fields"><label>Order ID<input value={general["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label><label>Order Date<input value={general["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label><SkuPicker label="SKU" value={general.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/><label className="span-all">Issue<textarea rows="3" value={general.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Write the issue manually..."/></label><div className="span-all"><QuickInsert label="Issue" value={general.Issue} onChange={(value) => update("Issue", value)} snippets={ISSUE_SNIPPETS}/></div><label className="span-all">Resolution<textarea rows="3" value={general.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Write the resolution manually..."/></label><div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={RESOLUTION_SNIPPETS}/></div></div><CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={() => setGeneral(BLANK_CASE)}/></ToolCard>;
+  const hasReturnLabel = String(general.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
+  const update = (field, value) => {
+    const next = { ...general, [field]: value };
+    if (field === "Issue") {
+      const needsTracking = String(value || "").split("\n").some((line) => line.trim() === "Sent RL for return");
+      if (needsTracking && !Object.prototype.hasOwnProperty.call(next, "Tracking Number")) next["Tracking Number"] = "";
+      if (!needsTracking) delete next["Tracking Number"];
+    }
+    setGeneral(next);
+  };
+  const applyTemplate = (name) => {
+    if (!name) return;
+    const next = { ...general, ...EMAIL_TEMPLATES[name] };
+    const needsTracking = String(next.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
+    if (!needsTracking) delete next["Tracking Number"];
+    setGeneral(next);
+  };
+  return <ToolCard id="tool-general" title="Email / General Case Notes" icon="mail" open={fold} onToggle={toggle} onUse={onUse}>
+    <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Templates are a starting point. You can edit every field.</small></div>
+    <div className="field-layout compact-fields">
+      <label>Order ID<input value={general["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label>
+      <label>Order Date<input value={general["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label>
+      <SkuPicker label="SKU" value={general.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
+      <label className="span-all">Issue<textarea rows="3" value={general.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Write the issue manually..."/></label>
+      <div className="span-all"><QuickInsert label="Issue" value={general.Issue} onChange={(value) => update("Issue", value)} snippets={ISSUE_SNIPPETS}/></div>
+      {hasReturnLabel && <label className="span-all">Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter return tracking number"/></label>}
+      <label className="span-all">Resolution<textarea rows="3" value={general.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Write the resolution manually..."/></label>
+      <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={RESOLUTION_SNIPPETS}/></div>
+    </div>
+    <CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={() => setGeneral(BLANK_CASE)}/>
+  </ToolCard>;
 }
-
 function RecentMenu({ items, onCopy, onClose }) {
   const ref = useRef(null); const closeRef = useRef(onClose); closeRef.current = onClose;
   useEffect(() => {
