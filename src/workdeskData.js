@@ -91,10 +91,11 @@ export const ACTION_SNIPPETS = [
   "Troubleshooting completed", "Filter Club offered", "Address updated", "Subscription updated"
 ];
 
-export const ISSUE_SNIPPETS = ["Lost", "Damaged", "Warranty Replacement", "Power Issue", "LED Issue", "Noise Issue"];
-export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund", "Processed advance replacement", "Cancelled Filter Club as customer requested", "Processed order as customer requested", "Moved Filter Club charge date as customer requested"];
+export const ISSUE_SNIPPETS = ["Lost", "Damaged", "Warranty Replacement", "Sent RL for return", "Not satisfied with the order", "Power Issue", "LED Issue", "Noise Issue"];
+export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund", "Returned to the warehouse", "Processed advance replacement", "Cancelled Filter Club as customer requested", "Processed order as customer requested", "Moved Filter Club charge date as customer requested"];
 
 export const EMAIL_TEMPLATES = {
+  "Return / Refund": { Issue: "Return / Refund", Resolution: "" },
   "Delivered — Not Received": { Issue: "Delivered — Not Received", Resolution: "" },
   "Warranty Photo Request": { Issue: "Warranty photo request", Resolution: "Photos requested for warranty review." },
   "Cancellation Confirmation": { Issue: "Cancellation request", Resolution: "Cancellation confirmed." },
@@ -139,8 +140,17 @@ export function detectCallDriver(fields = {}) {
   return "General Inquiry";
 }
 
-export function buildNote(fields, agentInitials) {
-  return [...Object.entries(fields).map(([key, value]) => `${key}: ${value || "Not provided"}`), agentInitials || "Not provided"].join("\n");
+export function buildNote(fields = {}, agentInitials) {
+  const baseOrder = ["Order ID", "Order Date", "SKU", "Issue"];
+  const withTracking = Object.prototype.hasOwnProperty.call(fields, "Tracking Number")
+    ? [...baseOrder, "Tracking Number", "Resolution"]
+    : [...baseOrder, "Resolution"];
+  const known = new Set(withTracking);
+  const extras = Object.keys(fields).filter((key) => !known.has(key));
+  return [...withTracking, ...extras]
+    .map((key) => `${key}: ${fields[key] || "Not provided"}`)
+    .concat(agentInitials || "Not provided")
+    .join("\n");
 }
 
 export function buildCallNote(fields = {}, agentInitials) {
