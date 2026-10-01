@@ -116,6 +116,29 @@ describe("preserved workspace workflows", () => {
     click("Reset", general); expect(general.getByLabelText("Issue").value).toBe("");
   });
 
+  it("supports the return refund general-case workflow with return tracking", async () => {
+    await openApp(); const general = tool("Email / General Case Notes");
+    change("Saved template", "Return / Refund", general);
+    expect(general.getByLabelText("Issue").value).toBe("Return / Refund");
+    expect(general.queryByLabelText("Tracking Number")).toBeNull();
+
+    click("Not satisfied with the order", general);
+    expect(general.getByLabelText("Issue").value).toBe("Return / Refund\nNot satisfied with the order");
+
+    click("Sent RL for return", general);
+    expect(general.getByLabelText("Tracking Number")).toBeTruthy();
+    change("Tracking Number", "1Z-RETURN-TEST", general);
+
+    click("Returned to the warehouse", general);
+    click("Processed refund", general);
+    expect(general.getByLabelText("Resolution").value).toBe("Returned to the warehouse\nProcessed refund");
+
+    click("Copy Note", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Tracking Number: 1Z-RETURN-TEST"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Return / Refund\nNot satisfied with the order\nSent RL for return");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Resolution: Returned to the warehouse\nProcessed refund");
+  });
+
   it("keeps Start, Stop & Save, saved duration, New Call confirmation and persistence", async () => {
     await openApp(); change("Spoke With", "Timer Fixture"); change("Reason for Calling", "Warranty replacement");
     fireEvent.click(screen.getByLabelText("Follow-up needed")); change("Follow-up Date", "2026-09-20"); change("Follow-up Note", "Call back");
