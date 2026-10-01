@@ -65,6 +65,7 @@ describe("preserved workspace workflows", () => {
     change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
     click("Convert", filterTool); change("Convert MA-50R-1 to", "MA-50R-2", filterTool); click("Use MA-50R-2", filterTool);
+    expect(filterTool.queryByRole("button", {name:"Use MA-50R-2"})).toBeNull();
     expect(filterTool.getByLabelText("Converted quantity for MA-50R-1").value).toBe("1");
     click("Copy Note", filterTool);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Filter(s):\nMA-50R-2 x1"));
