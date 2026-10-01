@@ -92,6 +92,8 @@ describe("preserved workspace workflows", () => {
     click("Lost", order); click("Damaged", order); expect(order.getByLabelText("Issue").value).toBe("Lost\nDamaged");
     click("Processed replacement", order); expect(order.getByLabelText("Resolution").value).toBe("Processed replacement");
     change("SKU", "ma-40ur", general); click("Select MA-40UR-1", general); expect(general.getByText("MA-40UR-1")).toBeTruthy();
+    change("SKU", "ma-40-w1-v3", general); click("Select MA-40-W1-V3.0", general); expect(general.getByText("MA-40-W1-V3.0")).toBeTruthy();
+    change("SKU", "ma-40-w2-v3", order); click("Select MA-40-W2-V3.0", order); expect(order.getByText("MA-40-W2-V3.0")).toBeTruthy();
     click("Warranty Replacement", general); click("Processed refund", general); expect(general.getByLabelText("Issue").value).toBe("Warranty Replacement"); expect(general.getByLabelText("Resolution").value).toBe("Processed refund");
   });
 
