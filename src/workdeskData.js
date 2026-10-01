@@ -157,7 +157,7 @@ export function effectiveFilterRows(filter = {}) {
     if (quantity <= 0) continue;
     const conversion = filter.conversions?.[originalSku];
     const targetSku = conversion?.sku?.trim() || originalSku;
-    const convertedQuantity = conversion?.sku ? (Number(conversion.quantity) > 0 ? Number(conversion.quantity) : quantity) : quantity;
+    const convertedQuantity = conversion?.sku ? (Number(conversion.quantity) > 0 ? Number(conversion.quantity) : 1) : quantity;
     grouped.set(targetSku, (grouped.get(targetSku) || 0) + convertedQuantity);
   }
   return [...grouped.entries()].map(([sku, quantity]) => ({ sku, quantity }));
@@ -170,7 +170,7 @@ export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_
     const conversion = filter.conversions?.[originalSku];
     if (!conversion?.sku?.trim() || conversion.sku.trim() === originalSku) return [];
     const originalQuantity = Number(quantityValue) || 0;
-    const convertedQuantity = Number(conversion.quantity) > 0 ? Number(conversion.quantity) : originalQuantity;
+    const convertedQuantity = Number(conversion.quantity) > 0 ? Number(conversion.quantity) : 1;
     return [`Converted ${originalSku} x${originalQuantity} to ${conversion.sku.trim()} x${convertedQuantity}`];
   });
 
