@@ -64,7 +64,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
     const nextConversions = { ...conversions }; delete nextConversions[sku];
     setFilter({ ...filter, selected: selectedSkus, conversions: nextConversions });
   };
-  const startConversion = (sku) => setFilter({ ...filter, conversions: { ...conversions, [sku]: conversions[sku] || { sku: "" } } });
+  const startConversion = (sku) => setFilter({ ...filter, conversions: { ...conversions, [sku]: conversions[sku] || { sku: "", quantity: 1 } } });
   const cancelConversion = (sku) => {
     const nextConversions = { ...conversions }; delete nextConversions[sku];
     setFilter({ ...filter, conversions: nextConversions });
@@ -78,7 +78,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
         const conversion = conversions[sku];
         const effectiveSku = conversion?.sku?.trim() || sku;
         const variantId = FILTER_VARIANT_IDS[effectiveSku] || "";
-        const convertedQuantity = Number(conversion?.quantity) > 0 ? Number(conversion.quantity) : amount;
+        const convertedQuantity = Number(conversion?.quantity) > 0 ? Number(conversion.quantity) : 1;
         return <div className="filter-selection" key={sku}>
           <div className="sku-chip filter-sku-chip">
             <span className="filter-sku-details"><b>{sku}</b><small>Variant ID: {conversion?.sku ? "See converted SKU below" : (variantId || "Not assigned")}</small></span>
