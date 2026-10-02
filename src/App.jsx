@@ -3,7 +3,7 @@ import { CardActions, Dialog, NotePreview, PeriodTabs, ToolCard } from "./Worksp
 import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
-  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
+  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, GENERAL_ISSUE_SNIPPETS, GENERAL_RESOLUTION_SNIPPETS, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
   ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildNote, buildOrderNote,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
@@ -132,10 +132,10 @@ function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
       <label>Order Date<input value={general["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label>
       <SkuPicker label="SKU" value={general.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
       <label className="span-all">Issue<textarea rows="3" value={general.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Write the issue manually..."/></label>
-      <div className="span-all"><QuickInsert label="Issue" value={general.Issue} onChange={(value) => update("Issue", value)} snippets={ISSUE_SNIPPETS}/></div>
+      <div className="span-all"><QuickInsert label="Issue" value={general.Issue} onChange={(value) => update("Issue", value)} snippets={GENERAL_ISSUE_SNIPPETS}/></div>
       {hasReturnLabel && <label className="span-all">Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter return tracking number"/></label>}
       <label className="span-all">Resolution<textarea rows="3" value={general.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Write the resolution manually..."/></label>
-      <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={RESOLUTION_SNIPPETS}/></div>
+      <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={GENERAL_RESOLUTION_SNIPPETS}/></div>
     </div>
     <CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={() => setGeneral(BLANK_CASE)}/>
   </ToolCard>;

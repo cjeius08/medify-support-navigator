@@ -97,6 +97,19 @@ describe("preserved workspace workflows", () => {
     click("Warranty Replacement", general); click("Processed refund", general); expect(general.getByLabelText("Issue").value).toBe("Warranty Replacement"); expect(general.getByLabelText("Resolution").value).toBe("Processed refund");
   });
 
+  it("adds fraud template and fraud quick inserts only to Email / General Case Notes", async () => {
+    await openApp(); const order = tool("Order Codes / Replacement"), general = tool("Email / General Case Notes");
+    change("Saved template", "High Risk of Fraud Detected", general);
+    expect(general.getByLabelText("Issue").value).toBe("Flagged for Fraud");
+    expect(general.getByLabelText("Resolution").value).toBe("");
+    click("Order Cancelled", general); click("Order Refunded", general); click("Sent Email for Fraud", general);
+    expect(general.getByLabelText("Resolution").value).toBe("Order Cancelled\nOrder Refunded\nSent Email for Fraud");
+    expect(order.queryByRole("button", { name: "Flagged for Fraud", exact: true })).toBeNull();
+    expect(order.queryByRole("button", { name: "Order Cancelled", exact: true })).toBeNull();
+    click("Copy Note", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nResolution: Order Cancelled\nOrder Refunded\nSent Email for Fraud\nJA"));
+  });
+
   it("keeps order code categories, operational warnings, note text and code copying", async () => {
     await openApp(); const order = tool("Order Codes / Replacement");
     change("Order ID", "QA-123", order); change("Category", "Amazon", order); change("Reason Code", "Amazon | Stuck Order | XXXXXX", order);
