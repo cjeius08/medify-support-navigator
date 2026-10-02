@@ -94,7 +94,11 @@ export const ACTION_SNIPPETS = [
 export const ISSUE_SNIPPETS = ["Lost", "Damaged", "Warranty Replacement", "Sent RL for return", "Not satisfied with the order", "Power Issue", "LED Issue", "Noise Issue"];
 export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund", "Returned to the warehouse", "Processed advance replacement", "Cancelled Filter Club as customer requested", "Processed order as customer requested", "Moved Filter Club charge date as customer requested"];
 
+export const GENERAL_ISSUE_SNIPPETS = [...ISSUE_SNIPPETS, "Flagged for Fraud"];
+export const GENERAL_RESOLUTION_SNIPPETS = [...RESOLUTION_SNIPPETS, "Order Cancelled", "Order Refunded", "Sent Email for Fraud"];
+
 export const EMAIL_TEMPLATES = {
+  "High Risk of Fraud Detected": { Issue: "Flagged for Fraud", Resolution: "" },
   "Return / Refund": { Issue: "Return / Refund", Resolution: "" },
   "Delivered — Not Received": { Issue: "Delivered — Not Received", Resolution: "" },
   "Warranty Photo Request": { Issue: "Warranty photo request", Resolution: "Photos requested for warranty review." },
