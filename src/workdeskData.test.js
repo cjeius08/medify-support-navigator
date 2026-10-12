@@ -1,7 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, detectCallDriver, followupState, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, buildFraudEmail, detectCallDriver, followupState, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("generates a first fraud notice with the recipient and single order number", () => {
+    const email = buildFraudEmail("initial", "Ronald", "730889");
+    expect(email).toContain("Hi Ronald,");
+    expect(email).toContain("your recent order #730889 has been flagged");
+    expect(email).toContain("cancel it as a precautionary measure");
+    expect(email).toContain("info@medifyair.com | 888-258-1008");
+    expect(email).not.toContain("#730923");
+  });
+
+  it("generates repeat-order follow-up emails and pluralizes multiple order numbers", () => {
+    expect(parseFraudOrderNumbers("#730889, 730923; 730923\n730924")).toEqual(["730889", "730923", "730924"]);
+    const email = buildFraudEmail("repeat", "Ronald", "#730889, 730923, 730924");
+    expect(email).toContain("Your recent orders #730889, #730923, and #730924 were unfortunately identified again");
+    expect(email).toContain("these orders were cancelled");
+    expect(email).toContain("Amazon or Walmart");
+    expect(buildFraudEmail("repeat", "", "")).toContain("Hi [Customer Name],");
+    expect(buildFraudEmail("repeat", "", "")).toContain("[Order Number(s)]");
+  });
+
   it("creates a copyable replacement code with order number", () => {
     expect(replacementCode("Warranty Replacement", "WR-01", "12345")).toBe("Warranty Replacement | WR-01 | 12345");
     expect(replacementCode("UPS", "UPS | Lost | XXXXXX", "12345")).toBe("UPS | Lost | 12345");
