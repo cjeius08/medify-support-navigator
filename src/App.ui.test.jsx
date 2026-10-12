@@ -110,6 +110,36 @@ describe("preserved workspace workflows", () => {
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nResolution: Order Cancelled\nOrder Refunded\nSent Email for Fraud\nJA"));
   });
 
+  it("builds editable initial and repeat fraud emails with dynamic customer names and order numbers", async () => {
+    await openApp(); const general = tool("Email / General Case Notes");
+    change("Saved template", "Fraud - Initial Cancellation Email", general);
+    expect(general.getByLabelText("Issue").value).toBe("Flagged for Fraud");
+    expect(general.queryByLabelText("Order ID")).toBeNull();
+    expect(general.getByRole("button", { name: "Copy Email" }).disabled).toBe(true);
+    change("Customer Name", "Ronald", general);
+    change("Order Number(s)", "730889, 730890", general);
+    expect(general.getByLabelText("Email draft").value).toContain("recent orders #730889 and #730890 have been flagged");
+    click("Copy Email", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Hi Ronald,"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("cancel them as a precautionary measure");
+
+    change("Saved template", "Fraud - Repeat Order Follow-Up Email", general);
+    change("Order Number(s)", "730923", general);
+    expect(general.getByLabelText("Email draft").value).toContain("Your recent order #730923 was unfortunately identified again");
+    change("Email draft", "Custom message", general);
+    click("Copy Email", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Custom message"));
+    click("Restore template", general);
+    expect(general.getByLabelText("Email draft").value).toContain("Amazon or Walmart");
+
+    click("Copy Note", general);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order ID: 730923"));
+    change("Saved template", "Warranty Photo Request", general);
+    expect(general.queryByLabelText("Fraud email composer")).toBeNull();
+    expect(general.getByLabelText("Order ID").value).toBe("730923");
+    expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
+  });
+
   it("keeps order code categories, operational warnings, note text and code copying", async () => {
     await openApp(); const order = tool("Order Codes / Replacement");
     change("Order ID", "QA-123", order); change("Category", "Amazon", order); change("Reason Code", "Amazon | Stuck Order | XXXXXX", order);
