@@ -140,6 +140,37 @@ describe("preserved workspace workflows", () => {
     expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
   });
 
+  it("makes MA-40E-4 selectable in filters, conversions, orders and general case notes", async () => {
+    await openApp();
+    const filter = tool("Swapped Filter Subscription");
+    const order = tool("Order Codes / Replacement");
+    const general = tool("Email / General Case Notes");
+
+    change("Filter Model(s)", "MA-40E-4", filter);
+    click("Add MA-40E-4", filter);
+    expect(filter.getByText("Variant ID: 31987508740163")).toBeTruthy();
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("New Variant ID#: 31987508740163"));
+
+    click("Remove MA-40E-4", filter);
+    change("Filter Model(s)", "MA-40E-1", filter);
+    click("Add MA-40E-1", filter);
+    click("Convert", filter);
+    change("Convert MA-40E-1 to", "MA-40E-4", filter);
+    click("Use MA-40E-4", filter);
+    expect(filter.getByText("New Variant ID#: 31987508740163")).toBeTruthy();
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Converted MA-40E-1 x1 to MA-40E-4 x1"));
+
+    change("SKU", "ma-40e-4", order);
+    click("Select MA-40E-4", order);
+    expect(order.getByText("MA-40E-4")).toBeTruthy();
+
+    change("SKU", "ma-40e-4", general);
+    click("Select MA-40E-4", general);
+    expect(general.getByText("MA-40E-4")).toBeTruthy();
+  });
+
   it("keeps order code categories, operational warnings, note text and code copying", async () => {
     await openApp(); const order = tool("Order Codes / Replacement");
     change("Order ID", "QA-123", order); change("Category", "Amazon", order); change("Reason Code", "Amazon | Stuck Order | XXXXXX", order);
