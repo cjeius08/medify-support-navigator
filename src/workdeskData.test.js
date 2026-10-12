@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, buildFraudEmail, detectCallDriver, followupState, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("maps MA-40E-4 across all SKU pickers and the filter note", () => {
+    expect(FILTER_SKUS).toContain("MA-40E-4");
+    expect(MASTER_SKUS).toContain("MA-40E-4");
+    expect(FILTER_VARIANT_IDS["MA-40E-4"]).toBe("31987508740163");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-40E-4": 1 } }, "JA")).toContain("MA-40E-4 x1\nReason: Variant Error\nNew Variant ID#: 31987508740163");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-40E-1": 1 }, conversions: { "MA-40E-1": { sku: "MA-40E-4", quantity: 1 } } }, "JA")).toContain("MA-40E-4 x1\nReason: Variant Error\nNew Variant ID#: 31987508740163");
+  });
+
+
   it("generates a first fraud notice with the recipient and single order number", () => {
     const email = buildFraudEmail("initial", "Ronald", "730889");
     expect(email).toContain("Hi Ronald,");
