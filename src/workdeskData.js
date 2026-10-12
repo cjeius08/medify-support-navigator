@@ -97,8 +97,15 @@ export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund",
 export const GENERAL_ISSUE_SNIPPETS = [...ISSUE_SNIPPETS, "Flagged for Fraud"];
 export const GENERAL_RESOLUTION_SNIPPETS = [...RESOLUTION_SNIPPETS, "Order Cancelled", "Order Refunded", "Sent Email for Fraud"];
 
+export const FRAUD_EMAIL_TYPES = {
+  "Fraud - Initial Cancellation Email": "initial",
+  "Fraud - Repeat Order Follow-Up Email": "repeat"
+};
+
 export const EMAIL_TEMPLATES = {
   "High Risk of Fraud Detected": { Issue: "Flagged for Fraud", Resolution: "" },
+  "Fraud - Initial Cancellation Email": { Issue: "Flagged for Fraud", Resolution: "" },
+  "Fraud - Repeat Order Follow-Up Email": { Issue: "Flagged for Fraud", Resolution: "" },
   "Return / Refund": { Issue: "Return / Refund", Resolution: "" },
   "Delivered — Not Received": { Issue: "Delivered — Not Received", Resolution: "" },
   "Warranty Photo Request": { Issue: "Warranty photo request", Resolution: "Photos requested for warranty review." },
@@ -107,6 +114,62 @@ export const EMAIL_TEMPLATES = {
   "Address Update": { Issue: "Address update", Resolution: "Address updated." },
   "Subscription Cancellation": { Issue: "Subscription cancellation", Resolution: "Subscription cancellation processed." }
 };
+
+export function parseFraudOrderNumbers(value = "") {
+  return [...new Set(String(value).split(/[,;\n]+/).map((part) => part.trim().replace(/^#+\s*/, "")).filter(Boolean))];
+}
+
+export function buildFraudEmail(kind, customerName = "", orderNumbers = "") {
+  const name = String(customerName).trim() || "[Customer Name]";
+  const orders = parseFraudOrderNumbers(orderNumbers);
+  const formatted = orders.map((number) => `#${number}`);
+  const joined = formatted.length <= 2 ? formatted.join(" and ") : `${formatted.slice(0, -1).join(", ")}, and ${formatted.at(-1)}`;
+  const orderText = joined || "[Order Number(s)]";
+  const plural = orders.length > 1;
+
+  const signature = [
+    "Best regards,",
+    "",
+    "Medify Air Customer Service Team",
+    "info@medifyair.com | 888-258-1008"
+  ];
+  if (kind === "initial") {
+    return [
+      `Hi ${name},`,
+      "",
+      "We hope this message finds you well. We regret to inform you that your recent " +
+        `${plural ? "orders" : "order"} ${orderText} ${plural ? "have" : "has"} been flagged as ${plural ? "potentially fraudulent transactions" : "a potentially fraudulent transaction"}.`,
+      "",
+      "Our fraud analysis team has detected several high-risk indicators associated with " +
+        `${plural ? "these orders" : "this order"}, leading us to cancel ${plural ? "them" : "it"} as a precautionary measure. ` +
+        "If you believe this action was taken in error, we kindly ask you to consider reviewing and updating your shipping and billing details, ensuring the accuracy of all information provided, including credit card details, before placing a new order.",
+      "",
+      "Should you require further assistance or wish to discuss this matter, please feel free to reply to this email or contact us at (888) 258-1008.",
+      "",
+      "Thank you for your understanding.",
+      "",
+      ...signature
+    ].join("\n");
+  }
+  if (kind === "repeat") {
+    return [
+      `Hi ${name},`,
+      "",
+      `We hope this email finds you well. Your recent ${plural ? "orders" : "order"} ${orderText} ${plural ? "were" : "was"} unfortunately identified again as potentially fraudulent.`,
+      "",
+      "According to our fraud analysis team, there were high-risk indicators of fraudulent activity, so " +
+        `${plural ? "these orders were" : "this order was"} cancelled as a precautionary measure. ` +
+        "If this was in error, please try to place a new order after carefully reviewing your shipping and billing information, spelling, and credit card details.",
+      "",
+      "Alternatively, you may try placing an order from a different platform, such as Amazon or Walmart.",
+      "",
+      "Thank you for your understanding. Please don't hesitate to reach out to us if you have any other questions.",
+      "",
+      ...signature
+    ].join("\n");
+  }
+  return "";
+}
 
 export const CLAIM_STATUSES = ["Claim Issued", "Package Search In Progress", "On Going", "Disputed Claim", "Claim Approved for Payment"];
 export const PERIODS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
