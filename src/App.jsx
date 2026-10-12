@@ -3,8 +3,8 @@ import { CardActions, Dialog, NotePreview, PeriodTabs, ToolCard } from "./Worksp
 import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
-  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, GENERAL_ISSUE_SNIPPETS, GENERAL_RESOLUTION_SNIPPETS, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildNote, buildOrderNote,
+  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, GENERAL_ISSUE_SNIPPETS, GENERAL_RESOLUTION_SNIPPETS, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
+  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildNote, buildOrderNote, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -108,6 +108,12 @@ function ClaimCard({ claims, setClaims, text, copy, fold, toggle, onUse }) {
 }
 
 function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
+  const [fraudEmailType, setFraudEmailType] = useState("");
+  const [fraudCustomerName, setFraudCustomerName] = useState("");
+  const [editedEmail, setEditedEmail] = useState(null);
+  const fraudOrderNumbers = general["Order ID"] || "";
+  const fraudEmailBody = editedEmail ?? buildFraudEmail(fraudEmailType, fraudCustomerName, fraudOrderNumbers);
+  const canCopyEmail = Boolean(fraudCustomerName.trim() && parseFraudOrderNumbers(fraudOrderNumbers).length);
   const hasReturnLabel = String(general.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
   const update = (field, value) => {
     const next = { ...general, [field]: value };
@@ -116,6 +122,7 @@ function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
       if (needsTracking && !Object.prototype.hasOwnProperty.call(next, "Tracking Number")) next["Tracking Number"] = "";
       if (!needsTracking) delete next["Tracking Number"];
     }
+    if (field === "Order ID") setEditedEmail(null);
     setGeneral(next);
   };
   const applyTemplate = (name) => {
@@ -123,12 +130,20 @@ function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
     const next = { ...general, ...EMAIL_TEMPLATES[name] };
     const needsTracking = String(next.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
     if (!needsTracking) delete next["Tracking Number"];
+    setFraudEmailType(FRAUD_EMAIL_TYPES[name] || "");
+    setEditedEmail(null);
     setGeneral(next);
+  };
+  const resetGeneral = () => {
+    setGeneral(BLANK_CASE);
+    setFraudEmailType("");
+    setFraudCustomerName("");
+    setEditedEmail(null);
   };
   return <ToolCard id="tool-general" title="Email / General Case Notes" icon="mail" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Templates are a starting point. You can edit every field.</small></div>
     <div className="field-layout compact-fields">
-      <label>Order ID<input value={general["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label>
+      {!fraudEmailType && <label>Order ID<input value={general["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label>}
       <label>Order Date<input value={general["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label>
       <SkuPicker label="SKU" value={general.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
       <label className="span-all">Issue<textarea rows="3" value={general.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Write the issue manually..."/></label>
@@ -137,7 +152,21 @@ function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
       <label className="span-all">Resolution<textarea rows="3" value={general.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Write the resolution manually..."/></label>
       <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={GENERAL_RESOLUTION_SNIPPETS}/></div>
     </div>
-    <CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={() => setGeneral(BLANK_CASE)}/>
+    {fraudEmailType && <section className="fraud-email-panel" aria-label="Fraud email composer">
+      <h3>{fraudEmailType === "initial" ? "Initial fraud cancellation email" : "Repeat-order fraud follow-up email"}</h3>
+      <p>Enter the recipient and the cancelled order number(s). Separate multiple orders with commas.</p>
+      <div className="fraud-email-fields">
+        <label>Customer Name<input value={fraudCustomerName} onChange={(event) => { setFraudCustomerName(event.target.value); setEditedEmail(null); }} placeholder="Ronald"/></label>
+        <label>Order Number(s)<input value={fraudOrderNumbers} onChange={(event) => update("Order ID", event.target.value)} placeholder="730889, 730890"/></label>
+      </div>
+      <label>Email draft<textarea rows="15" value={fraudEmailBody} onChange={(event) => setEditedEmail(event.target.value)} spellCheck="true"/></label>
+      <div className="fraud-email-actions">
+        <button type="button" className="primary-button" disabled={!canCopyEmail} onClick={() => copy("Fraud Email", fraudEmailBody, false)}><Icon name="copy"/>Copy Email</button>
+        <button type="button" className="secondary-button" onClick={() => setEditedEmail(null)}>Restore template</button>
+      </div>
+      <small>Review before sending. Copy Email only copies the message; it does not send anything. Changing the name or order numbers refreshes the draft.</small>
+    </section>}
+    <CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={resetGeneral}/>
   </ToolCard>;
 }
 function RecentMenu({ items, onCopy, onClose }) {
