@@ -7,9 +7,9 @@ describe("WorkDesk helpers", () => {
     expect(MASTER_SKUS).toContain("MA-SMARTR-1");
     expect(FILTER_VARIANT_IDS["MA-SMARTR-1"]).toBe("32288811188291");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-SMARTR-1": 1 } }, "JA"))
-      .toContain("MA-SMARTR-1 x1\\nReason: Variant Error\\nNew Variant ID#: 32288811188291".replaceAll("\\n", "\n"));
+      .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-15R-1": 1 }, conversions: { "MA-15R-1": { sku: "MA-SMARTR-1", quantity: 1 } } }, "JA"))
-      .toContain("MA-SMARTR-1 x1\\nReason: Variant Error\\nNew Variant ID#: 32288811188291".replaceAll("\\n", "\n"));
+      .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
   });
 
   it("maps MA-40E-4 across all SKU pickers and the filter note", () => {
