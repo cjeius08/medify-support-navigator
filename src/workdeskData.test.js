@@ -2,6 +2,16 @@ import { describe, expect, it } from "vitest";
 import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("uses MA-SMARTR-1 Variant ID in selected and converted filter notes", () => {
+    expect(FILTER_SKUS).toContain("MA-SMARTR-1");
+    expect(MASTER_SKUS).toContain("MA-SMARTR-1");
+    expect(FILTER_VARIANT_IDS["MA-SMARTR-1"]).toBe("32288811188291");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-SMARTR-1": 1 } }, "JA"))
+      .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-15R-1": 1 }, conversions: { "MA-15R-1": { sku: "MA-SMARTR-1", quantity: 1 } } }, "JA"))
+      .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
+  });
+
   it("maps MA-40E-4 across all SKU pickers and the filter note", () => {
     expect(FILTER_SKUS).toContain("MA-40E-4");
     expect(MASTER_SKUS).toContain("MA-40E-4");
