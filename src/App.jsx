@@ -114,7 +114,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
                 <div className="variant-result"><span>Original SKU · Variant ID</span><b>{sku}</b><small>Original Variant ID#: {originalVariantId}</small></div>
                 <div className="variant-result"><span>Converted SKU · Variant ID</span><b>{targetSku}</b><small>New Variant ID#: {targetVariantId}</small></div>
               </div>
-              <div className="conversion-counts">
+              <div className="conversion-counts" aria-label={`Conversion summary for ${sku}`}>
                 <div><b>{sourceQuantity}</b><span>Original filters converted</span></div>
                 <div><b>{remaining}</b><span>Original filters unchanged</span></div>
               </div>
