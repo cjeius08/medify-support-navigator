@@ -68,8 +68,34 @@ describe("preserved workspace workflows", () => {
     expect(filterTool.queryByRole("button", {name:"Use MA-50R-2"})).toBeNull();
     expect(filterTool.getByLabelText("Converted quantity for MA-50R-1").value).toBe("1");
     click("Copy Note", filterTool);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Filter(s):\nMA-50R-2 x1"));
-    expect(copyText.mock.calls.at(-1)[0]).toContain("Converted MA-50R-1 x2 to MA-50R-2 x1");
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Filter(s):\nMA-50R-1 x1 (Unchanged)\nMA-50R-2 x1 (Converted)"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Converted MA-50R-1 x1 to MA-50R-2 x1\nRemaining MA-50R-1 x1 unchanged");
+  });
+
+  it("converts only two of four MA-50 filters and leaves original/new Variant IDs visible", async () => {
+    await openApp(); const filter = tool("Swapped Filter Subscription");
+    change("Filter Model(s)", "MA-50R-1", filter);
+    click("Add MA-50R-1", filter);
+    for (let i = 0; i < 3; i++) click("Increase MA-50R-1", filter);
+    expect(filter.getByLabelText("MA-50R-1 quantity").textContent).toBe("4");
+
+    click("Convert", filter);
+    change("Convert MA-50R-1 to", "MA-50R-2", filter);
+    click("Use MA-50R-2", filter);
+    change("Original quantity to convert for MA-50R-1", "2", filter);
+    change("Converted quantity for MA-50R-1", "2", filter);
+
+    expect(filter.getAllByText("Original Variant ID#: 43720696922179").length).toBeGreaterThan(0);
+    expect(filter.getByText("New Variant ID#: 43720696987715")).toBeTruthy();
+    const summary = filter.getByLabelText("Conversion summary for MA-50R-1");
+    expect(summary.textContent).toContain("Original filters converted");
+    expect(summary.textContent).toContain("Original filters unchanged");
+    click("Copy Note", filter);
+    const note = copyText.mock.calls.at(-1)[0];
+    expect(note).toContain("MA-50R-1 x2 (Unchanged)\nMA-50R-2 x2 (Converted)");
+    expect(note).toContain("Original Variant ID#:\nMA-50R-1: 43720696922179");
+    expect(note).toContain("New Variant ID#:\nMA-50R-2: 43720696987715");
+    expect(note).toContain("Converted MA-50R-1 x2 to MA-50R-2 x2\nRemaining MA-50R-1 x2 unchanged");
   });
 
   it("uses the converted SKU as the final filter and variant ID while supporting multiple filters", async () => {
@@ -81,7 +107,7 @@ describe("preserved workspace workflows", () => {
     change("Filter Model(s)", "MA-15R-1"); click("Add MA-15R-1");
     expect(filterTool.getByText("New Variant ID#: 43720696987715")).toBeTruthy();
     click("Copy Note", filterTool);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Swapped Filter Subscription\nFilter(s):\nMA-50R-2 x2\nMA-15R-1 x1\nReason: Variant Error\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Swapped Filter Subscription\nFilter(s):\nMA-50R-2 x2 (Converted)\nMA-15R-1 x1 (Unchanged)\nReason: Variant Error\nOriginal Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
   });
 
   it("keeps Call Notes actions easy to reach and adds searchable SKUs and quick inserts to case tools", async () => {
@@ -148,7 +174,7 @@ describe("preserved workspace workflows", () => {
 
     change("Filter Model(s)", "MA-40E-4", filter);
     click("Add MA-40E-4", filter);
-    expect(filter.getByText("Variant ID: 31987508740163")).toBeTruthy();
+    expect(filter.getByText("Original Variant ID#: 31987508740163")).toBeTruthy();
     click("Copy Note", filter);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("New Variant ID#: 31987508740163"));
 

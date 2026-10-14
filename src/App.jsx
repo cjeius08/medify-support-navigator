@@ -55,39 +55,70 @@ function CallNotes({ call, setCall, followup, setFollowup, text, copy, reset, fo
 }
 
 function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
-  const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => quantity > 0);
+  const selected = Object.entries(filter.selected || {}).filter(([, count]) => Number(count) > 0);
   const conversions = filter.conversions || {};
   const add = (sku) => setFilter({ ...filter, search: "", selected: { ...filter.selected, [sku]: (filter.selected[sku] || 0) + 1 } });
-  const quantity = (sku, amount) => setFilter({ ...filter, selected: { ...filter.selected, [sku]: Math.max(0, (filter.selected[sku] || 0) + amount) } });
-  const remove = (sku) => {
-    const selectedSkus = { ...filter.selected }; delete selectedSkus[sku];
-    const nextConversions = { ...conversions }; delete nextConversions[sku];
-    setFilter({ ...filter, selected: selectedSkus, conversions: nextConversions });
+  const quantity = (sku, change) => {
+    const count = Math.max(0, (Number(filter.selected[sku]) || 0) + change);
+    const nextSelected = { ...filter.selected, [sku]: count };
+    const nextConversions = { ...conversions };
+    if (count === 0) delete nextConversions[sku];
+    else if (nextConversions[sku]) nextConversions[sku] = {
+      ...nextConversions[sku],
+      sourceQuantity: Math.min(count, Math.max(1, Number(nextConversions[sku].sourceQuantity) || 1))
+    };
+    setFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
   };
-  const startConversion = (sku) => setFilter({ ...filter, conversions: { ...conversions, [sku]: conversions[sku] || { sku: "", quantity: 1 } } });
+  const remove = (sku) => {
+    const nextSelected = { ...filter.selected }; delete nextSelected[sku];
+    const nextConversions = { ...conversions }; delete nextConversions[sku];
+    setFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
+  };
+  const startConversion = (sku) => setFilter({ ...filter, conversions: {
+    ...conversions, [sku]: conversions[sku] || { sku: "", sourceQuantity: 1, quantity: 1 }
+  } });
   const cancelConversion = (sku) => {
     const nextConversions = { ...conversions }; delete nextConversions[sku];
     setFilter({ ...filter, conversions: nextConversions });
   };
-  const updateConversion = (sku, patch) => setFilter({ ...filter, conversions: { ...conversions, [sku]: { ...(conversions[sku] || {}), ...patch } } });
+  const updateConversion = (sku, patch) => setFilter({ ...filter, conversions: {
+    ...conversions, [sku]: { ...(conversions[sku] || {}), ...patch }
+  } });
 
   return <ToolCard id="tool-filter" title="Swapped Filter Subscription" icon="package" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="stack-fields"><label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>
       <SkuPicker label="Filter Model(s)" value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add"/>
       {selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
         const conversion = conversions[sku];
-        const effectiveSku = conversion?.sku?.trim() || sku;
-        const variantId = FILTER_VARIANT_IDS[effectiveSku] || "";
-        const convertedQuantity = Number(conversion?.quantity) > 0 ? Number(conversion.quantity) : 1;
+        const targetSku = FILTER_SKUS.includes(conversion?.sku) && conversion.sku !== sku ? conversion.sku : "";
+        const originalVariantId = FILTER_VARIANT_IDS[sku] || "Not assigned";
+        const targetVariantId = targetSku ? (FILTER_VARIANT_IDS[targetSku] || "Not assigned") : "";
+        const sourceQuantity = Math.min(Number(amount), Math.max(1, Math.floor(Number(conversion?.sourceQuantity) || 1)));
+        const targetQuantity = Math.max(1, Math.floor(Number(conversion?.quantity) || 1));
+        const remaining = Number(amount) - sourceQuantity;
         return <div className="filter-selection" key={sku}>
           <div className="sku-chip filter-sku-chip">
-            <span className="filter-sku-details"><b>{sku}</b><small>Variant ID: {conversion?.sku ? "See converted SKU below" : (variantId || "Not assigned")}</small></span>
+            <span className="filter-sku-details"><b>{sku}</b><small>Original Variant ID#: {originalVariantId}</small></span>
             <span className="filter-row-actions"><button aria-label={`Decrease ${sku}`} onClick={() => quantity(sku, -1)}>−</button><output aria-label={`${sku} quantity`}>{amount}</output><button aria-label={`Increase ${sku}`} onClick={() => quantity(sku, 1)}>+</button>{conversion ? <button className="text-button convert-button" onClick={() => cancelConversion(sku)}>Cancel conversion</button> : <button className="text-button convert-button" onClick={() => startConversion(sku)}>Convert</button>}<button aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></span>
           </div>
           {conversion && <div className="conversion-box">
-            <div className="conversion-heading"><strong>Convert {sku}</strong><span>Original: {sku} x{amount}</span></div>
-            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(targetSku) => updateConversion(sku, { sku: targetSku })} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
-            {conversion.sku && <div className="conversion-details"><label>{`Converted quantity for ${sku}`}<input type="number" min="1" step="1" value={convertedQuantity} onChange={(event) => updateConversion(sku, { quantity: Math.max(1, Number(event.target.value) || 1) })}/></label><div className="variant-result"><span>Final SKU</span><b>{conversion.sku}</b><small>New Variant ID#: {variantId || "Not assigned"}</small></div></div>}
+            <div className="conversion-heading"><strong>Convert part of {sku}</strong><span>Original: {sku} x{amount}</span></div>
+            <p className="conversion-help">Only convert the filters that match the address, frequency and charge date. Leave the others unchanged.</p>
+            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku })} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
+            <div className="conversion-details">
+              <label>Original quantity to convert for {sku}<input type="number" min="1" max={amount} step="1" value={sourceQuantity} onChange={(event) => updateConversion(sku, { sourceQuantity: Math.min(Number(amount), Math.max(1, Math.floor(Number(event.target.value) || 1))) })}/></label>
+              <label>Converted quantity for {sku}<input type="number" min="1" step="1" value={targetQuantity} onChange={(event) => updateConversion(sku, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}/></label>
+            </div>
+            {targetSku && <>
+              <div className="conversion-variants">
+                <div className="variant-result"><span>Original SKU · Variant ID</span><b>{sku}</b><small>Original Variant ID#: {originalVariantId}</small></div>
+                <div className="variant-result"><span>Converted SKU · Variant ID</span><b>{targetSku}</b><small>New Variant ID#: {targetVariantId}</small></div>
+              </div>
+              <div className="conversion-counts" aria-label={`Conversion summary for ${sku}`}>
+                <div><b>{sourceQuantity}</b><span>Original filters converted</span></div>
+                <div><b>{remaining}</b><span>Original filters unchanged</span></div>
+              </div>
+            </>}
           </div>}
         </div>;
       })}</div>}

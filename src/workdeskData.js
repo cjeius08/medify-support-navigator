@@ -230,48 +230,83 @@ export function buildCallNote(fields = {}, agentInitials) {
   return [...orderedFields.map((key) => `${key}: ${fields[key] || "Not provided"}`), agentInitials || "Not provided"].join("\n");
 }
 
-export function effectiveFilterRows(filter = {}) {
-  const grouped = new Map();
-  for (const [originalSku, quantityValue] of Object.entries(filter.selected || {})) {
-    const quantity = Number(quantityValue) || 0;
-    if (quantity <= 0) continue;
+export function filterConversionDetails(filter = {}) {
+  return Object.entries(filter.selected || {}).flatMap(([originalSku, totalValue]) => {
+    const originalQuantity = Math.floor(Number(totalValue) || 0);
     const conversion = filter.conversions?.[originalSku];
-    const targetSku = conversion?.sku?.trim() || originalSku;
-    const convertedQuantity = conversion?.sku ? (Number(conversion.quantity) > 0 ? Number(conversion.quantity) : 1) : quantity;
-    grouped.set(targetSku, (grouped.get(targetSku) || 0) + convertedQuantity);
+    const targetSku = String(conversion?.sku || "").trim();
+    if (originalQuantity <= 0 || targetSku === originalSku || !FILTER_SKUS.includes(targetSku)) return [];
+
+    // Existing saved drafts that do not have sourceQuantity safely default to one.
+    const sourceQuantity = Math.min(originalQuantity, Math.max(1, Math.floor(Number(conversion.sourceQuantity) || 1)));
+    const targetQuantity = Math.max(1, Math.floor(Number(conversion.quantity) || 1));
+    return [{ originalSku, originalQuantity, sourceQuantity, targetSku, targetQuantity, remaining: originalQuantity - sourceQuantity }];
+  });
+}
+
+export function effectiveFilterRows(filter = {}) {
+  const conversions = new Map(filterConversionDetails(filter).map((entry) => [entry.originalSku, entry]));
+  const grouped = new Map();
+  const addRow = (sku, quantity, status) => {
+    if (quantity <= 0) return;
+    const key = `${sku}|${status}`;
+    const existing = grouped.get(key);
+    if (existing) existing.quantity += quantity;
+    else grouped.set(key, { sku, quantity, status });
+  };
+  for (const [originalSku, totalValue] of Object.entries(filter.selected || {})) {
+    const total = Math.floor(Number(totalValue) || 0);
+    if (total <= 0) continue;
+    const entry = conversions.get(originalSku);
+    if (entry) {
+      addRow(originalSku, entry.remaining, "Unchanged");
+      addRow(entry.targetSku, entry.targetQuantity, "Converted");
+    } else addRow(originalSku, total, "Unchanged");
   }
-  return [...grouped.entries()].map(([sku, quantity]) => ({ sku, quantity }));
+  return [...grouped.values()];
 }
 
 export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_VARIANT_IDS) {
-  const selected = Object.entries(filter.selected || {}).filter(([, quantity]) => Number(quantity) > 0);
   const effective = effectiveFilterRows(filter);
-  const conversions = selected.flatMap(([originalSku, quantityValue]) => {
-    const conversion = filter.conversions?.[originalSku];
-    if (!conversion?.sku?.trim() || conversion.sku.trim() === originalSku) return [];
-    const originalQuantity = Number(quantityValue) || 0;
-    const convertedQuantity = Number(conversion.quantity) > 0 ? Number(conversion.quantity) : 1;
-    return [`Converted ${originalSku} x${originalQuantity} to ${conversion.sku.trim()} x${convertedQuantity}`];
-  });
+  const conversions = filterConversionDetails(filter);
+  const converted = conversions.length > 0;
+  const convertedSources = new Set(conversions.map(({ originalSku }) => originalSku));
+  const skuIdLine = (sku) => `${sku}: ${variantIds[sku] || ""}`;
 
-  const variantLines = effective.length === 1
-    ? [`New Variant ID#: ${variantIds[effective[0].sku] || ""}`]
-    : effective.length > 1
-      ? ["New Variant ID#:", ...effective.map(({ sku }) => `${sku}: ${variantIds[sku] || ""}`)]
-      : ["New Variant ID#:"];
+  const variantLines = !converted
+    ? effective.length === 1
+      ? [`New Variant ID#: ${variantIds[effective[0].sku] || ""}`]
+      : effective.length > 1
+        ? ["New Variant ID#:", ...effective.map(({ sku }) => skuIdLine(sku))]
+        : ["New Variant ID#:"]
+    : [
+        "Original Variant ID#:",
+        ...[...convertedSources].map(skuIdLine),
+        "New Variant ID#:",
+        ...[...new Set(effective
+          .filter(({ sku, status }) => status === "Converted" || !convertedSources.has(sku))
+          .map(({ sku }) => sku))].map(skuIdLine)
+      ];
+
+  const conversionNotes = conversions.flatMap(({ originalSku, sourceQuantity, targetSku, targetQuantity, remaining }) => [
+    `Converted ${originalSku} x${sourceQuantity} to ${targetSku} x${targetQuantity}`,
+    ...(remaining > 0 ? [`Remaining ${originalSku} x${remaining} unchanged`] : [])
+  ]);
 
   const manualNotes = String(filter.notes || "").trim();
-  const additional = [...conversions, ...(manualNotes ? [manualNotes] : [])];
+  const additional = [...conversionNotes, ...(manualNotes ? [manualNotes] : [])];
   const additionalLines = !additional.length
     ? []
-    : conversions.length
+    : converted
       ? ["Additional Notes:", ...additional]
       : [`Additional Notes: ${manualNotes}`];
 
   return [
     "Swapped Filter Subscription",
     "Filter(s):",
-    ...(effective.length ? effective.map(({ sku, quantity }) => `${sku} x${quantity}`) : ["Not provided"]),
+    ...(effective.length
+      ? effective.map(({ sku, quantity, status }) => `${sku} x${quantity}${converted ? ` (${status})` : ""}`)
+      : ["Not provided"]),
     `Reason: ${filter.reason || "Not provided"}`,
     ...variantLines,
     ...additionalLines,
