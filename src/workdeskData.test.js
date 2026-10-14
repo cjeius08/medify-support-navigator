@@ -2,6 +2,61 @@ import { describe, expect, it } from "vitest";
 import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("partially converts two of four MA-50 filters while preserving both variant IDs", () => {
+    const note = buildFilterNote({
+      reason: "Variant Error",
+      selected: { "MA-50R-1": 4 },
+      conversions: { "MA-50R-1": { sku: "MA-50R-2", sourceQuantity: 2, quantity: 2 } }
+    }, "JA");
+    expect(note).toBe([
+      "Swapped Filter Subscription",
+      "Filter(s):",
+      "MA-50R-1 x2 (Unchanged)",
+      "MA-50R-2 x2 (Converted)",
+      "Reason: Variant Error",
+      "Original Variant ID#:",
+      "MA-50R-1: 43720696922179",
+      "New Variant ID#:",
+      "MA-50R-2: 43720696987715",
+      "Additional Notes:",
+      "Converted MA-50R-1 x2 to MA-50R-2 x2",
+      "Remaining MA-50R-1 x2 unchanged",
+      "JA"
+    ].join("\n"));
+  });
+
+  it("handles full conversion without a false remaining count and keeps original variant ID", () => {
+    const note = buildFilterNote({
+      reason: "Filter Variant Request",
+      selected: { "MA-50R-1": 4 },
+      conversions: { "MA-50R-1": { sku: "MA-50R-2", sourceQuantity: 4, quantity: 1 } }
+    }, "JA");
+    expect(note).toContain("Filter(s):\nMA-50R-2 x1 (Converted)\nReason: Filter Variant Request");
+    expect(note).toContain("Original Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-50R-2: 43720696987715");
+    expect(note).toContain("Converted MA-50R-1 x4 to MA-50R-2 x1");
+    expect(note).not.toContain("Remaining MA-50R-1");
+  });
+
+  it("keeps unrelated filter SKUs, clamps partial quantities and ignores incomplete conversions", () => {
+    const partial = buildFilterNote({
+      reason: "Variant Error",
+      selected: { "MA-50R-1": 4, "MA-15R-1": 1 },
+      conversions: { "MA-50R-1": { sku: "MA-50R-2", sourceQuantity: 99, quantity: 2 } }
+    }, "JA");
+    expect(partial).toContain("MA-50R-2 x2 (Converted)\nMA-15R-1 x1 (Unchanged)");
+    expect(partial).toContain("Converted MA-50R-1 x4 to MA-50R-2 x2");
+    expect(partial).not.toContain("Remaining MA-50R-1");
+    expect(partial).toContain("MA-15R-1: 43720703475779");
+
+    const incomplete = buildFilterNote({
+      reason: "Variant Error",
+      selected: { "MA-50R-1": 4 },
+      conversions: { "MA-50R-1": { sku: "MA-50", sourceQuantity: 2, quantity: 2 } }
+    }, "JA");
+    expect(incomplete).toContain("MA-50R-1 x4\nReason: Variant Error\nNew Variant ID#: 43720696922179");
+    expect(incomplete).not.toContain("Converted MA-50R-1");
+  });
+
   it("uses MA-SMARTR-1 Variant ID in selected and converted filter notes", () => {
     expect(FILTER_SKUS).toContain("MA-SMARTR-1");
     expect(MASTER_SKUS).toContain("MA-SMARTR-1");
@@ -9,7 +64,7 @@ describe("WorkDesk helpers", () => {
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-SMARTR-1": 1 } }, "JA"))
       .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-15R-1": 1 }, conversions: { "MA-15R-1": { sku: "MA-SMARTR-1", quantity: 1 } } }, "JA"))
-      .toContain("MA-SMARTR-1 x1\nReason: Variant Error\nNew Variant ID#: 32288811188291");
+      .toContain("MA-SMARTR-1 x1 (Converted)\nReason: Variant Error\nOriginal Variant ID#:\nMA-15R-1: 43720703475779\nNew Variant ID#:\nMA-SMARTR-1: 32288811188291");
   });
 
   it("maps MA-40E-4 across all SKU pickers and the filter note", () => {
@@ -17,7 +72,7 @@ describe("WorkDesk helpers", () => {
     expect(MASTER_SKUS).toContain("MA-40E-4");
     expect(FILTER_VARIANT_IDS["MA-40E-4"]).toBe("31987508740163");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-40E-4": 1 } }, "JA")).toContain("MA-40E-4 x1\nReason: Variant Error\nNew Variant ID#: 31987508740163");
-    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-40E-1": 1 }, conversions: { "MA-40E-1": { sku: "MA-40E-4", quantity: 1 } } }, "JA")).toContain("MA-40E-4 x1\nReason: Variant Error\nNew Variant ID#: 31987508740163");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-40E-1": 1 }, conversions: { "MA-40E-1": { sku: "MA-40E-4", quantity: 1 } } }, "JA")).toContain("MA-40E-4 x1 (Converted)\nReason: Variant Error\nOriginal Variant ID#:\nMA-40E-1: 31576825987139\nNew Variant ID#:\nMA-40E-4: 31987508740163");
   });
 
 
