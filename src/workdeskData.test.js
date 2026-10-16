@@ -2,25 +2,27 @@ import { describe, expect, it } from "vitest";
 import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
-  it("generates a general warranty reply without assuming unconfirmed video, troubleshooting or replacement", () => {
+  it("keeps the pending warranty reply simple and never claims an unprocessed replacement", () => {
     const reply = buildWarrantyReply({ "Customer Name": "Kim", "Product Model": "MA-35" });
     expect(reply).toContain("Hi Kim,");
-    expect(reply).toContain("issue with your MA-35");
+    expect(reply).toContain("Thank you so much for your patience while we worked on the issue with your MA-35.");
     expect(reply).toContain("keep you updated on the next steps");
     for (const absent of [
       "troubleshooting steps", "sending us the video", "updated shipping address",
-      "successfully processed", "replacement order number", "1–3 business days",
-      "priority fulfillment", "no need to return", "warranty coverage will transfer"
+      "I was able to process", "replacement order number", "1–3 business days",
+      "today's fulfillment batch", "no need to send", "warranty will be transferred"
     ]) expect(reply.toLowerCase()).not.toContain(absent.toLowerCase());
+    expect(reply).toContain("Warm regards,");
+    expect(reply).not.toContain("Medify Air Customer Service Team");
+    expect(reply).not.toContain("info@medifyair.com");
     expect(caseQuickOptions("Warranty Replacement").actions).toEqual([
-      "Video received", "Troubleshooting completed", "Address updated",
-      "Priority fulfillment requested", "No return required confirmed", "Warranty transfer confirmed"
+      "Video received", "Troubleshooting completed", "Address updated", "Priority fulfillment requested"
     ]);
     expect(canCopyWarrantyReply({})).toBe(false);
     expect(canCopyWarrantyReply({ "Customer Name": "Kim" })).toBe(true);
   });
 
-  it("includes video or troubleshooting independently and only includes an address if selected", () => {
+  it("shows video, troubleshooting and changed address only when confirmed", () => {
     const base = { "Customer Name": "Kim", "Product Model": "MA-35" };
     const video = buildWarrantyReply({ ...base, "Action Taken": "Video received" });
     expect(video).toContain("Thank you for sending us the video.");
@@ -30,14 +32,13 @@ describe("WorkDesk helpers", () => {
     expect(trouble).not.toContain("sending us the video");
     const addressUnselected = buildWarrantyReply({ ...base, "Updated Shipping Address": "123 Sample St." });
     expect(addressUnselected).not.toContain("123 Sample St.");
-
     const pendingAddress = { ...base, "Action Taken": "Address updated" };
     expect(canCopyWarrantyReply(pendingAddress)).toBe(false);
     expect(buildWarrantyReply(pendingAddress)).toContain("[Updated Shipping Address]");
     expect(canCopyWarrantyReply({ ...pendingAddress, "Updated Shipping Address": "123 Sample St." })).toBe(true);
   });
 
-  it("matches the confirmed warranty replacement scenario and prevents incomplete confirmations", () => {
+  it("uses requested replacement, delivery, warranty, no-return wording without signature", () => {
     const fields = {
       "Customer Name": "Kim",
       "Product Model": "MA-35",
@@ -48,31 +49,31 @@ describe("WorkDesk helpers", () => {
     };
     const reply = buildWarrantyReply(fields);
     expect(reply).toContain("Hi Kim,");
+    expect(reply).toContain("Thank you so much for your patience");
     expect(reply).toContain("taking the time to complete the troubleshooting steps");
     expect(reply).toContain("Thank you for sending us the video");
-    expect(reply).toContain("successfully processed your warranty replacement");
-    expect(reply).toContain("Your replacement order number is #811370.");
+    expect(reply).toContain("I was able to process your replacement order, and your new order number is #811370.");
     expect(reply).toContain("16350 S Harbor Blvd, Apt 1408\nSanta Ana, CA 92704");
-    expect(reply).toContain("1–3 business days");
-    expect(reply).not.toContain("priority fulfillment");
-    expect(reply).not.toContain("no need to return");
-    expect(reply).not.toContain("warranty coverage will transfer");
+    expect(reply).toContain("Once your order has been processed, it will be fulfilled and shipped in 1–3 business days and delivered within 3–7 business days after.");
+    expect(reply).toContain("An email confirmation will be sent once the order ships and the tracking information is available.");
+    expect(reply).toContain("The warranty will be transferred to the replacement unit we're sending you");
+    expect(reply).toContain("There's no need to send the defective unit back. You may properly dispose of it as you see fit.");
+    expect(reply).not.toContain("today's fulfillment batch");
+    expect(reply).not.toContain("Medify Air Customer Service Team");
+    expect(reply).not.toContain("info@medifyair.com");
+    expect(reply.trimEnd().endsWith("Warm regards,")).toBe(true);
     expect(canCopyWarrantyReply(fields)).toBe(true);
     expect(canCopyWarrantyReply({ ...fields, "Replacement Order ID": "" })).toBe(false);
     expect(canCopyWarrantyReply({ ...fields, "Updated Shipping Address": "" })).toBe(false);
 
-    const selected = buildWarrantyReply({
-      ...fields,
-      "Action Taken": fields["Action Taken"] + "\nPriority fulfillment requested\nNo return required confirmed\nWarranty transfer confirmed"
+    const priorityReply = buildWarrantyReply({
+      ...fields, "Action Taken": fields["Action Taken"] + "\nPriority fulfillment requested"
     });
-    expect(selected).toContain("requested priority fulfillment");
-    expect(selected).toContain("no need to return the defective unit");
-    expect(selected).toContain("warranty coverage will transfer");
+    expect(priorityReply).toContain("I've also made a special request to include your order in today's fulfillment batch so we can try to get it out sooner than the standard timeframe, if possible.");
     const note = buildSmartCaseNote({ ...fields, caseType: "Warranty Replacement", Issue: "Power Issue" }, "JA");
     expect(note).toContain("Action Taken: Video received\nTroubleshooting completed\nAddress updated");
     expect(note).toContain("Replacement Order ID: #811370");
   });
-
 
   it("keeps UPS Lost/Damaged claim actions separate and gates refund versus replacement resolutions", () => {
     const lost = caseQuickOptions("UPS Lost Claim", "Replacement");
