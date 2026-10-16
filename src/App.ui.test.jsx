@@ -249,6 +249,23 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Case Type").value).toBe("General Inquiry");
   });
 
+  it("recovers a previous Order Codes draft without losing its code and fields", async () => {
+    localStorage.setItem("medify-workdesk-order-draft", JSON.stringify({
+      "Order ID": "LEGACY-101", "Order Date": "2026-10-01", SKU: "MA-40E-4",
+      Issue: "Fan Issue", Resolution: "Processed replacement",
+      category: "Warranty Replacement", reason: "WR-07"
+    }));
+    await openApp(); const smart = tool("Smart Case Notes");
+    click("Load saved Order Codes draft", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
+    expect(smart.getByLabelText("Order ID").value).toBe("LEGACY-101");
+    expect(smart.getByLabelText("SKU").value).toBe("MA-40E-4");
+    expect(smart.getByLabelText("Issue").value).toBe("Fan Issue");
+    expect(smart.getByLabelText("Reason Code").value).toBe("WR-07");
+    click("Copy Code", smart);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Warranty Replacement | WR-07 | LEGACY-101"));
+  });
+
   it("preserves separate UPS Claim tracker, invoice checkbox and saved templates in Smart Case Notes", async () => {
     await openApp(); const claim = tool("UPS Claim"), smart = tool("Smart Case Notes");
     change("Claim Number", "QA-CLAIM", claim);
