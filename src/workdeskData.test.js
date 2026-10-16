@@ -2,6 +2,29 @@ import { describe, expect, it } from "vitest";
 import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("generates a concise Flagged for Fraud Review note with Under Review status", () => {
+    const note = buildSmartCaseNote({
+      caseType: "Flagged for Fraud Review",
+      "Order ID": "811370",
+      "Order Date": "2026-10-17",
+      Issue: "Old issue from a different case",
+      Resolution: "Old resolution from a different case"
+    }, "JA");
+    expect(note).toBe([
+      "Case Type: Flagged for Fraud Review",
+      "Order Number: 811370",
+      "Order Date: 2026-10-17",
+      "Status: Under Review",
+      "JA"
+    ].join("\n"));
+    expect(note).not.toContain("Old issue");
+    expect(note).not.toContain("Old resolution");
+    const blank = buildSmartCaseNote({ caseType: "Flagged for Fraud Review" }, "JA");
+    expect(blank).toContain("Order Number: Not provided\nOrder Date: Not provided\nStatus: Under Review");
+    expect(caseQuickOptions("Fraud / High Risk").resolutions).toContain("Order Cancelled");
+  });
+
+
   it("keeps the pending warranty reply simple and never claims an unprocessed replacement", () => {
     const reply = buildWarrantyReply({ "Customer Name": "Kim", "Product Model": "MA-35" });
     expect(reply).toContain("Hi Kim,");

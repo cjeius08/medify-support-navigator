@@ -102,7 +102,7 @@ export const GENERAL_RESOLUTION_SNIPPETS = [...RESOLUTION_SNIPPETS, "Order Cance
 export const CASE_TYPES = [
   "General Inquiry", "Warranty Replacement", "Free Order", "Reprocessed Order",
   "UPS Lost Claim", "UPS Damaged Claim", "Return / Refund",
-  "Fraud / High Risk", "Subscription / Filter Club", "Amazon Order"
+  "Fraud / High Risk", "Flagged for Fraud Review", "Subscription / Filter Club", "Amazon Order"
 ];
 
 export const CASE_CODE_CATEGORIES = {
@@ -169,6 +169,15 @@ export function caseQuickOptions(caseType = "General Inquiry", customerResolutio
 export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null) {
   const caseType = CASE_TYPES.includes(fields.caseType) ? fields.caseType : "General Inquiry";
   const val = (key) => fields[key] || "Not provided";
+  if (caseType === "Flagged for Fraud Review") {
+    return [
+      "Case Type: Flagged for Fraud Review",
+      `Order Number: ${val("Order ID")}`,
+      `Order Date: ${val("Order Date")}`,
+      "Status: Under Review",
+      agentInitials || "Not provided"
+    ].join("\n");
+  }
   const ups = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
   const codeCategory = CASE_CODE_CATEGORIES[caseType] || (ups && fields.customerResolution === "Replacement" ? "UPS" : "");
   const base = [

@@ -140,6 +140,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const caseType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
   const isUps = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
   const isWarranty = caseType === "Warranty Replacement";
+  const isFraudReview = caseType === "Flagged for Fraud Review";
   const warrantyProcessed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(general.Resolution, action));
   const warrantyAddressUpdated = hasCaseAction(general["Action Taken"], "Address updated");
   const warrantyReply = editedWarrantyReply ?? buildWarrantyReply(general);
@@ -245,6 +246,11 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     {hasPreviousOrderDraft && <div className="smart-case-restore"><button type="button" className="secondary-button" onClick={restorePreviousOrderDraft}><Icon name="reset"/>Load saved Order Codes draft</button><small>Recovers fields from the previous Order Codes / Replacement tool.</small></div>}
     <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
     <div className="field-layout compact-fields">
+      {isFraudReview ? <>
+        <label>Order Number<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)} placeholder="Enter order number"/></label>
+        <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)} placeholder="Enter order date"/></label>
+        <label className="span-all">Status<input value="Under Review" readOnly aria-readonly="true"/></label>
+      </> : <>
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
       <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>
       <SkuPicker label="SKU" value={general.SKU || ""} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
@@ -279,6 +285,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         {isUps && <p className="smart-code-advisory">This is the existing UPS code, not a separate replacement authorization. Continue your normal UPS claim and replacement process.</p>}
         <button type="button" className="secondary-button" onClick={() => copy("Order Code", codeText)}><Icon name="copy"/>Copy Code</button>
       </div>}
+      </>}
     </div>
     {isWarranty && <section className="fraud-email-panel warranty-reply-panel" aria-label="Warranty reply generator">
       <h3>Warranty Replacement Reply Generator</h3>

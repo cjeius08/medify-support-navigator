@@ -251,6 +251,31 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Generated Warranty Reply").value).toContain("keep you updated on the next steps");
   });
 
+  it("shows Flagged for Fraud Review with Order Number, Order Date and Under Review only", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Flagged for Fraud Review", smart);
+    expect(smart.getByLabelText("Order Number")).toBeTruthy();
+    expect(smart.getByLabelText("Order Date")).toBeTruthy();
+    expect(smart.getByLabelText("Status").value).toBe("Under Review");
+    expect(smart.getByLabelText("Status").readOnly).toBe(true);
+    expect(smart.queryByLabelText("SKU")).toBeNull();
+    expect(smart.queryByLabelText("Issue")).toBeNull();
+    expect(smart.queryByLabelText("Resolution")).toBeNull();
+    expect(smart.queryByRole("button", { name: "Order Cancelled", exact: true })).toBeNull();
+    change("Order Number", "FR-889", smart);
+    change("Order Date", "2026-10-17", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe(
+      "Case Type: Flagged for Fraud Review\nOrder Number: FR-889\nOrder Date: 2026-10-17\nStatus: Under Review\nJA"
+    ));
+    change("Case Type", "Fraud / High Risk", smart);
+    expect(smart.getByLabelText("Order ID").value).toBe("FR-889");
+    expect(smart.getByLabelText("Issue")).toBeTruthy();
+    expect(smart.getByRole("button", { name: "Order Cancelled" })).toBeTruthy();
+    expect(smart.queryByLabelText("Status")).toBeNull();
+  });
+
   it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
     await openApp(); const smart = tool("Smart Case Notes");
     change("Case Type", "Warranty Replacement", smart);
