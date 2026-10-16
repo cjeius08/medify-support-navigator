@@ -152,6 +152,19 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const fraudOrderNumbers = general["Order ID"] || "";
   const fraudEmailBody = editedEmail ?? buildFraudEmail(fraudEmailType, fraudCustomerName, fraudOrderNumbers);
   const canCopyEmail = Boolean(fraudCustomerName.trim() && parseFraudOrderNumbers(fraudOrderNumbers).length);
+  const hasPreviousOrderDraft = ["Order ID", "Order Date", "SKU", "Issue", "Resolution"].some(key => String(order[key] || "").trim());
+  const restorePreviousOrderDraft = () => {
+    const savedType = Object.entries(CASE_CODE_CATEGORIES).find(([, category]) => category === order.category)?.[0]
+      || (order.category === "UPS" ? (order.reason?.includes("Damaged") ? "UPS Damaged Claim" : "UPS Lost Claim") : "General Inquiry");
+    setGeneral({
+      ...BLANK_CASE,
+      ...Object.fromEntries(["Order ID", "Order Date", "SKU", "Issue", "Resolution"].map(key => [key, order[key] || ""])),
+      caseType: savedType
+    });
+    setFraudEmailType("");
+    setEditedEmail(null);
+  };
+
 
   const update = (field, value) => {
     const next = { ...general, [field]: value };
@@ -216,6 +229,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       <label>Case Type<select value={caseType} onChange={(event) => selectCaseType(event.target.value)}>{CASE_TYPES.map(type => <option key={type}>{type}</option>)}</select></label>
       <p>Only the relevant fields and quick inserts are shown for the selected case.</p>
     </div>
+    {hasPreviousOrderDraft && <div className="smart-case-restore"><button type="button" className="secondary-button" onClick={restorePreviousOrderDraft}><Icon name="reset"/>Load saved Order Codes draft</button><small>Recovers fields from the previous Order Codes / Replacement tool.</small></div>}
     <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
     <div className="field-layout compact-fields">
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
