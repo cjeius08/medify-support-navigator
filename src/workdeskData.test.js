@@ -1,7 +1,52 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+  it("keeps UPS Lost/Damaged claim actions separate and gates refund versus replacement resolutions", () => {
+    const lost = caseQuickOptions("UPS Lost Claim", "Replacement");
+    expect(lost.issues).toContain("Lost");
+    expect(lost.actions).toContain("Filed UPS Lost Claim");
+    expect(lost.actions).not.toContain("Filed UPS Damaged Claim");
+    expect(lost.resolutions).toContain("Processed replacement");
+    expect(lost.resolutions).not.toContain("Processed refund");
+    const damaged = caseQuickOptions("UPS Damaged Claim", "Refund");
+    expect(damaged.actions).toContain("Filed UPS Damaged Claim");
+    expect(damaged.resolutions).toContain("Processed refund");
+    expect(damaged.resolutions).not.toContain("Processed replacement");
+    expect(caseQuickOptions("UPS Damaged Claim", "").resolutions).toEqual([]);
+    expect(caseQuickOptions("Fraud / High Risk").issues).toEqual(["Flagged for Fraud", "Repeated fraudulent order"]);
+  });
+
+  it("builds clear UPS claim notes with independent customer resolution, claim status and existing code", () => {
+    const note = buildSmartCaseNote({
+      caseType: "UPS Lost Claim", "Order ID": "QA-UPS", "Order Date": "", SKU: "MA-50-W1",
+      Issue: "Lost", "Tracking Number": "1ZTEST", "Claim Number": "CLM-22",
+      "Claim Status": "Package Search In Progress", "Action Taken": "Filed UPS Lost Claim",
+      customerResolution: "Replacement", Resolution: "Processed replacement"
+    }, "JA", ["UPS | Lost | XXXXXX", "Tracking Shows No Movement"]);
+    expect(note).toBe([
+      "Case Type: UPS Lost Claim", "Order ID: QA-UPS", "Order Date: Not provided",
+      "SKU: MA-50-W1", "Issue: Lost", "Tracking Number: 1ZTEST", "Claim Number: CLM-22",
+      "Claim Status: Package Search In Progress", "Action Taken: Filed UPS Lost Claim",
+      "Customer Resolution: Replacement", "Category: UPS",
+      "Reason Code: UPS | Lost | QA-UPS", "Description: Tracking Shows No Movement",
+      "Resolution: Processed replacement", "JA"
+    ].join("\n"));
+    const refunded = buildSmartCaseNote({caseType:"UPS Damaged Claim", Issue:"Damaged", customerResolution:"Refund", Resolution:"Processed refund"}, "JA");
+    expect(refunded).toContain("Customer Resolution: Refund\nResolution: Processed refund");
+    expect(refunded).not.toContain("Reason Code:");
+  });
+
+  it("retains special return label tracking and standard case-note details", () => {
+    const note = buildSmartCaseNote({
+      caseType: "Return / Refund", "Order ID": "123",
+      Issue: "Sent RL for return", "Tracking Number": "1Z-RETURN", Resolution: "Processed refund"
+    }, "JA");
+    expect(note).toContain("Case Type: Return / Refund");
+    expect(note).toContain("Tracking Number: 1Z-RETURN");
+    expect(note).toContain("Resolution: Processed refund\nJA");
+  });
+
   it("partially converts two of four MA-50 filters while preserving both variant IDs", () => {
     const note = buildFilterNote({
       reason: "Variant Error",

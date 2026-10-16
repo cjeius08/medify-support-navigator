@@ -99,6 +99,110 @@ export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund",
 export const GENERAL_ISSUE_SNIPPETS = [...ISSUE_SNIPPETS, "Flagged for Fraud"];
 export const GENERAL_RESOLUTION_SNIPPETS = [...RESOLUTION_SNIPPETS, "Order Cancelled", "Order Refunded", "Sent Email for Fraud"];
 
+export const CASE_TYPES = [
+  "General Inquiry", "Warranty Replacement", "Free Order", "Reprocessed Order",
+  "UPS Lost Claim", "UPS Damaged Claim", "Return / Refund",
+  "Fraud / High Risk", "Subscription / Filter Club", "Amazon Order"
+];
+
+export const CASE_CODE_CATEGORIES = {
+  "Warranty Replacement": "Warranty Replacement",
+  "Free Order": "Free Order",
+  "Reprocessed Order": "Reprocessed Order",
+  "Amazon Order": "Amazon"
+};
+
+const CASE_SNIPPETS = {
+  "Warranty Replacement": {
+    issues: ["Noise Issue", "Power Issue", "LED Issue", "Fan Issue", "Damaged / Defective Filter", "Warranty Replacement"],
+    resolutions: ["Processed replacement", "Processed advance replacement", "Photos requested", "Troubleshooting completed"]
+  },
+  "Free Order": {
+    issues: ["PR/Influencer Request", "Sample Request", "Goodwill / Donation", "Service Failure or Inconvenience"],
+    resolutions: ["Processed order as customer requested", "Replacement processed"]
+  },
+  "Reprocessed Order": {
+    issues: ["Missing Item", "Unfulfilled Order", "Missed Promotion", "Stuck Order", "Order Was Not Captured"],
+    resolutions: ["Processed order as customer requested", "Processed replacement", "Order reprocessed"]
+  },
+  "UPS Lost Claim": {
+    issues: ["Lost", "Tracking shows no movement", "Package not received"],
+    actions: ["Filed UPS Lost Claim", "Package Search In Progress", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim"]
+  },
+  "UPS Damaged Claim": {
+    issues: ["Damaged", "Damaged packaging", "Item damaged in transit"],
+    actions: ["Filed UPS Damaged Claim", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim"]
+  },
+  "Return / Refund": {
+    issues: ["Not satisfied with the order", "Wrong Filter Received", "Return / Refund", "Sent RL for return"],
+    resolutions: ["Sent RL for return", "Returned to the warehouse", "Processed refund", "Return instructions provided"]
+  },
+  "Fraud / High Risk": {
+    issues: ["Flagged for Fraud", "Repeated fraudulent order"],
+    resolutions: ["Order Cancelled", "Order Refunded", "Sent Email for Fraud"]
+  },
+  "Subscription / Filter Club": {
+    issues: ["Subscription cancellation", "Filter Club change", "Address update", "Charge date change"],
+    resolutions: ["Cancelled Filter Club as customer requested", "Moved Filter Club charge date as customer requested", "Subscription updated", "Address updated"]
+  },
+  "Amazon Order": {
+    issues: ["Lost", "Damaged", "Amazon Stuck Order", "Unfulfilled order"],
+    resolutions: ["Processed replacement", "Processed refund", "Processed order as customer requested"]
+  }
+};
+
+export function caseQuickOptions(caseType = "General Inquiry", customerResolution = "") {
+  const entry = CASE_SNIPPETS[caseType];
+  if (!entry) return { issues: GENERAL_ISSUE_SNIPPETS, resolutions: GENERAL_RESOLUTION_SNIPPETS, actions: [] };
+  if (caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim") {
+    const resolutions = customerResolution === "Refund"
+      ? ["Processed refund", "Refund pending", "Customer advised"]
+      : customerResolution === "Replacement"
+        ? ["Processed replacement", "Processed advance replacement", "Replacement pending", "Customer advised"]
+        : [];
+    return { issues: entry.issues, resolutions, actions: entry.actions };
+  }
+  return { issues: entry.issues, resolutions: entry.resolutions, actions: entry.actions || [] };
+}
+
+export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null) {
+  const caseType = CASE_TYPES.includes(fields.caseType) ? fields.caseType : "General Inquiry";
+  const val = (key) => fields[key] || "Not provided";
+  const ups = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
+  const codeCategory = CASE_CODE_CATEGORIES[caseType] || (ups && fields.customerResolution === "Replacement" ? "UPS" : "");
+  const base = [
+    `Case Type: ${caseType}`,
+    `Order ID: ${val("Order ID")}`,
+    `Order Date: ${val("Order Date")}`,
+    `SKU: ${val("SKU")}`,
+    `Issue: ${val("Issue")}`
+  ];
+  const tracking = String(fields["Tracking Number"] || "").trim();
+  if (tracking || String(fields.Issue || "").split("\n").some(line => line.trim() === "Sent RL for return") || ups) {
+    base.push(`Tracking Number: ${tracking || "Not provided"}`);
+  }
+  if (ups) {
+    if (String(fields["Claim Number"] || "").trim()) base.push(`Claim Number: ${fields["Claim Number"]}`);
+    if (String(fields["Claim Status"] || "").trim()) base.push(`Claim Status: ${fields["Claim Status"]}`);
+    base.push(`Action Taken: ${val("Action Taken")}`);
+    base.push(`Customer Resolution: ${val("customerResolution")}`);
+  }
+  if (codeCategory && orderCode?.[0]) {
+    const codeText = replacementCode(codeCategory, orderCode[0], fields["Order ID"] || "");
+    base.push(`Category: ${codeCategory}`, `Reason Code: ${codeText}`);
+    if (orderCode[1]) base.push(`Description: ${orderCode[1]}`);
+  }
+  base.push(`Resolution: ${val("Resolution")}`);
+  const known = new Set([
+    "caseType", "Order ID", "Order Date", "SKU", "Issue", "Tracking Number",
+    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution"
+  ]);
+  for (const [key, value] of Object.entries(fields)) {
+    if (!known.has(key) && String(value || "").trim()) base.push(`${key}: ${value}`);
+  }
+  return [...base, agentInitials || "Not provided"].join("\n");
+}
+
 export const FRAUD_EMAIL_TYPES = {
   "Fraud - Initial Cancellation Email": "initial",
   "Fraud - Repeat Order Follow-Up Email": "repeat"

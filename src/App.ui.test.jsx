@@ -27,7 +27,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 describe("preserved workspace workflows", () => {
   it("navigates all destinations and keeps entered drafts and each tool's independent fold state", async () => {
     await openApp(); change("Spoke With", "QA Caller");
-    for (const title of ["Call Notes", "Swapped Filter Subscription", "Order Codes / Replacement", "UPS Claim", "Email / General Case Notes"]) {
+    for (const title of ["Call Notes", "Swapped Filter Subscription", "UPS Claim", "Smart Case Notes"]) {
       click(title); expect(button(title).getAttribute("aria-expanded")).toBe("false");
       click(title); expect(button(title).getAttribute("aria-expanded")).toBe("true");
     }
@@ -110,74 +110,114 @@ describe("preserved workspace workflows", () => {
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Swapped Filter Subscription\nFilter(s):\nMA-50R-2 x2 (Converted)\nMA-15R-1 x1 (Unchanged)\nReason: Variant Error\nOriginal Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
   });
 
-  it("keeps Call Notes actions easy to reach and adds searchable SKUs and quick inserts to case tools", async () => {
+  it("uses one Smart Case Notes card for SKU, replacement code and specific quick inserts", async () => {
     await openApp();
     expect(tool("Call Notes").getByLabelText("Call Notes actions").className).toContain("call-notes-actions");
-    const order = tool("Order Codes / Replacement"), general = tool("Email / General Case Notes");
-    change("SKU", "ma-112", order); click("Select MA-112-B1", order); expect(order.getByText("MA-112-B1")).toBeTruthy(); change("SKU", "ma-112", order); click("Select MA-112-W1", order); expect(order.getByText("MA-112-W1")).toBeTruthy();
-    click("Lost", order); click("Damaged", order); expect(order.getByLabelText("Issue").value).toBe("Lost\nDamaged");
-    click("Processed replacement", order); expect(order.getByLabelText("Resolution").value).toBe("Processed replacement");
-    change("SKU", "ma-40ur", general); click("Select MA-40UR-1", general); expect(general.getByText("MA-40UR-1")).toBeTruthy();
-    change("SKU", "ma-40-w1-v3", general); click("Select MA-40-W1-V3.0", general); expect(general.getByText("MA-40-W1-V3.0")).toBeTruthy();
-    change("SKU", "ma-40-w2-v3", order); click("Select MA-40-W2-V3.0", order); expect(order.getByText("MA-40-W2-V3.0")).toBeTruthy();
-    click("Warranty Replacement", general); click("Processed refund", general); expect(general.getByLabelText("Issue").value).toBe("Warranty Replacement"); expect(general.getByLabelText("Resolution").value).toBe("Processed refund");
+    const smart = tool("Smart Case Notes");
+    expect(screen.queryByRole("button", { name: "Order Codes / Replacement", exact: true })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Email / General Case Notes", exact: true })).toBeNull();
+
+    change("Case Type", "Warranty Replacement", smart);
+    change("Order ID", "QA-112", smart);
+    change("SKU", "ma-112", smart); click("Select MA-112-B1", smart);
+    change("SKU", "ma-112", smart); click("Select MA-112-W1", smart);
+    expect(smart.getByText("MA-112-W1")).toBeTruthy();
+    expect(smart.queryByRole("button", { name: "Flagged for Fraud", exact: true })).toBeNull();
+    click("Noise Issue", smart);
+    click("Processed replacement", smart);
+    expect(smart.getByLabelText("Issue").value).toBe("Noise Issue");
+    expect(smart.getByLabelText("Resolution").value).toBe("Processed replacement");
+    expect(smart.getByLabelText("Reason Code").value).toBe("WR-01");
+    click("Copy Code", smart);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Warranty Replacement | WR-01 | QA-112"));
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Case Type: Warranty Replacement"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Reason Code: Warranty Replacement | WR-01 | QA-112");
   });
 
-  it("adds fraud template and fraud quick inserts only to Email / General Case Notes", async () => {
-    await openApp(); const order = tool("Order Codes / Replacement"), general = tool("Email / General Case Notes");
-    change("Saved template", "High Risk of Fraud Detected", general);
-    expect(general.getByLabelText("Issue").value).toBe("Flagged for Fraud");
-    expect(general.getByLabelText("Resolution").value).toBe("");
-    click("Order Cancelled", general); click("Order Refunded", general); click("Sent Email for Fraud", general);
-    expect(general.getByLabelText("Resolution").value).toBe("Order Cancelled\nOrder Refunded\nSent Email for Fraud");
-    expect(order.queryByRole("button", { name: "Flagged for Fraud", exact: true })).toBeNull();
-    expect(order.queryByRole("button", { name: "Order Cancelled", exact: true })).toBeNull();
-    click("Copy Note", general);
+  it("shows only UPS Lost Claim actions and a separate Replacement customer resolution", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "UPS Lost Claim", smart);
+    expect(smart.getByLabelText("Issue")).toBeTruthy();
+    expect(smart.getByLabelText("Customer Resolution").value).toBe("");
+    expect(smart.queryByRole("button", { name: "Filed UPS Damaged Claim", exact: true })).toBeNull();
+    expect(smart.queryByRole("button", { name: "Processed refund", exact: true })).toBeNull();
+    change("Customer Resolution", "Replacement", smart);
+    change("Order ID", "QA-UPS-1", smart);
+    change("Tracking Number", "1Z-UPS-LOST", smart);
+    click("Lost", smart); click("Filed UPS Lost Claim", smart); click("Processed replacement", smart);
+    expect(smart.getByLabelText("Action Taken").value).toBe("Filed UPS Lost Claim");
+    expect(smart.queryByRole("button", { name: "Processed refund", exact: true })).toBeNull();
+    expect(smart.getByText("Existing UPS Code")).toBeTruthy();
+    click("Copy Code", smart);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("UPS | Lost | QA-UPS-1"));
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Case Type: UPS Lost Claim"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Tracking Number: 1Z-UPS-LOST");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Filed UPS Lost Claim");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Customer Resolution: Replacement");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Resolution: Processed replacement");
+  });
+
+  it("handles UPS Damaged Claim with Refund and excludes replacement quick options and code", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "UPS Damaged Claim", smart);
+    change("Customer Resolution", "Refund", smart);
+    click("Damaged", smart); click("Filed UPS Damaged Claim", smart); click("Processed refund", smart);
+    change("Claim Number", "CLM-9", smart);
+    change("Claim Status", "Claim Approved for Payment", smart);
+    expect(smart.queryByRole("button", { name: "Processed replacement", exact: true })).toBeNull();
+    expect(smart.queryByRole("button", { name: "Copy Code", exact: true })).toBeNull();
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Case Type: UPS Damaged Claim"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Filed UPS Damaged Claim");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Customer Resolution: Refund");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Resolution: Processed refund");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Claim Number: CLM-9");
+  });
+
+  it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "Warranty Replacement", smart);
+    expect(smart.queryByRole("button", { name: "Order Refunded", exact: true })).toBeNull();
+    change("Saved template", "High Risk of Fraud Detected", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Fraud / High Risk");
+    expect(smart.getByLabelText("Issue").value).toBe("Flagged for Fraud");
+    click("Order Cancelled", smart); click("Order Refunded", smart); click("Sent Email for Fraud", smart);
+    expect(smart.getByLabelText("Resolution").value).toBe("Order Cancelled\nOrder Refunded\nSent Email for Fraud");
+    click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nResolution: Order Cancelled\nOrder Refunded\nSent Email for Fraud\nJA"));
-  });
 
-  it("builds editable initial and repeat fraud emails with dynamic customer names and order numbers", async () => {
-    await openApp(); const general = tool("Email / General Case Notes");
-    change("Saved template", "Fraud - Initial Cancellation Email", general);
-    expect(general.getByLabelText("Issue").value).toBe("Flagged for Fraud");
-    expect(general.queryByLabelText("Order ID")).toBeNull();
-    expect(general.getByRole("button", { name: "Copy Email" }).disabled).toBe(true);
-    change("Customer Name", "Ronald", general);
-    change("Order Number(s)", "730889, 730890", general);
-    expect(general.getByLabelText("Email draft").value).toContain("recent orders #730889 and #730890 have been flagged");
-    click("Copy Email", general);
+    change("Saved template", "Fraud - Initial Cancellation Email", smart);
+    expect(smart.getByRole("button", { name: "Copy Email" }).disabled).toBe(true);
+    change("Customer Name", "Ronald", smart);
+    change("Order Number(s)", "730889, 730890", smart);
+    expect(smart.getByLabelText("Email draft").value).toContain("recent orders #730889 and #730890 have been flagged");
+    click("Copy Email", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Hi Ronald,"));
-    expect(copyText.mock.calls.at(-1)[0]).toContain("cancel them as a precautionary measure");
-
-    change("Saved template", "Fraud - Repeat Order Follow-Up Email", general);
-    change("Order Number(s)", "730923", general);
-    expect(general.getByLabelText("Email draft").value).toContain("Your recent order #730923 was unfortunately identified again");
-    change("Email draft", "Custom message", general);
-    click("Copy Email", general);
+    change("Saved template", "Fraud - Repeat Order Follow-Up Email", smart);
+    change("Order Number(s)", "730923", smart);
+    expect(smart.getByLabelText("Email draft").value).toContain("Your recent order #730923 was unfortunately identified again");
+    change("Email draft", "Custom message", smart);
+    click("Copy Email", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Custom message"));
-    click("Restore template", general);
-    expect(general.getByLabelText("Email draft").value).toContain("Amazon or Walmart");
-
-    click("Copy Note", general);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order ID: 730923"));
-    change("Saved template", "Warranty Photo Request", general);
-    expect(general.queryByLabelText("Fraud email composer")).toBeNull();
-    expect(general.getByLabelText("Order ID").value).toBe("730923");
-    expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
+    click("Restore template", smart);
+    expect(smart.getByLabelText("Email draft").value).toContain("Amazon or Walmart");
+    change("Saved template", "Warranty Photo Request", smart);
+    expect(smart.queryByLabelText("Fraud email composer")).toBeNull();
+    expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
+    expect(smart.getByLabelText("Order ID").value).toBe("730923");
+    expect(smart.getByLabelText("Issue").value).toBe("Warranty photo request");
   });
 
-  it("makes MA-40E-4 selectable in filters, conversions, orders and general case notes", async () => {
+  it("keeps SKU selection and filter conversions while showing MA-40E-4 in Smart Case Notes", async () => {
     await openApp();
-    const filter = tool("Swapped Filter Subscription");
-    const order = tool("Order Codes / Replacement");
-    const general = tool("Email / General Case Notes");
-
+    const filter = tool("Swapped Filter Subscription"), smart = tool("Smart Case Notes");
     change("Filter Model(s)", "MA-40E-4", filter);
     click("Add MA-40E-4", filter);
     expect(filter.getByText("Original Variant ID#: 31987508740163")).toBeTruthy();
     click("Copy Note", filter);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("New Variant ID#: 31987508740163"));
-
     click("Remove MA-40E-4", filter);
     change("Filter Model(s)", "MA-40E-1", filter);
     click("Add MA-40E-1", filter);
@@ -187,55 +227,80 @@ describe("preserved workspace workflows", () => {
     expect(filter.getByText("New Variant ID#: 31987508740163")).toBeTruthy();
     click("Copy Note", filter);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Converted MA-40E-1 x1 to MA-40E-4 x1"));
-
-    change("SKU", "ma-40e-4", order);
-    click("Select MA-40E-4", order);
-    expect(order.getByText("MA-40E-4")).toBeTruthy();
-
-    change("SKU", "ma-40e-4", general);
-    click("Select MA-40E-4", general);
-    expect(general.getByText("MA-40E-4")).toBeTruthy();
+    change("SKU", "ma-40e-4", smart);
+    click("Select MA-40E-4", smart);
+    expect(smart.getByText("MA-40E-4")).toBeTruthy();
   });
 
-  it("keeps order code categories, operational warnings, note text and code copying", async () => {
-    await openApp(); const order = tool("Order Codes / Replacement");
-    change("Order ID", "QA-123", order); change("Category", "Amazon", order); change("Reason Code", "Amazon | Stuck Order | XXXXXX", order);
-    expect(order.getByText(/For unfulfilled Medify Air MCF orders only/)).toBeTruthy();
-    click("Copy Code", order); await waitFor(() => expect(copyText).toHaveBeenCalledWith("Amazon | Stuck Order | QA-123"));
-    change("Issue", "Unfulfilled order", order); change("Resolution", "Reviewed both orders", order); click("Copy Note", order);
+  it("keeps Amazon order codes, warnings and independent code copying in Smart Case Notes", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "Amazon Order", smart);
+    change("Order ID", "QA-123", smart);
+    change("Reason Code", "Amazon | Stuck Order | XXXXXX", smart);
+    expect(smart.getByText(/For unfulfilled Medify Air MCF orders only/)).toBeTruthy();
+    click("Copy Code", smart);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Amazon | Stuck Order | QA-123"));
+    change("Issue", "Unfulfilled order", smart);
+    change("Resolution", "Reviewed both orders", smart);
+    click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Reason Code: Amazon | Stuck Order | QA-123"));
-    click("Reset", order); expect(order.getByLabelText("Order ID").value).toBe(""); expect(order.getByLabelText("Category").value).toBe("Warranty Replacement");
+    click("Reset", smart);
+    expect(smart.getByLabelText("Order ID").value).toBe("");
+    expect(smart.getByLabelText("Case Type").value).toBe("General Inquiry");
   });
 
-  it("preserves UPS claim fields and invoice flag, and editable general templates", async () => {
-    await openApp(); const claim = tool("UPS Claim"), general = tool("Email / General Case Notes");
-    change("Claim Number", "QA-CLAIM"); change("Tracking Number", "1Z-TEST"); change("Claim Status", "Package Search In Progress"); fireEvent.click(screen.getByLabelText("Uploaded Invoice")); click("Copy Note", claim);
+  it("recovers a previous Order Codes draft without losing its code and fields", async () => {
+    localStorage.setItem("medify-workdesk-order-draft", JSON.stringify({
+      "Order ID": "LEGACY-101", "Order Date": "2026-10-01", SKU: "MA-40E-4",
+      Issue: "Fan Issue", Resolution: "Processed replacement",
+      category: "Warranty Replacement", reason: "WR-07"
+    }));
+    await openApp(); const smart = tool("Smart Case Notes");
+    click("Load saved Order Codes draft", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
+    expect(smart.getByLabelText("Order ID").value).toBe("LEGACY-101");
+    expect(smart.getByLabelText("SKU").value).toBe("MA-40E-4");
+    expect(smart.getByLabelText("Issue").value).toBe("Fan Issue");
+    expect(smart.getByLabelText("Reason Code").value).toBe("WR-07");
+    click("Copy Code", smart);
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Warranty Replacement | WR-07 | LEGACY-101"));
+  });
+
+  it("preserves separate UPS Claim tracker, invoice checkbox and saved templates in Smart Case Notes", async () => {
+    await openApp(); const claim = tool("UPS Claim"), smart = tool("Smart Case Notes");
+    change("Claim Number", "QA-CLAIM", claim);
+    change("Tracking Number", "1Z-TEST", claim);
+    change("Claim Status", "Package Search In Progress", claim);
+    fireEvent.click(claim.getByLabelText("Uploaded Invoice"));
+    click("Copy Note", claim);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Claim Number: QA-CLAIM\nTracking Number: 1Z-TEST\nClaim Status: Package Search In Progress\nUploaded Invoice\nJA"));
-    click("Reset", claim); expect(screen.getByLabelText("Uploaded Invoice").checked).toBe(false);
-    change("Order ID", "QA-456", general); change("Saved template", "Warranty Photo Request"); expect(general.getByLabelText("Issue").value).toBe("Warranty photo request");
-    change("Resolution", "Requested a clear photo", general); click("Copy Note", general);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Order ID: QA-456\nOrder Date: Not provided\nSKU: Not provided\nIssue: Warranty photo request\nResolution: Requested a clear photo\nJA"));
-    click("Reset", general); expect(general.getByLabelText("Issue").value).toBe("");
+    click("Reset", claim);
+    expect(claim.getByLabelText("Uploaded Invoice").checked).toBe(false);
+    change("Order ID", "QA-456", smart);
+    change("Saved template", "Warranty Photo Request", smart);
+    expect(smart.getByLabelText("Issue").value).toBe("Warranty photo request");
+    change("Resolution", "Requested a clear photo", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order ID: QA-456\nOrder Date: Not provided\nSKU: Not provided\nIssue: Warranty photo request"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Resolution: Requested a clear photo\nJA");
+    click("Reset", smart);
+    expect(smart.getByLabelText("Issue").value).toBe("");
   });
 
-  it("supports the return refund general-case workflow with return tracking", async () => {
-    await openApp(); const general = tool("Email / General Case Notes");
-    change("Saved template", "Return / Refund", general);
-    expect(general.getByLabelText("Issue").value).toBe("Return / Refund");
-    expect(general.queryByLabelText("Tracking Number")).toBeNull();
-
-    click("Not satisfied with the order", general);
-    expect(general.getByLabelText("Issue").value).toBe("Return / Refund\nNot satisfied with the order");
-
-    click("Sent RL for return", general);
-    expect(general.getByLabelText("Tracking Number")).toBeTruthy();
-    change("Tracking Number", "1Z-RETURN-TEST", general);
-
-    click("Returned to the warehouse", general);
-    click("Processed refund", general);
-    expect(general.getByLabelText("Resolution").value).toBe("Returned to the warehouse\nProcessed refund");
-
-    click("Copy Note", general);
+  it("preserves return tracking and return/refund quick inserts in Smart Case Notes", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Saved template", "Return / Refund", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Return / Refund");
+    expect(smart.getByLabelText("Issue").value).toBe("Return / Refund");
+    expect(smart.queryByLabelText("Tracking Number")).toBeNull();
+    click("Not satisfied with the order", smart);
+    click("Sent RL for return", smart);
+    expect(smart.getByLabelText("Tracking Number")).toBeTruthy();
+    change("Tracking Number", "1Z-RETURN-TEST", smart);
+    click("Returned to the warehouse", smart);
+    click("Processed refund", smart);
+    expect(smart.getByLabelText("Resolution").value).toBe("Returned to the warehouse\nProcessed refund");
+    click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Tracking Number: 1Z-RETURN-TEST"));
     expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Return / Refund\nNot satisfied with the order\nSent RL for return");
     expect(copyText.mock.calls.at(-1)[0]).toContain("Resolution: Returned to the warehouse\nProcessed refund");
