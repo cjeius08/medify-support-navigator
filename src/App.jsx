@@ -282,7 +282,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     </div>
     {isWarranty && <section className="fraud-email-panel warranty-reply-panel" aria-label="Warranty reply generator">
       <h3>Warranty Replacement Reply Generator</h3>
-      <p>Build a customer-facing reply from the general template. Video, troubleshooting, address, and fulfillment details appear only when confirmed in Action Taken.</p>
+      <p>Generate a concise warranty reply. Video, troubleshooting, address updates and same-day fulfillment requests appear only when recorded in Action Taken.</p>
       <div className="fraud-email-fields">
         <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer's first name"/></label>
         <label>Product Model<input value={general["Product Model"] || ""} onChange={(event) => update("Product Model", event.target.value)} placeholder="e.g. MA-35"/></label>
