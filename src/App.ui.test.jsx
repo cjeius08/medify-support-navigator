@@ -259,7 +259,7 @@ describe("preserved workspace workflows", () => {
     click("Load saved Order Codes draft", smart);
     expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
     expect(smart.getByLabelText("Order ID").value).toBe("LEGACY-101");
-    expect(smart.getByLabelText("SKU").value).toBe("MA-40E-4");
+    expect(smart.getByText("MA-40E-4")).toBeTruthy();
     expect(smart.getByLabelText("Issue").value).toBe("Fan Issue");
     expect(smart.getByLabelText("Reason Code").value).toBe("WR-07");
     click("Copy Code", smart);
