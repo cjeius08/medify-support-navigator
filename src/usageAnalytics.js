@@ -3,7 +3,8 @@ export const USAGE_TOOLS = [
   "Swapped Filter Subscription",
   "Order Codes / Replacement",
   "UPS Claim",
-  "Email / General Case Notes"
+  "Email / General Case Notes",
+  "Smart Case Notes"
 ];
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
