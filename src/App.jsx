@@ -169,6 +169,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     });
     setFraudEmailType("");
     setEditedEmail(null);
+    setEditedWarrantyReply(null);
   };
 
 
