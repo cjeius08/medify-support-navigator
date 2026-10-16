@@ -135,7 +135,7 @@ const CASE_SNIPPETS = {
   },
   "Return / Refund": {
     issues: ["Not satisfied with the order", "Wrong Filter Received", "Return / Refund", "Sent RL for return"],
-    resolutions: ["Sent RL for return", "Returned to the warehouse", "Processed refund", "Return instructions provided"]
+    resolutions: ["Returned to the warehouse", "Processed refund", "Return instructions provided"]
   },
   "Fraud / High Risk": {
     issues: ["Flagged for Fraud", "Repeated fraudulent order"],
