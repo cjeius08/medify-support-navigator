@@ -183,7 +183,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     if (!name) return;
     const template = EMAIL_TEMPLATES[name];
     if (!template) return;
-    const targetType = FRAUD_EMAIL_TYPES[name] || name === "High Risk of Fraud Detected"
+    const targetType = (Boolean(FRAUD_EMAIL_TYPES[name]) || name === "High Risk of Fraud Detected")
       ? "Fraud / High Risk"
       : name === "Return / Refund" || name === "Wrong Filter Return"
         ? "Return / Refund"
@@ -211,7 +211,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudCustomerName("");
     setEditedEmail(null);
   };
-  return <ToolCard id="tool-general" title="Smart Case Notes" icon="clipboard" open={fold} onToggle={toggle} onUse={onUse}>
+  return <ToolCard id="tool-general" title="Smart Case Notes" icon="note" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="smart-case-heading">
       <label>Case Type<select value={caseType} onChange={(event) => selectCaseType(event.target.value)}>{CASE_TYPES.map(type => <option key={type}>{type}</option>)}</select></label>
       <p>Only the relevant fields and quick inserts are shown for the selected case.</p>
