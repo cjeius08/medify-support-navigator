@@ -4,7 +4,7 @@ import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
   ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, caseQuickOptions, parseFraudOrderNumbers,
+  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, hasCaseAction, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -136,8 +136,14 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const [fraudEmailType, setFraudEmailType] = useState("");
   const [fraudCustomerName, setFraudCustomerName] = useState("");
   const [editedEmail, setEditedEmail] = useState(null);
+  const [editedWarrantyReply, setEditedWarrantyReply] = useState(null);
   const caseType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
   const isUps = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
+  const isWarranty = caseType === "Warranty Replacement";
+  const warrantyProcessed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(general.Resolution, action));
+  const warrantyAddressUpdated = hasCaseAction(general["Action Taken"], "Address updated");
+  const warrantyReply = editedWarrantyReply ?? buildWarrantyReply(general);
+  const warrantyCopyReady = canCopyWarrantyReply(general);
   const customerResolution = general.customerResolution || "";
   const snippets = caseQuickOptions(caseType, customerResolution);
   const codeCategory = CASE_CODE_CATEGORIES[caseType] || (isUps && customerResolution === "Replacement" ? "UPS" : "");
@@ -173,6 +179,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       if (!rl) delete next["Tracking Number"];
     }
     if (field === "Order ID") setEditedEmail(null);
+    if (["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address", "Action Taken", "Resolution"].includes(field)) setEditedWarrantyReply(null);
     setGeneral(next);
   };
   const selectCaseType = (nextType) => {
@@ -181,6 +188,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     delete next["Claim Number"];
     delete next["Claim Status"];
     delete next["Tracking Number"];
+    for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     setGeneral(next);
     const category = CASE_CODE_CATEGORIES[nextType] || (nextType.startsWith("UPS ") ? "UPS" : "");
     if (category) {
@@ -191,6 +199,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     }
     setFraudEmailType("");
     setEditedEmail(null);
+    setEditedWarrantyReply(null);
   };
   const applyTemplate = (name) => {
     if (!name) return;
@@ -200,7 +209,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       ? "Fraud / High Risk"
       : name === "Return / Refund" || name === "Wrong Filter Return"
         ? "Return / Refund"
-        : name === "Warranty Photo Request"
+        : name === "Warranty Photo Request" || name === "Warranty Replacement Reply"
           ? "Warranty Replacement"
           : name === "Cancellation Confirmation" || name === "Subscription Cancellation" || name === "Address Update"
             ? "Subscription / Filter Club"
@@ -216,6 +225,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     }
     setFraudEmailType(FRAUD_EMAIL_TYPES[name] || "");
     setEditedEmail(null);
+    setEditedWarrantyReply(null);
   };
   const reset = () => {
     setGeneral({ ...BLANK_CASE, caseType: "General Inquiry" });
@@ -223,6 +233,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudEmailType("");
     setFraudCustomerName("");
     setEditedEmail(null);
+    setEditedWarrantyReply(null);
   };
   return <ToolCard id="tool-general" title="Smart Case Notes" icon="note" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="smart-case-heading">
@@ -244,6 +255,10 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </div>}
       <label className="span-all">Issue<textarea rows="3" value={general.Issue || ""} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe this case…"/></label>
       <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues}/></div>
+      {isWarranty && <>
+        <label className="span-all">Action Taken<textarea rows="3" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only the steps actually completed…"/></label>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions}/></div>
+      </>}
       {showTracking && <label>Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter tracking number"/></label>}
       {isUps && <>
         <label>Claim Number<input value={general["Claim Number"] || ""} onChange={(event) => update("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>
@@ -263,6 +278,22 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         <button type="button" className="secondary-button" onClick={() => copy("Order Code", codeText)}><Icon name="copy"/>Copy Code</button>
       </div>}
     </div>
+    {isWarranty && <section className="fraud-email-panel warranty-reply-panel" aria-label="Warranty reply generator">
+      <h3>Warranty Replacement Reply Generator</h3>
+      <p>Build a customer-facing reply from the general template. Video, troubleshooting, address, and fulfillment details appear only when confirmed in Action Taken.</p>
+      <div className="fraud-email-fields">
+        <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer's first name"/></label>
+        <label>Product Model<input value={general["Product Model"] || ""} onChange={(event) => update("Product Model", event.target.value)} placeholder="e.g. MA-35"/></label>
+        {warrantyProcessed && <label>Replacement Order Number<input value={general["Replacement Order ID"] || ""} onChange={(event) => update("Replacement Order ID", event.target.value)} placeholder="e.g. 811370"/></label>}
+      </div>
+      {warrantyAddressUpdated && <label>Updated Shipping Address<textarea className="warranty-address" rows="3" value={general["Updated Shipping Address"] || ""} onChange={(event) => update("Updated Shipping Address", event.target.value)} placeholder="Street address, apartment, city, state and ZIP"/></label>}
+      <label>Generated Warranty Reply<textarea rows="17" value={warrantyReply} onChange={(event) => setEditedWarrantyReply(event.target.value)} spellCheck="true"/></label>
+      <div className="fraud-email-actions">
+        <button type="button" className="primary-button" disabled={!warrantyCopyReady} onClick={() => copy("Warranty Replacement Email", warrantyReply, false)}><Icon name="copy"/>Copy Warranty Email</button>
+        <button type="button" className="secondary-button" onClick={() => setEditedWarrantyReply(null)}>Restore Warranty Template</button>
+      </div>
+      <small>Enter a customer name to copy. If a replacement has been processed, the replacement order number is also required. Address details are required only when “Address updated” is selected. Review claims about shipping, returns and warranty before sending. Copy Email does not send the message.</small>
+    </section>}
     {fraudEmailType && <section className="fraud-email-panel" aria-label="Fraud email composer">
       <h3>{fraudEmailType === "initial" ? "Initial fraud cancellation email" : "Repeat-order fraud follow-up email"}</h3>
       <p>Enter the recipient and the cancelled order number(s). Separate multiple orders with commas.</p>
