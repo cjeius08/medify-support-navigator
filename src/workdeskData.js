@@ -116,7 +116,7 @@ const CASE_SNIPPETS = {
   "Warranty Replacement": {
     issues: ["Noise Issue", "Power Issue", "LED Issue", "Fan Issue", "Damaged / Defective Filter", "Warranty Replacement"],
     resolutions: ["Processed replacement", "Processed advance replacement", "Photos requested"],
-    actions: ["Video received", "Troubleshooting completed", "Address updated", "Priority fulfillment requested", "No return required confirmed", "Warranty transfer confirmed"]
+    actions: ["Video received", "Troubleshooting completed", "Address updated", "Priority fulfillment requested"]
   },
   "Free Order": {
     issues: ["PR/Influencer Request", "Sample Request", "Goodwill / Donation", "Service Failure or Inconvenience"],
@@ -221,62 +221,56 @@ export function buildWarrantyReply(fields = {}) {
   const troubleshooting = hasCaseAction(actions, "Troubleshooting completed");
   const addressUpdated = hasCaseAction(actions, "Address updated");
   const priority = hasCaseAction(actions, "Priority fulfillment requested");
-  const noReturn = hasCaseAction(actions, "No return required confirmed");
-  const warrantyTransfer = hasCaseAction(actions, "Warranty transfer confirmed");
   const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(resolution, action));
 
-  const thanks = [
-    "Thank you for getting back to us.",
-    ...(troubleshooting ? ["We appreciate you taking the time to complete the troubleshooting steps."] : []),
-    ...(video ? ["Thank you for sending us the video."] : []),
-    ...(addressUpdated ? ["Thank you for confirming your updated shipping address."] : [])
-  ];
   const paragraphs = [
     `Hi ${name},`,
     "",
-    thanks.join(" "),
-    "",
-    `We're sorry to hear about the issue with ${model ? `your ${model}` : "your unit"}. We understand how frustrating this can be, and we appreciate your patience.`
+    `Thank you so much for your patience${model ? ` while we worked on the issue with your ${model}` : ""}.`
   ];
+
+  if (troubleshooting) paragraphs.push("", "We appreciate you taking the time to complete the troubleshooting steps.");
+  if (video) paragraphs.push("", "Thank you for sending us the video.");
+  if (addressUpdated) paragraphs.push("", "Thank you for confirming your updated shipping address.");
 
   if (processed) {
     paragraphs.push(
       "",
-      "I'm happy to let you know that we've successfully processed your warranty replacement!",
-      `Your replacement order number is ${order ? `#${order}` : "[Replacement Order Number]"}.`
+      `I was able to process your replacement order, and your new order number is ${order ? `#${order}` : "[Replacement Order Number]"}.`
     );
   } else {
     paragraphs.push("", "We're here to assist you with your warranty replacement and will keep you updated on the next steps.");
   }
 
   if (addressUpdated) {
-    paragraphs.push("", "We've noted your updated shipping address as:", address || "[Updated Shipping Address]");
+    paragraphs.push("", "We've updated the shipping address for your replacement to:", address || "[Updated Shipping Address]");
   }
 
   if (processed) {
     paragraphs.push(
       "",
-      "Your replacement is typically fulfilled and shipped within 1–3 business days, with delivery usually taking an additional 3–7 business days after shipment.",
-      "You'll receive an email with tracking information once your replacement ships."
+      "Once your order has been processed, it will be fulfilled and shipped in 1–3 business days and delivered within 3–7 business days after.",
+      "An email confirmation will be sent once the order ships and the tracking information is available."
     );
   }
-  if (priority) {
-    paragraphs.push("", "We've also requested priority fulfillment for your replacement where possible, although an earlier shipment cannot be guaranteed.");
+
+  if (processed && priority) {
+    paragraphs.push(
+      "",
+      "I've also made a special request to include your order in today's fulfillment batch so we can try to get it out sooner than the standard timeframe, if possible."
+    );
   }
-  if (noReturn) {
-    paragraphs.push("", "There is no need to return the defective unit. You may dispose of it according to your local electronic waste disposal guidelines.");
+
+  if (processed) {
+    paragraphs.push(
+      "",
+      "The warranty will be transferred to the replacement unit we're sending you, so there's no need to register it again.",
+      "",
+      "There's no need to send the defective unit back. You may properly dispose of it as you see fit."
+    );
   }
-  if (warrantyTransfer) {
-    paragraphs.push("", "Your existing warranty coverage will transfer to the replacement unit, so there's no need to register it again.");
-  }
-  paragraphs.push(
-    "",
-    "Thank you again for your patience and cooperation. We appreciate the opportunity to make things right.",
-    "",
-    "Warm regards,",
-    "Medify Air Customer Service Team",
-    "info@medifyair.com | 888-258-1008"
-  );
+
+  paragraphs.push("", "Thank you again for your patience.", "", "Warm regards,");
   return paragraphs.join("\n");
 }
 
