@@ -211,6 +211,8 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .smart-code-heading strong { font-size: .875rem; color: var(--ink); }
 .smart-code-heading small { color: var(--muted); font-size: .75rem; }
 .smart-code-panel .secondary-button { width: fit-content; max-width: 100%; }
+.smart-case-restore { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 20px 14px; }
+.smart-case-restore small { color: var(--muted); font-size: .75rem; line-height: 1.5; }
 .template-picker { padding: 0 20px 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); }
 .template-picker small { display: block; margin-top: 8px; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .fraud-email-panel { display: grid; gap: 14px; margin: 4px 20px 20px; padding: 16px; border: 1px solid #cfe0e1; border-radius: var(--radius-small); background: #f7faf9; }
