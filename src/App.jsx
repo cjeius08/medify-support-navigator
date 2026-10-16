@@ -216,6 +216,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
             : "General Inquiry";
     const next = { ...general, ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
+    if (targetType !== "Warranty Replacement") for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
     if (!rl) delete next["Tracking Number"];
     setGeneral(next);
