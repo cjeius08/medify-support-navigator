@@ -115,7 +115,8 @@ export const CASE_CODE_CATEGORIES = {
 const CASE_SNIPPETS = {
   "Warranty Replacement": {
     issues: ["Noise Issue", "Power Issue", "LED Issue", "Fan Issue", "Damaged / Defective Filter", "Warranty Replacement"],
-    resolutions: ["Processed replacement", "Processed advance replacement", "Photos requested", "Troubleshooting completed"]
+    resolutions: ["Processed replacement", "Processed advance replacement", "Photos requested"],
+    actions: ["Video received", "Troubleshooting completed", "Address updated", "Priority fulfillment requested", "No return required confirmed", "Warranty transfer confirmed"]
   },
   "Free Order": {
     issues: ["PR/Influencer Request", "Sample Request", "Goodwill / Donation", "Service Failure or Inconvenience"],
@@ -187,6 +188,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
     base.push(`Action Taken: ${val("Action Taken")}`);
     base.push(`Customer Resolution: ${val("customerResolution")}`);
   }
+  if (caseType === "Warranty Replacement" && String(fields["Action Taken"] || "").trim()) base.push(`Action Taken: ${fields["Action Taken"]}`);
   if (codeCategory && orderCode?.[0]) {
     const codeText = replacementCode(codeCategory, orderCode[0], fields["Order ID"] || "");
     base.push(`Category: ${codeCategory}`, `Reason Code: ${codeText}`);
@@ -203,12 +205,96 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   return [...base, agentInitials || "Not provided"].join("\n");
 }
 
+
+export function hasCaseAction(value, action) {
+  return String(value || "").split("\n").some(line => line.trim().toLowerCase() === action.toLowerCase());
+}
+
+export function buildWarrantyReply(fields = {}) {
+  const name = String(fields["Customer Name"] || "").trim() || "[Customer Name]";
+  const model = String(fields["Product Model"] || "").trim();
+  const order = String(fields["Replacement Order ID"] || "").trim().replace(/^#\s*/, "");
+  const address = String(fields["Updated Shipping Address"] || "").trim();
+  const actions = fields["Action Taken"] || "";
+  const resolution = fields.Resolution || "";
+  const video = hasCaseAction(actions, "Video received");
+  const troubleshooting = hasCaseAction(actions, "Troubleshooting completed");
+  const addressUpdated = hasCaseAction(actions, "Address updated");
+  const priority = hasCaseAction(actions, "Priority fulfillment requested");
+  const noReturn = hasCaseAction(actions, "No return required confirmed");
+  const warrantyTransfer = hasCaseAction(actions, "Warranty transfer confirmed");
+  const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(resolution, action));
+
+  const thanks = [
+    "Thank you for getting back to us.",
+    ...(troubleshooting ? ["We appreciate you taking the time to complete the troubleshooting steps."] : []),
+    ...(video ? ["Thank you for sending us the video."] : []),
+    ...(addressUpdated ? ["Thank you for confirming your updated shipping address."] : [])
+  ];
+  const paragraphs = [
+    `Hi ${name},`,
+    "",
+    thanks.join(" "),
+    "",
+    `We're sorry to hear about the issue with ${model ? `your ${model}` : "your unit"}. We understand how frustrating this can be, and we appreciate your patience.`
+  ];
+
+  if (processed) {
+    paragraphs.push(
+      "",
+      "I'm happy to let you know that we've successfully processed your warranty replacement!",
+      `Your replacement order number is ${order ? `#${order}` : "[Replacement Order Number]"}.`
+    );
+  } else {
+    paragraphs.push("", "We're here to assist you with your warranty replacement and will keep you updated on the next steps.");
+  }
+
+  if (addressUpdated) {
+    paragraphs.push("", "We've noted your updated shipping address as:", address || "[Updated Shipping Address]");
+  }
+
+  if (processed) {
+    paragraphs.push(
+      "",
+      "Your replacement is typically fulfilled and shipped within 1–3 business days, with delivery usually taking an additional 3–7 business days after shipment.",
+      "You'll receive an email with tracking information once your replacement ships."
+    );
+  }
+  if (priority) {
+    paragraphs.push("", "We've also requested priority fulfillment for your replacement where possible, although an earlier shipment cannot be guaranteed.");
+  }
+  if (noReturn) {
+    paragraphs.push("", "There is no need to return the defective unit. You may dispose of it according to your local electronic waste disposal guidelines.");
+  }
+  if (warrantyTransfer) {
+    paragraphs.push("", "Your existing warranty coverage will transfer to the replacement unit, so there's no need to register it again.");
+  }
+  paragraphs.push(
+    "",
+    "Thank you again for your patience and cooperation. We appreciate the opportunity to make things right.",
+    "",
+    "Warm regards,",
+    "Medify Air Customer Service Team",
+    "info@medifyair.com | 888-258-1008"
+  );
+  return paragraphs.join("\n");
+}
+
+export function canCopyWarrantyReply(fields = {}) {
+  if (!String(fields["Customer Name"] || "").trim()) return false;
+  if (hasCaseAction(fields["Action Taken"], "Address updated") && !String(fields["Updated Shipping Address"] || "").trim()) return false;
+  const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action));
+  if (processed && !String(fields["Replacement Order ID"] || "").trim().replace(/^#\s*/, "")) return false;
+  return true;
+}
+
 export const FRAUD_EMAIL_TYPES = {
   "Fraud - Initial Cancellation Email": "initial",
   "Fraud - Repeat Order Follow-Up Email": "repeat"
 };
 
 export const EMAIL_TEMPLATES = {
+  "Warranty Replacement Reply": { Issue: "Warranty Replacement", Resolution: "" },
   "High Risk of Fraud Detected": { Issue: "Flagged for Fraud", Resolution: "" },
   "Fraud - Initial Cancellation Email": { Issue: "Flagged for Fraud", Resolution: "" },
   "Fraud - Repeat Order Follow-Up Email": { Issue: "Flagged for Fraud", Resolution: "" },
