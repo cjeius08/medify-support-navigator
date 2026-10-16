@@ -185,7 +185,7 @@ describe("preserved workspace workflows", () => {
     expect(reply()).toContain("Hi [Customer Name],");
     expect(reply()).not.toContain("troubleshooting");
     expect(reply()).not.toContain("video.");
-    expect(reply()).not.toContain("successfully processed");
+    expect(reply()).not.toContain("I was able to process");
     expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
 
     change("Customer Name", "Kim", smart);
@@ -205,23 +205,28 @@ describe("preserved workspace workflows", () => {
     change("Updated Shipping Address", "16350 S Harbor Blvd, Apt 1408\nSanta Ana, CA 92704", smart);
 
     expect(reply()).toContain("Santa Ana, CA 92704");
-    expect(reply()).not.toContain("successfully processed");
+    expect(reply()).not.toContain("I was able to process");
     click("Processed replacement", smart);
     expect(smart.getByLabelText("Replacement Order Number")).toBeTruthy();
     expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
     change("Replacement Order Number", "811370", smart);
     expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(false);
-    expect(reply()).toContain("Your replacement order number is #811370.");
+    expect(reply()).toContain("I was able to process your replacement order, and your new order number is #811370.");
     click("Copy Warranty Email", smart);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Your replacement order number is #811370."));
-    expect(copyText.mock.calls.at(-1)[0]).not.toContain("no need to return");
-    expect(copyText.mock.calls.at(-1)[0]).not.toContain("priority fulfillment");
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("I was able to process your replacement order, and your new order number is #811370."));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("no need to send the defective unit back");
+    expect(copyText.mock.calls.at(-1)[0]).toContain("The warranty will be transferred to the replacement unit");
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("info@medifyair.com");
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("Medify Air Customer Service Team");
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("today's fulfillment batch");
+    click("Priority fulfillment requested", smart);
+    expect(reply()).toContain("I've also made a special request to include your order in today's fulfillment batch");
 
     change("Generated Warranty Reply", "Edited draft text", smart);
     click("Copy Warranty Email", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Edited draft text"));
     click("Restore Warranty Template", smart);
-    expect(reply()).toContain("Your replacement order number is #811370.");
+    expect(reply()).toContain("I was able to process your replacement order, and your new order number is #811370.");
 
     click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Video received\nTroubleshooting completed\nAddress updated"));
@@ -239,7 +244,7 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
     expect(smart.getByLabelText("Issue").value).toBe("Warranty Replacement");
     expect(smart.getByLabelText("Resolution").value).toBe("");
-    expect(smart.getByLabelText("Generated Warranty Reply").value).not.toContain("successfully processed");
+    expect(smart.getByLabelText("Generated Warranty Reply").value).not.toContain("I was able to process");
     expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
     change("Customer Name", "Kim", smart);
     expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(false);
