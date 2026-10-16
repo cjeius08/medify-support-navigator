@@ -3,8 +3,8 @@ import { CardActions, Dialog, NotePreview, PeriodTabs, ToolCard } from "./Worksp
 import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
-  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, GENERAL_ISSUE_SNIPPETS, GENERAL_RESOLUTION_SNIPPETS, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildNote, buildOrderNote, parseFraudOrderNumbers,
+  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
+  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, caseQuickOptions, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -127,61 +127,127 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
   </ToolCard>;
 }
 
-function OrderCard({ order, setOrder, text, codeText, copy, fold, toggle, onUse }) {
-  const code = (ORDER_CODES[order.category] || []).find(([value]) => value === order.reason) || ["", ""];
-  const update = (field, value) => setOrder({ ...order, [field]: value });
-  return <ToolCard id="tool-order" title="Order Codes / Replacement" icon="tag" open={fold} onToggle={toggle} onUse={onUse}><div className="field-layout compact-fields"><label>Order ID<input value={order["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label><label>Order Date<input value={order["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label><SkuPicker label="SKU" value={order.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/><label className="span-all">Issue<textarea rows="2" value={order.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe the issue manually..."/></label><div className="span-all"><QuickInsert label="Issue" value={order.Issue} onChange={(value) => update("Issue", value)} snippets={ISSUE_SNIPPETS}/></div><label className="span-all">Resolution<textarea rows="2" value={order.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Describe the resolution manually..."/></label><div className="span-all"><QuickInsert label="Resolution" value={order.Resolution} onChange={(value) => update("Resolution", value)} snippets={RESOLUTION_SNIPPETS}/></div><label>Category<select value={order.category} onChange={(event) => { const category = event.target.value; setOrder({ ...order, category, reason: ORDER_CODES[category][0][0] }); }}>{Object.keys(ORDER_CODES).map((category) => <option key={category}>{category}</option>)}</select></label><label>Reason Code<select value={order.reason} onChange={(event) => update("reason", event.target.value)}>{(ORDER_CODES[order.category] || []).map(([value]) => <option key={value} value={value}>{value.replaceAll("XXXXXX", order["Order ID"] || "XXXXXX")}</option>)}</select></label><label className="span-all">Description<input value={code[1]} readOnly/></label>{order.category === "Amazon" && order.reason.includes("Stuck Order") && <p className="inline-notice span-all"><Icon name="alert"/>For unfulfilled Medify Air MCF orders only. Cancel both corresponding orders first; ask a lead if unsure.</p>}</div><CardActions preview={text} onCopy={() => copy("Order Codes / Replacement", text)} onReset={() => setOrder(blankOrder)} extra={<button className="secondary-button copy-code" onClick={() => copy("Replacement Code", codeText)}><Icon name="copy"/>Copy Code</button>}/></ToolCard>;
-}
-
 function ClaimCard({ claims, setClaims, text, copy, fold, toggle, onUse }) {
   const update = (index, field, value) => setClaims(claims.map((claim, i) => i === index ? { ...claim, [field]: value } : claim)); const add = () => setClaims([...claims, { ...blankClaim }]);
   return <ToolCard id="tool-claim" title="UPS Claim" icon="truck" open={fold} onToggle={toggle} onUse={onUse}><div>{claims.map((claim, index) => <div className="claim-entry" key={index}><b>Claim {index + 1}</b><div className="field-layout claim-fields"><label>Claim type<select value={claim.type || "Damaged"} onChange={(event) => update(index, "type", event.target.value)}><option>Damaged</option><option>Lost</option></select></label><label>Claim Number<input aria-label="Claim Number" value={claim["Claim Number"]} onChange={(event) => update(index, "Claim Number", event.target.value)}/></label><label>Tracking Number<input value={claim["Tracking Number"]} onChange={(event) => update(index, "Tracking Number", event.target.value)}/></label><label>Claim Status<select value={claim["Claim Status"]} onChange={(event) => update(index, "Claim Status", event.target.value)}>{CLAIM_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label></div><label className="invoice-check"><input type="checkbox" checked={claim.invoice} onChange={(event) => update(index, "invoice", event.target.checked)}/><span><Icon name="check"/>Uploaded Invoice</span></label>{claims.length > 1 && <button className="text-button" onClick={() => setClaims(claims.filter((_, i) => i !== index))}>Remove</button>}</div>)}</div><button className="outline-button" onClick={add}><Icon name="plus"/>Add another claim</button><CardActions preview={text} onCopy={() => copy("UPS Claims", text)} onReset={() => setClaims([blankClaim])}/></ToolCard>;
 }
 
-function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
+function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold, toggle, onUse }) {
   const [fraudEmailType, setFraudEmailType] = useState("");
   const [fraudCustomerName, setFraudCustomerName] = useState("");
   const [editedEmail, setEditedEmail] = useState(null);
+  const caseType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
+  const isUps = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
+  const customerResolution = general.customerResolution || "";
+  const snippets = caseQuickOptions(caseType, customerResolution);
+  const codeCategory = CASE_CODE_CATEGORIES[caseType] || (isUps && customerResolution === "Replacement" ? "UPS" : "");
+  const codes = codeCategory ? ORDER_CODES[codeCategory] || [] : [];
+  const effectiveReason = codes.some(([code]) => code === order.reason) && order.category === codeCategory
+    ? order.reason
+    : (isUps ? (caseType === "UPS Lost Claim" ? "UPS | Lost | XXXXXX" : "UPS | Damaged | XXXXXX") : codes[0]?.[0]);
+  const orderCode = codes.find(([code]) => code === effectiveReason) || null;
+  const codeText = orderCode ? replacementCode(codeCategory, orderCode[0], general["Order ID"] || "") : "";
+  const hasReturnLabel = [general.Issue, general.Resolution].some(value => String(value || "").split("\n").some(line => line.trim() === "Sent RL for return"));
+  const showTracking = isUps || hasReturnLabel;
   const fraudOrderNumbers = general["Order ID"] || "";
   const fraudEmailBody = editedEmail ?? buildFraudEmail(fraudEmailType, fraudCustomerName, fraudOrderNumbers);
   const canCopyEmail = Boolean(fraudCustomerName.trim() && parseFraudOrderNumbers(fraudOrderNumbers).length);
-  const hasReturnLabel = String(general.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
+
   const update = (field, value) => {
     const next = { ...general, [field]: value };
-    if (field === "Issue") {
-      const needsTracking = String(value || "").split("\n").some((line) => line.trim() === "Sent RL for return");
-      if (needsTracking && !Object.prototype.hasOwnProperty.call(next, "Tracking Number")) next["Tracking Number"] = "";
-      if (!needsTracking) delete next["Tracking Number"];
+    if ((field === "Issue" || field === "Resolution") && !isUps) {
+      const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
+      if (!rl) delete next["Tracking Number"];
     }
     if (field === "Order ID") setEditedEmail(null);
     setGeneral(next);
   };
+  const selectCaseType = (nextType) => {
+    if (nextType === caseType) return;
+    const next = { ...general, caseType: nextType, Issue: "", Resolution: "", "Action Taken": "", customerResolution: "" };
+    delete next["Claim Number"];
+    delete next["Claim Status"];
+    delete next["Tracking Number"];
+    setGeneral(next);
+    const category = CASE_CODE_CATEGORIES[nextType] || (nextType.startsWith("UPS ") ? "UPS" : "");
+    if (category) {
+      const preferred = nextType === "UPS Lost Claim" ? "UPS | Lost | XXXXXX"
+        : nextType === "UPS Damaged Claim" ? "UPS | Damaged | XXXXXX"
+        : ORDER_CODES[category]?.[0]?.[0] || "";
+      setOrder({ ...order, category, reason: preferred });
+    }
+    setFraudEmailType("");
+    setEditedEmail(null);
+  };
   const applyTemplate = (name) => {
     if (!name) return;
-    const next = { ...general, ...EMAIL_TEMPLATES[name] };
-    const needsTracking = String(next.Issue || "").split("\n").some((line) => line.trim() === "Sent RL for return");
-    if (!needsTracking) delete next["Tracking Number"];
+    const template = EMAIL_TEMPLATES[name];
+    if (!template) return;
+    const targetType = FRAUD_EMAIL_TYPES[name] || name === "High Risk of Fraud Detected"
+      ? "Fraud / High Risk"
+      : name === "Return / Refund" || name === "Wrong Filter Return"
+        ? "Return / Refund"
+        : name === "Warranty Photo Request"
+          ? "Warranty Replacement"
+          : name === "Cancellation Confirmation" || name === "Subscription Cancellation" || name === "Address Update"
+            ? "Subscription / Filter Club"
+            : "General Inquiry";
+    const next = { ...general, ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
+    delete next["Claim Number"]; delete next["Claim Status"];
+    const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
+    if (!rl) delete next["Tracking Number"];
+    setGeneral(next);
+    if (CASE_CODE_CATEGORIES[targetType]) {
+      const category = CASE_CODE_CATEGORIES[targetType];
+      setOrder({ ...order, category, reason: ORDER_CODES[category]?.[0]?.[0] || "" });
+    }
     setFraudEmailType(FRAUD_EMAIL_TYPES[name] || "");
     setEditedEmail(null);
-    setGeneral(next);
   };
-  const resetGeneral = () => {
-    setGeneral(BLANK_CASE);
+  const reset = () => {
+    setGeneral({ ...BLANK_CASE, caseType: "General Inquiry" });
+    setOrder(blankOrder);
     setFraudEmailType("");
     setFraudCustomerName("");
     setEditedEmail(null);
   };
-  return <ToolCard id="tool-general" title="Email / General Case Notes" icon="mail" open={fold} onToggle={toggle} onUse={onUse}>
-    <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Templates are a starting point. You can edit every field.</small></div>
+  return <ToolCard id="tool-general" title="Smart Case Notes" icon="clipboard" open={fold} onToggle={toggle} onUse={onUse}>
+    <div className="smart-case-heading">
+      <label>Case Type<select value={caseType} onChange={(event) => selectCaseType(event.target.value)}>{CASE_TYPES.map(type => <option key={type}>{type}</option>)}</select></label>
+      <p>Only the relevant fields and quick inserts are shown for the selected case.</p>
+    </div>
+    <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
     <div className="field-layout compact-fields">
-      {!fraudEmailType && <label>Order ID<input value={general["Order ID"]} onChange={(event) => update("Order ID", event.target.value)}/></label>}
-      <label>Order Date<input value={general["Order Date"]} onChange={(event) => update("Order Date", event.target.value)}/></label>
-      <SkuPicker label="SKU" value={general.SKU} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
-      <label className="span-all">Issue<textarea rows="3" value={general.Issue} onChange={(event) => update("Issue", event.target.value)} placeholder="Write the issue manually..."/></label>
-      <div className="span-all"><QuickInsert label="Issue" value={general.Issue} onChange={(value) => update("Issue", value)} snippets={GENERAL_ISSUE_SNIPPETS}/></div>
-      {hasReturnLabel && <label className="span-all">Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter return tracking number"/></label>}
-      <label className="span-all">Resolution<textarea rows="3" value={general.Resolution} onChange={(event) => update("Resolution", event.target.value)} placeholder="Write the resolution manually..."/></label>
-      <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution} onChange={(value) => update("Resolution", value)} snippets={GENERAL_RESOLUTION_SNIPPETS}/></div>
+      {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
+      <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>
+      <SkuPicker label="SKU" value={general.SKU || ""} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
+      {isUps && <div className="span-all smart-case-outcome">
+        <label>Customer Resolution<select value={customerResolution} onChange={(event) => {
+          setGeneral({ ...general, customerResolution: event.target.value, Resolution: "" });
+          setOrder({ ...order, category: "UPS", reason: caseType === "UPS Lost Claim" ? "UPS | Lost | XXXXXX" : "UPS | Damaged | XXXXXX" });
+        }}><option value="">Select refund or replacement…</option><option>Replacement</option><option>Refund</option></select></label>
+        <small>Claim reason (Lost/Damaged) and customer resolution (Refund/Replacement) are independent.</small>
+      </div>}
+      <label className="span-all">Issue<textarea rows="3" value={general.Issue || ""} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe this case…"/></label>
+      <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues}/></div>
+      {showTracking && <label>Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter tracking number"/></label>}
+      {isUps && <>
+        <label>Claim Number<input value={general["Claim Number"] || ""} onChange={(event) => update("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>
+        <label>Claim Status<select value={general["Claim Status"] || ""} onChange={(event) => update("Claim Status", event.target.value)}><option value="">Not specified</option>{CLAIM_STATUSES.map(status=><option key={status}>{status}</option>)}</select></label>
+        <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record what actually happened…"/></label>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions}/></div>
+      </>}
+      <label className="span-all">Resolution<textarea rows="3" value={general.Resolution || ""} onChange={(event) => update("Resolution", event.target.value)} placeholder={isUps && !customerResolution ? "Select Refund or Replacement above…" : "Record the actual outcome…"}/></label>
+      {(!isUps || customerResolution) && <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution || ""} onChange={(value) => update("Resolution", value)} snippets={snippets.resolutions}/></div>}
+      {codeCategory && orderCode && <div className="span-all smart-code-panel">
+        <div className="smart-code-heading"><strong>{isUps ? "Existing UPS Code" : "Order / Replacement Code"}</strong><small>Available when this case uses an existing code.</small></div>
+        {!isUps && <label>Reason Code<select value={effectiveReason || ""} onChange={(event) => setOrder({ ...order, category: codeCategory, reason: event.target.value })}>{codes.map(([value]) => <option key={value} value={value}>{value.replaceAll("XXXXXX", general["Order ID"] || "XXXXXX")}</option>)}</select></label>}
+        <label>Code<input readOnly value={codeText}/></label>
+        {orderCode[1] && <label>Description<input readOnly value={orderCode[1]}/></label>}
+        {codeCategory === "Amazon" && effectiveReason.includes("Stuck Order") && <p className="inline-notice"><Icon name="alert"/>For unfulfilled Medify Air MCF orders only. Cancel both corresponding orders first; ask a lead if unsure.</p>}
+        {isUps && <p className="smart-code-advisory">This is the existing UPS code, not a separate replacement authorization. Continue your normal UPS claim and replacement process.</p>}
+        <button type="button" className="secondary-button" onClick={() => copy("Order Code", codeText)}><Icon name="copy"/>Copy Code</button>
+      </div>}
     </div>
     {fraudEmailType && <section className="fraud-email-panel" aria-label="Fraud email composer">
       <h3>{fraudEmailType === "initial" ? "Initial fraud cancellation email" : "Repeat-order fraud follow-up email"}</h3>
@@ -197,9 +263,10 @@ function GeneralCard({ general, setGeneral, text, copy, fold, toggle, onUse }) {
       </div>
       <small>Review before sending. Copy Email only copies the message; it does not send anything. Changing the name or order numbers refreshes the draft.</small>
     </section>}
-    <CardActions preview={text} onCopy={() => copy("Email / General Case Notes", text)} onReset={resetGeneral}/>
+    <CardActions preview={text} onCopy={() => copy("Smart Case Notes", text)} onReset={reset}/>
   </ToolCard>;
 }
+
 function RecentMenu({ items, onCopy, onClose }) {
   const ref = useRef(null); const closeRef = useRef(onClose); closeRef.current = onClose;
   useEffect(() => {
@@ -219,15 +286,23 @@ function RecentMenu({ items, onCopy, onClose }) {
 function WorkDesk({ state }) {
   const { call, setCall, followup, setFollowup, filter, setFilter, order, setOrder, claims, setClaims, general, setGeneral, agent, running, seconds, startTimer, stopTimer, newCall, copy, folds, setFolds, trackTool } = state;
   const callText = buildCallNote(call, agent);
-  const orderCode = (ORDER_CODES[order.category] || []).find(([value]) => value === order.reason) || ["", ""];
+  const currentType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
+  const isUpsCase = currentType === "UPS Lost Claim" || currentType === "UPS Damaged Claim";
+  const selectedCategory = CASE_CODE_CATEGORIES[currentType] || (isUpsCase && general.customerResolution === "Replacement" ? "UPS" : "");
+  const defaultReason = currentType === "UPS Lost Claim" ? "UPS | Lost | XXXXXX"
+    : currentType === "UPS Damaged Claim" ? "UPS | Damaged | XXXXXX"
+    : ORDER_CODES[selectedCategory]?.[0]?.[0];
+  const actualReason = selectedCategory === order.category && (ORDER_CODES[selectedCategory] || []).some(([code]) => code === order.reason)
+    ? order.reason : defaultReason;
+  const orderCode = (ORDER_CODES[selectedCategory] || []).find(([code]) => code === actualReason) || null;
   return <section className="workdesk-page" aria-label="WorkDesk">
-    <h1 className="sr-only">WorkDesk</h1><nav className="jump-nav" aria-label="Jump to section">{[["tool-call", "Call Notes"], ["tool-filter", "Filter"], ["tool-order", "Order"], ["tool-claim", "UPS"], ["tool-general", "General"]].map(([id, label]) => <button type="button" key={id} aria-label={`Jump to ${label}`} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{label}</button>)}</nav>
+    <h1 className="sr-only">WorkDesk</h1><nav className="jump-nav" aria-label="Jump to section">{[["tool-call", "Call Notes"], ["tool-filter", "Filter"], ["tool-claim", "UPS"], ["tool-general", "Cases"]].map(([id, label]) => <button type="button" key={id} aria-label={`Jump to ${label}`} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{label}</button>)}</nav>
     <CallTimer running={running} seconds={seconds} onStart={startTimer} onStop={stopTimer} onNew={newCall}/>
     <div className="workspace-grid">
       <div className="work-column main-work-column"><CallNotes call={call} setCall={setCall} followup={followup} setFollowup={setFollowup} text={callText} copy={copy} reset={newCall} fold={folds.call} toggle={() => setFolds({ ...folds, call: !folds.call })} onUse={() => trackTool("Call Notes")}/><ClaimCard claims={claims} setClaims={setClaims} text={claims.map((claim, index) => buildClaimNote(claim, agent, claims.length > 1 ? index + 1 : undefined)).join("\n\n")} copy={copy} fold={folds.claim} toggle={() => setFolds({ ...folds, claim: !folds.claim })} onUse={() => trackTool("UPS Claim")}/></div>
       <div className="support-columns"><div className="support-grid">
         <div className="work-column"><FilterCard filter={filter} setFilter={setFilter} text={buildFilterNote(filter, agent)} copy={copy} fold={folds.filter} toggle={() => setFolds({ ...folds, filter: !folds.filter })} onUse={() => trackTool("Swapped Filter Subscription")}/></div>
-        <div className="work-column"><OrderCard order={order} setOrder={setOrder} text={buildOrderNote(order, orderCode, agent)} codeText={replacementCode(order.category, orderCode[0], order["Order ID"])} copy={copy} fold={folds.order} toggle={() => setFolds({ ...folds, order: !folds.order })} onUse={() => trackTool("Order Codes / Replacement")}/><GeneralCard general={general} setGeneral={setGeneral} text={buildNote(general, agent)} copy={copy} fold={folds.general} toggle={() => setFolds({ ...folds, general: !folds.general })} onUse={() => trackTool("Email / General Case Notes")}/></div>
+        <div className="work-column"><SmartCaseCard order={order} setOrder={setOrder} general={general} setGeneral={setGeneral} text={buildSmartCaseNote(general, agent, orderCode)} copy={copy} fold={folds.general} toggle={() => setFolds({ ...folds, general: !folds.general })} onUse={() => trackTool("Smart Case Notes")}/></div>
       </div></div>
     </div>
   </section>;
@@ -407,7 +482,7 @@ export default function App() {
   const updateReport = async (report, update) => { const next = { ...report, ...update, stop: report.start + update.seconds * 1000 }; setReports((items) => items.map((item) => item.id === report.id ? next : item)); if (report.remote) { const payload = { duration_seconds: update.seconds, stopped_at: new Date(next.stop).toISOString(), follow_up_needed: update.followUpNeeded, follow_up_date: update.followUpDate || null, follow_up_note: update.followUpNote || null }; let { error } = await supabase.from("medify_call_reports").update(payload).eq("id", report.id); if (error && /follow_up/i.test(error.message)) ({ error } = await supabase.from("medify_call_reports").update({ duration_seconds: update.seconds, stopped_at: new Date(next.stop).toISOString() }).eq("id", report.id)); if (error) notify(`Saved locally; online update failed: ${error.message}`); else notify("Report updated."); } };
   const deleteReport = async (report) => { if (!window.confirm("Delete this saved call report? This cannot be undone.")) return; setReports((items) => items.filter((item) => item.id !== report.id)); if (report.remote) { const { error } = await supabase.from("medify_call_reports").delete().eq("id", report.id); if (error) return notify(`Delete failed: ${error.message}`); } notify("Report deleted."); };
   const submitAuth = async (event) => { event.preventDefault(); setAuthError(""); try { const username = auth.username.trim().toLowerCase(); const email = usernameEmail(username); if (mode === "login") { const { error } = await supabase.auth.signInWithPassword({ email, password: auth.password }); if (error) throw error; } else { const { data, error } = await supabase.auth.signUp({ email, password: auth.password }); if (error) throw error; if (!data.session) { const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: auth.password }); if (signInError) throw Error("This username already exists. Use the original PIN, or ask the creator to remove the incomplete test account."); } const { error: redeemError } = await supabase.rpc("medify_redeem_invite", { p_code: auth.code.trim(), p_username: username, p_initials: auth.initials }); if (redeemError) throw redeemError; } } catch (error) { setAuthError(error.message); } };
-  const searchTools = (value) => { const query = value.toLowerCase(); if (!query) return; setView("workdesk"); const key = query.includes("claim") ? "claim" : query.includes("filter") ? "filter" : query.includes("replacement") || query.includes("order") ? "order" : query.includes("email") || query.includes("case") ? "general" : "call"; setFolds({ ...folds, [key]: true }); };
+  const searchTools = (value) => { const query = value.toLowerCase(); if (!query) return; setView("workdesk"); const key = query.includes("claim") ? "claim" : query.includes("filter") ? "filter" : query.includes("replacement") || query.includes("order") || query.includes("email") || query.includes("case") || query.includes("refund") || query.includes("fraud") ? "general" : "call"; setFolds({ ...folds, [key]: true }); };
   if (loading) return <main className="loading-page" role="status"><Icon name="note" size={30}/><strong>Loading your workspace…</strong></main>;
   if (!session || !profile) return <AuthScreen auth={auth} setAuth={setAuth} mode={mode} setMode={setMode} error={authError} onSubmit={submitAuth} initials={activeInitials}/>;
   const nav = (id, label, icon) => <button aria-current={view === id ? "page" : undefined} className={view === id ? "active" : ""} onClick={() => setView(id)}><Icon name={icon}/>{label}</button>;
