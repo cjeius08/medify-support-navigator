@@ -176,6 +176,76 @@ describe("preserved workspace workflows", () => {
     expect(copyText.mock.calls.at(-1)[0]).toContain("Claim Number: CLM-9");
   });
 
+  it("creates a safe warranty reply and adds video/troubleshooting only when selected", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Warranty Replacement", smart);
+    expect(smart.getByLabelText("Warranty reply generator")).toBeTruthy();
+    const reply = () => smart.getByLabelText("Generated Warranty Reply").value;
+    expect(reply()).toContain("Hi [Customer Name],");
+    expect(reply()).not.toContain("troubleshooting");
+    expect(reply()).not.toContain("video.");
+    expect(reply()).not.toContain("successfully processed");
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
+
+    change("Customer Name", "Kim", smart);
+    change("Product Model", "MA-35", smart);
+    expect(reply()).toContain("Hi Kim,");
+    expect(reply()).toContain("your MA-35");
+
+    click("Video received", smart);
+    expect(reply()).toContain("Thank you for sending us the video");
+    expect(reply()).not.toContain("complete the troubleshooting steps");
+    click("Troubleshooting completed", smart);
+    expect(reply()).toContain("complete the troubleshooting steps");
+    click("Address updated", smart);
+    expect(smart.getByLabelText("Updated Shipping Address")).toBeTruthy();
+    expect(reply()).toContain("[Updated Shipping Address]");
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
+    change("Updated Shipping Address", "16350 S Harbor Blvd, Apt 1408\nSanta Ana, CA 92704", smart);
+
+    expect(reply()).toContain("Santa Ana, CA 92704");
+    expect(reply()).not.toContain("successfully processed");
+    click("Processed replacement", smart);
+    expect(smart.getByLabelText("Replacement Order Number")).toBeTruthy();
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
+    change("Replacement Order Number", "811370", smart);
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(false);
+    expect(reply()).toContain("Your replacement order number is #811370.");
+    click("Copy Warranty Email", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Your replacement order number is #811370."));
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("no need to return");
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("priority fulfillment");
+
+    change("Generated Warranty Reply", "Edited draft text", smart);
+    click("Copy Warranty Email", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Edited draft text"));
+    click("Restore Warranty Template", smart);
+    expect(reply()).toContain("Your replacement order number is #811370.");
+
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Video received\nTroubleshooting completed\nAddress updated"));
+    change("Case Type", "Return / Refund", smart);
+    expect(smart.queryByLabelText("Warranty reply generator")).toBeNull();
+    expect(smart.getByLabelText("Issue").value).toBe("");
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).not.toContain("Updated Shipping Address"));
+  });
+
+  it("keeps warranty template neutral unless a replacement was really processed", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Saved template", "Warranty Replacement Reply", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
+    expect(smart.getByLabelText("Issue").value).toBe("Warranty Replacement");
+    expect(smart.getByLabelText("Resolution").value).toBe("");
+    expect(smart.getByLabelText("Generated Warranty Reply").value).not.toContain("successfully processed");
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
+    change("Customer Name", "Kim", smart);
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(false);
+    expect(smart.getByLabelText("Generated Warranty Reply").value).toContain("keep you updated on the next steps");
+  });
+
   it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
     await openApp(); const smart = tool("Smart Case Notes");
     change("Case Type", "Warranty Replacement", smart);

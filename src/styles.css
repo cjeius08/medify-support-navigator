@@ -221,6 +221,8 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .fraud-email-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .fraud-email-panel label { min-width: 0; }
 .fraud-email-panel textarea { width: 100%; min-height: 290px; font-family: inherit; line-height: 1.55; resize: vertical; background: white; }
+.warranty-reply-panel textarea.warranty-address { min-height: 82px; }
+.warranty-reply-panel .fraud-email-fields label { min-width: 0; }
 .fraud-email-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .fraud-email-panel > small { display: block; color: var(--muted); font-size: .75rem; line-height: 1.5; }
 @container tool (max-width: 420px) {
