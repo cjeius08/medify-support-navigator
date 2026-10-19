@@ -258,7 +258,8 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Order Number")).toBeTruthy();
     expect(smart.getByLabelText("Order Date")).toBeTruthy();
     expect(smart.getByLabelText("Status").value).toBe("Under Review");
-    expect(smart.getByLabelText("Status").readOnly).toBe(true);
+    expect(smart.getByLabelText("Status").tagName).toBe("SELECT");
+    expect(Array.from(smart.getByLabelText("Status").options, ({ value }) => value)).toEqual(["Under Review", "Passed", "Failed"]);
     expect(smart.queryByLabelText("SKU")).toBeNull();
     expect(smart.queryByLabelText("Issue")).toBeNull();
     expect(smart.queryByLabelText("Resolution")).toBeNull();
@@ -269,11 +270,19 @@ describe("preserved workspace workflows", () => {
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe(
       "Case Type: Flagged for Fraud Review\nOrder Number: FR-889\nOrder Date: 2026-10-17\nStatus: Under Review\nJA"
     ));
+    change("Status", "Passed", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order Date: 2026-10-17\nStatus: Passed\nJA"));
+    change("Status", "Failed", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order Date: 2026-10-17\nStatus: Failed\nJA"));
     change("Case Type", "Fraud / High Risk", smart);
     expect(smart.getByLabelText("Order ID").value).toBe("FR-889");
     expect(smart.getByLabelText("Issue")).toBeTruthy();
     expect(smart.getByRole("button", { name: "Order Cancelled" })).toBeTruthy();
     expect(smart.queryByLabelText("Status")).toBeNull();
+    change("Case Type", "Flagged for Fraud Review", smart);
+    expect(smart.getByLabelText("Status").value).toBe("Under Review");
   });
 
   it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
