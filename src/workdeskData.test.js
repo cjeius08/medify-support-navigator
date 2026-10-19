@@ -21,6 +21,13 @@ describe("WorkDesk helpers", () => {
     expect(note).not.toContain("Old resolution");
     const blank = buildSmartCaseNote({ caseType: "Flagged for Fraud Review" }, "JA");
     expect(blank).toContain("Order Number: Not provided\nOrder Date: Not provided\nStatus: Under Review");
+
+    for (const status of ["Passed", "Failed"]) {
+      const updated = buildSmartCaseNote({ caseType: "Flagged for Fraud Review", "Order ID": "811370", "Order Date": "2026-10-17", fraudReviewStatus: status }, "JA");
+      expect(updated).toContain(`Status: ${status}\nJA`);
+    }
+    expect(buildSmartCaseNote({ caseType: "Flagged for Fraud Review", fraudReviewStatus: "Unknown" }, "JA")).toContain("Status: Under Review");
+    expect(buildSmartCaseNote({ caseType: "General Inquiry", fraudReviewStatus: "Failed" }, "JA")).not.toContain("fraudReviewStatus");
     expect(caseQuickOptions("Fraud / High Risk").resolutions).toContain("Order Cancelled");
   });
 
