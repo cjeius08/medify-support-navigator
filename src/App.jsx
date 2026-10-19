@@ -3,7 +3,7 @@ import { CardActions, Dialog, NotePreview, PeriodTabs, ToolCard } from "./Worksp
 import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
-  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
+  ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, FRAUD_REVIEW_STATUSES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
   ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, hasCaseAction, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
@@ -190,6 +190,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     delete next["Claim Number"];
     delete next["Claim Status"];
     delete next["Tracking Number"];
+    delete next.fraudReviewStatus;
     for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     setGeneral(next);
     const category = CASE_CODE_CATEGORIES[nextType] || (nextType.startsWith("UPS ") ? "UPS" : "");
@@ -218,6 +219,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
             : "General Inquiry";
     const next = { ...general, ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
+    delete next.fraudReviewStatus;
     if (targetType !== "Warranty Replacement") for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
     if (!rl) delete next["Tracking Number"];
@@ -249,7 +251,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       {isFraudReview ? <>
         <label>Order Number<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)} placeholder="Enter order number"/></label>
         <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)} placeholder="Enter order date"/></label>
-        <label className="span-all">Status<input value="Under Review" readOnly aria-readonly="true"/></label>
+        <label className="span-all">Status<select value={FRAUD_REVIEW_STATUSES.includes(general.fraudReviewStatus) ? general.fraudReviewStatus : "Under Review"} onChange={(event) => update("fraudReviewStatus", event.target.value)}>{FRAUD_REVIEW_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
       </> : <>
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
       <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>

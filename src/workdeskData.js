@@ -99,6 +99,8 @@ export const RESOLUTION_SNIPPETS = ["Processed replacement", "Processed refund",
 export const GENERAL_ISSUE_SNIPPETS = [...ISSUE_SNIPPETS, "Flagged for Fraud"];
 export const GENERAL_RESOLUTION_SNIPPETS = [...RESOLUTION_SNIPPETS, "Order Cancelled", "Order Refunded", "Sent Email for Fraud"];
 
+export const FRAUD_REVIEW_STATUSES = ["Under Review", "Passed", "Failed"];
+
 export const CASE_TYPES = [
   "General Inquiry", "Warranty Replacement", "Free Order", "Reprocessed Order",
   "UPS Lost Claim", "UPS Damaged Claim", "Return / Refund",
@@ -174,7 +176,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
       "Case Type: Flagged for Fraud Review",
       `Order Number: ${val("Order ID")}`,
       `Order Date: ${val("Order Date")}`,
-      "Status: Under Review",
+      `Status: ${FRAUD_REVIEW_STATUSES.includes(fields.fraudReviewStatus) ? fields.fraudReviewStatus : "Under Review"}`,
       agentInitials || "Not provided"
     ].join("\n");
   }
@@ -206,7 +208,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   base.push(`Resolution: ${val("Resolution")}`);
   const known = new Set([
     "caseType", "Order ID", "Order Date", "SKU", "Issue", "Tracking Number",
-    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution"
+    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus"
   ]);
   for (const [key, value] of Object.entries(fields)) {
     if (!known.has(key) && String(value || "").trim()) base.push(`${key}: ${value}`);
