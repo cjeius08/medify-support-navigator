@@ -205,6 +205,19 @@ describe("WorkDesk helpers", () => {
     expect(incomplete).not.toContain("Converted MA-50R-1");
   });
 
+  it("recognizes MA-CARR-2 SKU and shows the correct variant ID for direct and converted notes", () => {
+    expect(FILTER_SKUS).toContain("MA-CARR-2");
+    expect(MASTER_SKUS).toContain("MA-CARR-2");
+    expect(FILTER_VARIANT_IDS["MA-CARR-2"]).toBe("43720706064451");
+    expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-CARR-2": 1 } }, "JA"))
+      .toContain("MA-CARR-2 x1\nReason: Variant Error\nNew Variant ID#: 43720706064451");
+    expect(buildFilterNote({
+      reason: "Variant Error",
+      selected: { "MA-50R-1": 2 },
+      conversions: { "MA-50R-1": { sku: "MA-CARR-2", sourceQuantity: 1, quantity: 1 } }
+    }, "JA")).toContain("Original Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-CARR-2: 43720706064451");
+  });
+
   it("uses MA-SMARTR-1 Variant ID in selected and converted filter notes", () => {
     expect(FILTER_SKUS).toContain("MA-SMARTR-1");
     expect(MASTER_SKUS).toContain("MA-SMARTR-1");
