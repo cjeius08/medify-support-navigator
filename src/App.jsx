@@ -15,11 +15,33 @@ const blankClaim = { "Claim Number": "", "Tracking Number": "", "Claim Status": 
 
 function appendSku(value, sku, skus = []) { const current = value.split(",").map((item) => item.trim()).filter(Boolean); if (current.length === 1 && !skus.some((item) => item.toLowerCase() === current[0].toLowerCase())) return sku; return current.some((item) => item.toLowerCase() === sku.toLowerCase()) ? value : [...current, sku].join(", "); }
 function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder = "Search SKU…", optionAction = "Select", multi = false }) {
-  const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const picker = useRef(null); const input = useRef(null); const inputId = useId(); const resultsId = useId(); const isMulti = multi || label === "SKU"; const selected = isMulti ? value.split(",").map((item) => item.trim()).filter(Boolean) : []; const results = skus.filter((sku) => sku.toLowerCase().includes((isMulti ? query : value).toLowerCase()) && !selected.some((item) => item.toLowerCase() === sku.toLowerCase())).slice(0, 9);
+  const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const picker = useRef(null); const input = useRef(null); const inputId = useId(); const resultsId = useId(); const isMulti = multi || label === "SKU"; const selected = isMulti ? value.split(",").map((item) => item.trim()).filter(Boolean) : []; const results = skus.filter((sku) => sku.toLowerCase().includes((isMulti ? query : value).toLowerCase()) && !selected.some((item) => item.toLowerCase() === sku.toLowerCase())).slice(0, 25);
   useEffect(() => { const outside = (event) => { if (!picker.current?.contains(event.target)) setOpen(false); }; document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside); }, []);
   const select = (sku) => { onSelect ? onSelect(sku) : onChange(isMulti ? [...selected, sku].join(", ") : sku); setQuery(""); setOpen(false); if (isMulti) input.current?.focus(); };
   const remove = (sku) => onChange(selected.filter((item) => item.toLowerCase() !== sku.toLowerCase()).join(", "));
-  return <div className="sku-field"><label htmlFor={inputId}>{label}</label><div ref={picker} className="sku-picker">{isMulti && selected.length > 0 && <div className="sku-chips" aria-label={`Selected ${label}s`}>{selected.map((sku) => <div key={sku} className="sku-chip"><b>{sku}</b><button type="button" aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></div>)}</div>}<div className="input-with-icon"><Icon name="search"/><input ref={input} id={inputId} role="combobox" autoComplete="off" aria-autocomplete="list" aria-controls={resultsId} aria-expanded={Boolean((isMulti ? query : value) && open)} value={isMulti ? query : value} onFocus={() => setOpen(true)} onChange={(event) => { isMulti ? setQuery(event.target.value) : onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); return; } if (event.key === "ArrowDown" && open && (isMulti ? query : value)) { event.preventDefault(); picker.current.querySelector(".sku-results button")?.focus(); } }} placeholder={placeholder}/></div>{(isMulti ? query : value) && open && <div id={resultsId} className="sku-results" role="group" aria-label={`Matching ${label}s`}>{results.length ? results.map((sku, index) => <button key={sku} type="button" aria-label={`${optionAction} ${sku}`} onClick={() => select(sku)} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); input.current?.focus(); } if (event.key === "ArrowUp" && index === 0) { event.preventDefault(); input.current?.focus(); } }}><span>{sku}</span><Icon name="plus" size={16}/></button>) : <p role="status">No matching SKU. Try a model like MA-50.</p>}</div>}</div></div>;
+  return <div className="sku-field"><label htmlFor={inputId}>{label}</label><div ref={picker} className="sku-picker">{isMulti && selected.length > 0 && <div className="sku-chips" aria-label={`Selected ${label}s`}>{selected.map((sku) => <div key={sku} className="sku-chip"><b>{sku}</b><button type="button" aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></div>)}</div>}<div className="input-with-icon"><Icon name="search"/><input ref={input} id={inputId} role="combobox" autoComplete="off" aria-autocomplete="list" aria-controls={resultsId} aria-expanded={Boolean((isMulti ? query : value) && open)} value={isMulti ? query : value} onFocus={() => setOpen(true)} onChange={(event) => { isMulti ? setQuery(event.target.value) : onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => {
+    if (event.key === "Escape") { setOpen(false); return; }
+    if (!results.length || !(isMulti ? query : value)) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) { setOpen(true); return; }
+      const items = picker.current?.querySelectorAll(".sku-results button");
+      items?.[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
+    }
+    if (event.key === "Enter" && open) { event.preventDefault(); select(results[0]); }
+  }} placeholder={placeholder}/></div>{(isMulti ? query : value) && open && <div id={resultsId} className="sku-results" role="group" aria-label={`Matching ${label}s`}>{results.length ? results.map((sku, index) => <button key={sku} type="button" aria-label={`${optionAction} ${sku}`} onClick={() => select(sku)} onKeyDown={(event) => {
+    const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+    if (event.key === "Escape") { event.preventDefault(); setOpen(false); input.current?.focus(); return; }
+    if (event.key === "Enter") { event.preventDefault(); select(sku); return; }
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "ArrowUp" && index === 0) { input.current?.focus(); return; }
+    const buttons = picker.current?.querySelectorAll(".sku-results button");
+    const next = event.key === "Home" ? 0
+      : event.key === "End" ? results.length - 1
+        : Math.min(results.length - 1, Math.max(0, index + (event.key === "ArrowDown" ? 1 : -1)));
+    buttons?.[next]?.focus();
+  }}><span>{sku}</span><Icon name="plus" size={16}/></button>) : <p role="status">No matching SKU. Try a model like MA-50.</p>}</div>}</div></div>;
 }
 function QuickInsert({ value, onChange, snippets, label }) { return <div className="snippet-row" role="group" aria-label={`Quick insert into ${label.toLowerCase()}`}><span>Quick insert</span><div>{snippets.map((snippet) => <button key={snippet} type="button" onClick={() => onChange(appendSnippet(value, snippet))}>{snippet}</button>)}</div></div>; }
 
