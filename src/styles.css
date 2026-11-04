@@ -159,6 +159,7 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .sku-results { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 12; max-height: 260px; max-height: min(260px, 45vh); overflow: auto; overscroll-behavior: contain; border: 1px solid #afc4d0; border-radius: var(--radius-small); background: var(--surface); box-shadow: var(--shadow-overlay); padding: 4px; }
 .sku-results button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 3px; padding: 10px; background: white; text-align: left; color: var(--ink); font-size: .875rem; }
 .sku-results button:hover { background: var(--teal-soft); }
+.sku-results button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; background: var(--teal-soft); }
 .sku-results p { padding: 10px; margin: 0; font-size: .875rem; line-height: 1.5; }
 .sku-chips { display: grid; gap: 8px; }
 .sku-chip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #d0e5e0; border-radius: var(--radius-small); background: #f0f8f5; padding: 7px 8px 7px 12px; color: #295f55; }
