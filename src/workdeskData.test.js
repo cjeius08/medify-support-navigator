@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+
+  it("keeps all Filter Model SKUs available in Smart Case Notes while adding requested purifier models only there", () => {
+    expect(FILTER_SKUS).toHaveLength(40);
+    expect(FILTER_SKUS.every(sku => MASTER_SKUS.includes(sku))).toBe(true);
+    expect(new Set(MASTER_SKUS).size).toBe(MASTER_SKUS.length);
+    for (const sku of ["MA-35-W2", "MA-35-S2", "MA-40-B2"]) {
+      expect(MASTER_SKUS).toContain(sku);
+      expect(FILTER_SKUS).not.toContain(sku);
+    }
+  });
+
+
   it("generates a concise Flagged for Fraud Review note with Under Review status", () => {
     const note = buildSmartCaseNote({
       caseType: "Flagged for Fraud Review",

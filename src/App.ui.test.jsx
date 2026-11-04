@@ -60,6 +60,66 @@ describe("preserved workspace workflows", () => {
     click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
   });
 
+  it("shows missing Smart Case Notes SKUs and selects them using arrow keys or Enter", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("SKU", "MA-35", smart);
+    expect(smart.getByRole("button", { name: "Select MA-35-W2" })).toBeTruthy();
+    expect(smart.getByRole("button", { name: "Select MA-35-S2" })).toBeTruthy();
+
+    change("SKU", "MA-35-S2", smart);
+    const search = smart.getByLabelText("SKU");
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(smart.getByRole("button", { name: "Select MA-35-S2" }));
+    fireEvent.keyDown(document.activeElement, { key: "Enter" });
+    expect(smart.getByText("MA-35-S2")).toBeTruthy();
+
+    change("SKU", "MA-35-W2", smart);
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(smart.getByText("MA-35-W2")).toBeTruthy();
+
+    change("SKU", "MA-40-B", smart);
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(smart.getByRole("button", { name: "Select MA-40-B1" }));
+    fireEvent.keyDown(document.activeElement, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(smart.getByRole("button", { name: "Select MA-40-B2" }));
+    fireEvent.keyDown(document.activeElement, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(smart.getByRole("button", { name: "Select MA-40-B1" }));
+    fireEvent.keyDown(document.activeElement, { key: "End" });
+    expect(document.activeElement).toBe(smart.getByRole("button", { name: "Select MA-40-B2" }));
+    fireEvent.keyDown(document.activeElement, { key: "Enter" });
+    expect(smart.getByText("MA-40-B2")).toBeTruthy();
+    expect(smart.queryByRole("button", { name: "Select MA-40-B2" })).toBeNull();
+  });
+
+  it("supports ↑ ↓ Home End and Escape in filter and conversion SKU suggestions", async () => {
+    await openApp();
+    const filter = tool("Swapped Filter Subscription");
+    change("Filter Model(s)", "MA-45R", filter);
+    const filterSearch = filter.getByLabelText("Filter Model(s)");
+    fireEvent.keyDown(filterSearch, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(filter.getByRole("button", { name: "Add MA-45R-2" }));
+    fireEvent.keyDown(document.activeElement, { key: "Home" });
+    expect(document.activeElement).toBe(filter.getByRole("button", { name: "Add MA-45R-1" }));
+    fireEvent.keyDown(document.activeElement, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(filterSearch);
+    fireEvent.keyDown(filterSearch, { key: "ArrowDown" });
+    const first = filter.getByRole("button", { name: "Add MA-45R-1" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "Escape" });
+    expect(document.activeElement).toBe(filterSearch);
+    expect(filter.queryByRole("button", { name: "Add MA-45R-1" })).toBeNull();
+
+    change("Filter Model(s)", "MA-45R-2", filter);
+    fireEvent.keyDown(filterSearch, { key: "Enter" });
+    expect(filter.getByText("Original Variant ID#: 43720705867843")).toBeTruthy();
+    click("Convert", filter);
+    change("Convert MA-45R-2 to", "MA-45R-1", filter);
+    fireEvent.keyDown(filter.getByLabelText("Convert MA-45R-2 to"), { key: "ArrowDown" });
+    fireEvent.keyDown(document.activeElement, { key: "Enter" });
+    expect(filter.getByText("New Variant ID#: 43720705835075")).toBeTruthy();
+  });
+
   it("defaults a converted filter quantity to one even when the original quantity is higher", async () => {
     await openApp(); const filterTool = tool("Swapped Filter Subscription");
     change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
