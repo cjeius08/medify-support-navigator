@@ -31,7 +31,7 @@ function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder
     if (event.key === "Enter" && open) { event.preventDefault(); select(results[0]); }
   }} placeholder={placeholder}/></div>{(isMulti ? query : value) && open && <div id={resultsId} className="sku-results" role="group" aria-label={`Matching ${label}s`}>{results.length ? results.map((sku, index) => <button key={sku} type="button" aria-label={`${optionAction} ${sku}`} onClick={() => select(sku)} onKeyDown={(event) => {
     const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
-    if (event.key === "Escape") { event.preventDefault(); setOpen(false); input.current?.focus(); return; }
+    if (event.key === "Escape") { event.preventDefault(); input.current?.focus(); setOpen(false); return; }
     if (event.key === "Enter") { event.preventDefault(); select(sku); return; }
     if (!keys.includes(event.key)) return;
     event.preventDefault();
