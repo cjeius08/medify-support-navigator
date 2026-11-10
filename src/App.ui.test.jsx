@@ -421,11 +421,11 @@ describe("preserved workspace workflows", () => {
     change("Resolution", "Returned to the warehouse", smart);
     expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
     change("Saved template", "Wrong Filter Return", smart);
-    expect(smart.getByLabelText("Customer Name").value).toBe("Kim");
     expect(smart.getByLabelText("Issue").value.toLowerCase()).toBe("wrong filter received");
     expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
     click("Sent RL for return", smart);
     expect(smart.getByLabelText("Return/refund email generator")).toBeTruthy();
+    expect(smart.getByLabelText("Customer Name").value).toBe("Kim");
     change("Saved template", "Return / Refund", smart);
     expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
     change("Case Type", "Warranty Replacement", smart);
