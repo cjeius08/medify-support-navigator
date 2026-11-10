@@ -7,6 +7,7 @@ describe("WorkDesk helpers", () => {
     const fields = { caseType: "Return / Refund", Issue: "Wrong Filter Received\nSent RL for return" };
     expect(returnEmailKind(fields)).toBe("incorrectFilterLabel");
     const preview = buildReturnEmail(fields);
+    expect(preview.startsWith("Hi [Customer Name],\n\n")).toBe(true);
     expect(preview).toContain("Please follow the instructions below to start the return process.");
     expect(preview).toContain("Please see the attached prepaid return label.");
     expect(preview).toContain("[Return Tracking Number]");
@@ -28,6 +29,7 @@ describe("WorkDesk helpers", () => {
       caseType: "Return / Refund",
       "Order ID": "98765",
       "Order Date": "2026-11-11",
+      "Customer Name": "Kim",
       Issue: "Wrong Filter Received\nSent RL for return",
       "Tracking Number": "1Z123TEST",
       "Action Taken": ""
@@ -36,6 +38,9 @@ describe("WorkDesk helpers", () => {
     const replacement = { ...base, returnOutcome: "Replacement" };
     expect(canCopyReturnEmail(refund)).toBe(true);
     expect(canCopyReturnEmail(replacement)).toBe(true);
+    expect(buildReturnEmail(refund).startsWith("Hi Kim,\n\n")).toBe(true);
+    expect(canCopyReturnEmail({ ...refund, "Customer Name": "" })).toBe(false);
+    expect(buildReturnEmail({ ...refund, "Customer Name": "" })).toContain("Hi [Customer Name],");
     expect(buildReturnEmail(refund)).toContain("tracking number is 1Z123TEST");
     expect(buildReturnEmail(refund)).toContain("we'll process your refund promptly");
     expect(buildReturnEmail(refund)).not.toContain("we'll process your replacement promptly");
@@ -56,6 +61,7 @@ describe("WorkDesk helpers", () => {
   it("provides a separate warehouse-received refund confirmation with optional attached invoice", () => {
     const template = {
       caseType: "Return / Refund",
+      "Customer Name": "Kim",
       Issue: "Order Returned",
       Resolution: "Returned to the warehouse\nProcessed refund",
       returnOutcome: "Refund",
@@ -63,7 +69,9 @@ describe("WorkDesk helpers", () => {
     };
     expect(returnEmailKind(template)).toBe("refundProcessed");
     expect(canCopyReturnEmail(template)).toBe(true);
+    expect(canCopyReturnEmail({ ...template, "Customer Name": "" })).toBe(false);
     const body = buildReturnEmail(template);
+    expect(body.startsWith("Hi Kim,\n\n")).toBe(true);
     expect(body).toContain("warehouse received your return, so we went ahead and processed your refund");
     expect(body).toContain("5–10 business days");
     expect(body).toContain("original payment method");
