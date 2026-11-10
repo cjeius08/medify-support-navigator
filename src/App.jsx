@@ -253,7 +253,8 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     const next = { ...general, returnOutcome: "", returnEmailTemplate: "", ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
     delete next.fraudReviewStatus;
-    if (targetType !== "Warranty Replacement") for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
+    if (targetType !== "Warranty Replacement" && targetType !== "Return / Refund") delete next["Customer Name"];
+    if (targetType !== "Warranty Replacement") for (const field of ["Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
     if (!rl) delete next["Tracking Number"];
     setGeneral(next);
@@ -334,12 +335,13 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       <p>{returnEmailType === "incorrectFilterLabel"
         ? "This template is generated only after Wrong Filter Received and Sent RL for return are selected. Choose Refund or Replacement and enter the return tracking number."
         : "Refund confirmation is available when the selected template confirms both warehouse receipt and a processed refund. Include the invoice sentence only if you actually attached the invoice."}</p>
+      <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer first name" autoComplete="off"/></label>
       <label>Generated Return / Refund Email<textarea rows="15" value={returnEmail} onChange={(event) => setEditedReturnEmail(event.target.value)} spellCheck="true"/></label>
       <div className="fraud-email-actions">
         <button type="button" className="primary-button" disabled={!returnEmailCopyReady} onClick={() => copy("Return / Refund Email", returnEmail, false)}><Icon name="copy"/>Copy Return/Refund Email</button>
         <button type="button" className="secondary-button" onClick={() => setEditedReturnEmail(null)}>Restore Return Template</button>
       </div>
-      <small>Copy Email only copies the message. For the return label template, the tracking number and refund/replacement choice are required. Confirm that the label, refund, photos, or invoice were actually sent or processed before copying.</small>
+      <small>Enter the customer name to enable Copy Email. For return labels, choose Refund or Replacement and enter a tracking number. Confirm that the label, refund, photos, or invoice were actually sent or processed before copying. Copy Email does not send the message.</small>
     </section>}
     {isWarranty && <section className="fraud-email-panel warranty-reply-panel" aria-label="Warranty reply generator">
       <h3>Warranty Replacement Reply Generator</h3>

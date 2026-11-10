@@ -366,6 +366,10 @@ describe("preserved workspace workflows", () => {
     expect(email()).toContain("tracking number is 1Z123FILTER");
     expect(email()).toContain("we'll process your refund promptly");
     expect(email()).not.toContain("process your replacement promptly");
+    expect(email()).toContain("Hi [Customer Name],");
+    expect(copyEmail().disabled).toBe(true);
+    change("Customer Name", "Kim", smart);
+    expect(email().startsWith("Hi Kim,\n\n")).toBe(true);
     expect(copyEmail().disabled).toBe(false);
     click("Photos Sent", smart);
     expect(email()).toContain("Thank you for sending the photos we requested.");
@@ -401,17 +405,23 @@ describe("preserved workspace workflows", () => {
     expect(email()).toContain("we went ahead and processed your refund");
     expect(email()).toContain("5–10 business days");
     expect(email()).not.toContain("attached a copy of the invoice");
+    expect(email().startsWith("Hi [Customer Name],\n\n")).toBe(true);
+    expect(smart.getByRole("button", { name: "Copy Return/Refund Email" }).disabled).toBe(true);
+    change("Customer Name", "Kim", smart);
+    expect(email().startsWith("Hi Kim,\n\n")).toBe(true);
     expect(smart.getByRole("button", { name: "Copy Return/Refund Email" }).disabled).toBe(false);
     click("Attached Invoice", smart);
     expect(email()).toContain("I've also attached a copy of the invoice showing the refund we processed today.");
     click("Copy Return/Refund Email", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Spam or Junk folder"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Hi Kim,");
     click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Attached Invoice"));
 
     change("Resolution", "Returned to the warehouse", smart);
     expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
     change("Saved template", "Wrong Filter Return", smart);
+    expect(smart.getByLabelText("Customer Name").value).toBe("Kim");
     expect(smart.getByLabelText("Issue").value.toLowerCase()).toBe("wrong filter received");
     expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
     click("Sent RL for return", smart);
