@@ -1,7 +1,85 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, canCopyWarrantyReply, canCopyReturnEmail, returnEmailKind, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+
+  it("shows the incorrect-filter return email only when both the reason and return label are selected", () => {
+    const fields = { caseType: "Return / Refund", Issue: "Wrong Filter Received\nSent RL for return" };
+    expect(returnEmailKind(fields)).toBe("incorrectFilterLabel");
+    const preview = buildReturnEmail(fields);
+    expect(preview).toContain("Please follow the instructions below to start the return process.");
+    expect(preview).toContain("Please see the attached prepaid return label.");
+    expect(preview).toContain("[Return Tracking Number]");
+    expect(preview).toContain("[refund or replacement]");
+    expect(canCopyReturnEmail(fields)).toBe(false);
+    for (const issue of ["Wrong Filter Received", "Sent RL for return", "Not satisfied with the order\nSent RL for return", "Return / Refund\nSent RL for return"]) {
+      const other = { caseType: "Return / Refund", Issue: issue };
+      expect(returnEmailKind(other)).toBe("");
+      expect(buildReturnEmail(other)).toBe("");
+    }
+    expect(buildReturnEmail({ ...fields, Issue: fields.Issue + "\nNot satisfied with the order" })).toBe("");
+    expect(buildReturnEmail({ ...fields, caseType: "General Inquiry" })).toBe("");
+    expect(caseQuickOptions("Return / Refund").issues).toContain("Not satisfied with the order");
+    expect(caseQuickOptions("Return / Refund").actions).toEqual(["Photos Sent", "Attached Invoice"]);
+  });
+
+  it("adjusts the return label email and copied note to Refund or Replacement independently", () => {
+    const base = {
+      caseType: "Return / Refund",
+      "Order ID": "98765",
+      "Order Date": "2026-11-11",
+      Issue: "Wrong Filter Received\nSent RL for return",
+      "Tracking Number": "1Z123TEST",
+      "Action Taken": ""
+    };
+    const refund = { ...base, returnOutcome: "Refund" };
+    const replacement = { ...base, returnOutcome: "Replacement" };
+    expect(canCopyReturnEmail(refund)).toBe(true);
+    expect(canCopyReturnEmail(replacement)).toBe(true);
+    expect(buildReturnEmail(refund)).toContain("tracking number is 1Z123TEST");
+    expect(buildReturnEmail(refund)).toContain("we'll process your refund promptly");
+    expect(buildReturnEmail(refund)).not.toContain("we'll process your replacement promptly");
+    expect(buildReturnEmail(replacement)).toContain("we'll process your replacement promptly");
+    expect(buildReturnEmail(replacement)).not.toContain("we'll process your refund promptly");
+    expect(buildReturnEmail(refund)).not.toContain("photos we requested");
+    const withPhotos = { ...refund, "Action Taken": "Photos Sent" };
+    expect(buildReturnEmail(withPhotos)).toContain("Thank you for sending the photos we requested.");
+    const note = buildSmartCaseNote(withPhotos, "JA");
+    expect(note).toContain("Tracking Number: 1Z123TEST");
+    expect(note).toContain("Return Outcome: Refund");
+    expect(note).toContain("Action Taken: Photos Sent");
+    expect(note).not.toContain("returnOutcome:");
+    expect(canCopyReturnEmail({ ...refund, "Tracking Number": "" })).toBe(false);
+    expect(canCopyReturnEmail({ ...refund, returnOutcome: "" })).toBe(false);
+  });
+
+  it("provides a separate warehouse-received refund confirmation with optional attached invoice", () => {
+    const template = {
+      caseType: "Return / Refund",
+      Issue: "Order Returned",
+      Resolution: "Returned to the warehouse\nProcessed refund",
+      returnOutcome: "Refund",
+      returnEmailTemplate: "refundProcessed"
+    };
+    expect(returnEmailKind(template)).toBe("refundProcessed");
+    expect(canCopyReturnEmail(template)).toBe(true);
+    const body = buildReturnEmail(template);
+    expect(body).toContain("warehouse received your return, so we went ahead and processed your refund");
+    expect(body).toContain("5–10 business days");
+    expect(body).toContain("original payment method");
+    expect(body).toContain("Spam or Junk folder");
+    expect(body).not.toContain("attached a copy of the invoice");
+    expect(body).not.toContain("UPS Access Point");
+    const included = buildReturnEmail({ ...template, "Action Taken": "Attached Invoice" });
+    expect(included).toContain("I've also attached a copy of the invoice showing the refund we processed today.");
+    expect(buildSmartCaseNote({ ...template, "Action Taken": "Attached Invoice" }, "JA")).toContain("Action Taken: Attached Invoice");
+    expect(returnEmailKind({ ...template, Resolution: "Returned to the warehouse" })).toBe("");
+    expect(canCopyReturnEmail({ ...template, Resolution: "Processed refund" })).toBe(false);
+    expect(returnEmailKind({ ...template, caseType: "Fraud / High Risk" })).toBe("");
+    expect(buildSmartCaseNote(template, "JA")).not.toContain("returnEmailTemplate");
+  });
+
+
 
   it("keeps all Filter Model SKUs available in Smart Case Notes while adding requested purifier models only there", () => {
     expect(FILTER_SKUS).toHaveLength(40);
