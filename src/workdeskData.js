@@ -309,6 +309,7 @@ export function returnEmailKind(fields = {}) {
 export function buildReturnEmail(fields = {}) {
   const kind = returnEmailKind(fields);
   if (!kind) return "";
+  const customerName = String(fields["Customer Name"] || "").trim() || "[Customer Name]";
   const photosReceived = hasCaseAction(fields["Action Taken"], "Photos Sent");
   const attachedInvoice = hasCaseAction(fields["Action Taken"], "Attached Invoice");
   if (kind === "incorrectFilterLabel") {
@@ -316,6 +317,8 @@ export function buildReturnEmail(fields = {}) {
     const outcome = fields.returnOutcome === "Refund" ? "refund"
       : fields.returnOutcome === "Replacement" ? "replacement" : "[refund or replacement]";
     return [
+      `Hi ${customerName},`,
+      "",
       ...(photosReceived ? ["Thank you for sending the photos we requested.", ""] : []),
       "Please follow the instructions below to start the return process.",
       "",
@@ -329,6 +332,8 @@ export function buildReturnEmail(fields = {}) {
     ].join("\n");
   }
   return [
+    `Hi ${customerName},`,
+    "",
     ...(photosReceived ? ["Thank you for sending the photos we requested.", ""] : []),
     "I can confirm that our warehouse received your return, so we went ahead and processed your refund.",
     "",
@@ -341,6 +346,7 @@ export function buildReturnEmail(fields = {}) {
 
 export function canCopyReturnEmail(fields = {}) {
   const kind = returnEmailKind(fields);
+  if (!String(fields["Customer Name"] || "").trim()) return false;
   if (kind === "refundProcessed") return true;
   return kind === "incorrectFilterLabel"
     && ["Refund", "Replacement"].includes(fields.returnOutcome)
