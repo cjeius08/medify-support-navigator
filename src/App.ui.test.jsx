@@ -345,6 +345,84 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Status").value).toBe("Under Review");
   });
 
+  it("generates incorrect-filter return label instructions only after Sent RL for return", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Return / Refund", smart);
+    click("Not satisfied with the order", smart);
+    click("Sent RL for return", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    change("Issue", "Wrong Filter Received", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.getByLabelText("Return Outcome")).toBeTruthy();
+    click("Sent RL for return", smart);
+    expect(smart.getByLabelText("Return/refund email generator")).toBeTruthy();
+    const email = () => smart.getByLabelText("Generated Return / Refund Email").value;
+    const copyEmail = () => smart.getByRole("button", { name: "Copy Return/Refund Email" });
+    expect(email()).toContain("[Return Tracking Number]");
+    expect(copyEmail().disabled).toBe(true);
+    change("Return Outcome", "Refund", smart);
+    change("Tracking Number", "1Z123FILTER", smart);
+    expect(email()).toContain("tracking number is 1Z123FILTER");
+    expect(email()).toContain("we'll process your refund promptly");
+    expect(email()).not.toContain("process your replacement promptly");
+    expect(copyEmail().disabled).toBe(false);
+    click("Photos Sent", smart);
+    expect(email()).toContain("Thank you for sending the photos we requested.");
+    click("Copy Return/Refund Email", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("we'll process your refund promptly"));
+
+    change("Return Outcome", "Replacement", smart);
+    expect(email()).toContain("we'll process your replacement promptly");
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Return Outcome: Replacement"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Photos Sent");
+
+    change("Generated Return / Refund Email", "Edited return email", smart);
+    click("Copy Return/Refund Email", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Edited return email"));
+    click("Restore Return Template", smart);
+    expect(email()).toContain("we'll process your replacement promptly");
+
+    change("Issue", "Not satisfied with the order", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.queryByLabelText("Return Outcome")).toBeNull();
+  });
+
+  it("shows the processed refund confirmation only via its saved template and gates Attached Invoice wording", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Saved template", "Order Returned – Processed Refund", smart);
+    expect(smart.getByLabelText("Case Type").value).toBe("Return / Refund");
+    expect(smart.getByLabelText("Issue").value).toBe("Order Returned");
+    expect(smart.getByLabelText("Resolution").value).toContain("Returned to the warehouse\nProcessed refund");
+    expect(smart.getByLabelText("Return/refund email generator")).toBeTruthy();
+    const email = () => smart.getByLabelText("Generated Return / Refund Email").value;
+    expect(email()).toContain("we went ahead and processed your refund");
+    expect(email()).toContain("5–10 business days");
+    expect(email()).not.toContain("attached a copy of the invoice");
+    expect(smart.getByRole("button", { name: "Copy Return/Refund Email" }).disabled).toBe(false);
+    click("Attached Invoice", smart);
+    expect(email()).toContain("I've also attached a copy of the invoice showing the refund we processed today.");
+    click("Copy Return/Refund Email", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Spam or Junk folder"));
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Attached Invoice"));
+
+    change("Resolution", "Returned to the warehouse", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    change("Saved template", "Wrong Filter Return", smart);
+    expect(smart.getByLabelText("Issue").value.toLowerCase()).toBe("wrong filter received");
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    click("Sent RL for return", smart);
+    expect(smart.getByLabelText("Return/refund email generator")).toBeTruthy();
+    change("Saved template", "Return / Refund", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    change("Case Type", "Warranty Replacement", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.getByLabelText("Generated Warranty Reply")).toBeTruthy();
+  });
+
   it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
     await openApp(); const smart = tool("Smart Case Notes");
     change("Case Type", "Warranty Replacement", smart);

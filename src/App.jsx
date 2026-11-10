@@ -4,7 +4,7 @@ import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
   ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, FRAUD_REVIEW_STATUSES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, canCopyWarrantyReply, caseQuickOptions, hasCaseAction, parseFraudOrderNumbers,
+  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, canCopyWarrantyReply, canCopyReturnEmail, caseQuickOptions, hasCaseAction, returnEmailKind, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -159,9 +159,15 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const [fraudCustomerName, setFraudCustomerName] = useState("");
   const [editedEmail, setEditedEmail] = useState(null);
   const [editedWarrantyReply, setEditedWarrantyReply] = useState(null);
+  const [editedReturnEmail, setEditedReturnEmail] = useState(null);
   const caseType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
   const isUps = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
   const isWarranty = caseType === "Warranty Replacement";
+  const isReturn = caseType === "Return / Refund";
+  const isIncorrectFilter = isReturn && hasCaseAction(general.Issue, "Wrong Filter Received");
+  const returnEmailType = returnEmailKind(general);
+  const returnEmail = editedReturnEmail ?? buildReturnEmail(general);
+  const returnEmailCopyReady = canCopyReturnEmail(general);
   const isFraudReview = caseType === "Flagged for Fraud Review";
   const warrantyProcessed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(general.Resolution, action));
   const warrantyAddressUpdated = hasCaseAction(general["Action Taken"], "Address updated");
@@ -193,6 +199,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudEmailType("");
     setEditedEmail(null);
     setEditedWarrantyReply(null);
+    setEditedReturnEmail(null);
   };
 
 
@@ -204,6 +211,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     }
     if (field === "Order ID") setEditedEmail(null);
     if (["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address", "Action Taken", "Resolution"].includes(field)) setEditedWarrantyReply(null);
+    setEditedReturnEmail(null);
     setGeneral(next);
   };
   const selectCaseType = (nextType) => {
@@ -213,6 +221,8 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     delete next["Claim Status"];
     delete next["Tracking Number"];
     delete next.fraudReviewStatus;
+    delete next.returnOutcome;
+    delete next.returnEmailTemplate;
     for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     setGeneral(next);
     const category = CASE_CODE_CATEGORIES[nextType] || (nextType.startsWith("UPS ") ? "UPS" : "");
@@ -225,6 +235,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudEmailType("");
     setEditedEmail(null);
     setEditedWarrantyReply(null);
+    setEditedReturnEmail(null);
   };
   const applyTemplate = (name) => {
     if (!name) return;
@@ -232,14 +243,14 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     if (!template) return;
     const targetType = (Boolean(FRAUD_EMAIL_TYPES[name]) || name === "High Risk of Fraud Detected")
       ? "Fraud / High Risk"
-      : name === "Return / Refund" || name === "Wrong Filter Return"
+      : name === "Return / Refund" || name === "Wrong Filter Return" || name === "Order Returned – Processed Refund"
         ? "Return / Refund"
         : name === "Warranty Photo Request" || name === "Warranty Replacement Reply"
           ? "Warranty Replacement"
           : name === "Cancellation Confirmation" || name === "Subscription Cancellation" || name === "Address Update"
             ? "Subscription / Filter Club"
             : "General Inquiry";
-    const next = { ...general, ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
+    const next = { ...general, returnOutcome: "", returnEmailTemplate: "", ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
     delete next.fraudReviewStatus;
     if (targetType !== "Warranty Replacement") for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
@@ -253,6 +264,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudEmailType(FRAUD_EMAIL_TYPES[name] || "");
     setEditedEmail(null);
     setEditedWarrantyReply(null);
+    setEditedReturnEmail(null);
   };
   const reset = () => {
     setGeneral({ ...BLANK_CASE, caseType: "General Inquiry" });
@@ -261,6 +273,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setFraudCustomerName("");
     setEditedEmail(null);
     setEditedWarrantyReply(null);
+    setEditedReturnEmail(null);
   };
   return <ToolCard id="tool-general" title="Smart Case Notes" icon="note" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="smart-case-heading">
@@ -287,6 +300,11 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </div>}
       <label className="span-all">Issue<textarea rows="3" value={general.Issue || ""} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe this case…"/></label>
       <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues}/></div>
+      {isReturn && isIncorrectFilter && <label className="span-all">Return Outcome<select value={["Refund", "Replacement"].includes(general.returnOutcome) ? general.returnOutcome : ""} onChange={(event) => update("returnOutcome", event.target.value)}><option value="">Select Refund or Replacement…</option><option>Refund</option><option>Replacement</option></select></label>}
+      {isReturn && (isIncorrectFilter || returnEmailType === "refundProcessed") && <>
+        <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only completed steps…"/></label>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]}/></div>
+      </>}
       {isWarranty && <>
         <label className="span-all">Action Taken<textarea rows="3" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only the steps actually completed…"/></label>
         <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions}/></div>
@@ -311,6 +329,18 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </div>}
       </>}
     </div>
+    {isReturn && returnEmailType && <section className="fraud-email-panel return-email-panel" aria-label="Return/refund email generator">
+      <h3>{returnEmailType === "incorrectFilterLabel" ? "Incorrect Filter – Return Label Email" : "Order Returned – Refund Processed Email"}</h3>
+      <p>{returnEmailType === "incorrectFilterLabel"
+        ? "This template is generated only after Wrong Filter Received and Sent RL for return are selected. Choose Refund or Replacement and enter the return tracking number."
+        : "Refund confirmation is available when the selected template confirms both warehouse receipt and a processed refund. Include the invoice sentence only if you actually attached the invoice."}</p>
+      <label>Generated Return / Refund Email<textarea rows="15" value={returnEmail} onChange={(event) => setEditedReturnEmail(event.target.value)} spellCheck="true"/></label>
+      <div className="fraud-email-actions">
+        <button type="button" className="primary-button" disabled={!returnEmailCopyReady} onClick={() => copy("Return / Refund Email", returnEmail, false)}><Icon name="copy"/>Copy Return/Refund Email</button>
+        <button type="button" className="secondary-button" onClick={() => setEditedReturnEmail(null)}>Restore Return Template</button>
+      </div>
+      <small>Copy Email only copies the message. For the return label template, the tracking number and refund/replacement choice are required. Confirm that the label, refund, photos, or invoice were actually sent or processed before copying.</small>
+    </section>}
     {isWarranty && <section className="fraud-email-panel warranty-reply-panel" aria-label="Warranty reply generator">
       <h3>Warranty Replacement Reply Generator</h3>
       <p>Generate a concise warranty reply. Video, troubleshooting, address updates and same-day fulfillment requests appear only when recorded in Action Taken.</p>
