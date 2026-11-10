@@ -140,7 +140,8 @@ const CASE_SNIPPETS = {
   },
   "Return / Refund": {
     issues: ["Not satisfied with the order", "Wrong Filter Received", "Return / Refund", "Sent RL for return"],
-    resolutions: ["Returned to the warehouse", "Processed refund", "Return instructions provided"]
+    resolutions: ["Returned to the warehouse", "Processed refund", "Return instructions provided"],
+    actions: ["Photos Sent", "Attached Invoice"]
   },
   "Fraud / High Risk": {
     issues: ["Flagged for Fraud", "Repeated fraudulent order"],
@@ -202,6 +203,10 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
     base.push(`Customer Resolution: ${val("customerResolution")}`);
   }
   if (caseType === "Warranty Replacement" && String(fields["Action Taken"] || "").trim()) base.push(`Action Taken: ${fields["Action Taken"]}`);
+  if (caseType === "Return / Refund") {
+    if (["Refund", "Replacement"].includes(fields.returnOutcome)) base.push(`Return Outcome: ${fields.returnOutcome}`);
+    if (String(fields["Action Taken"] || "").trim()) base.push(`Action Taken: ${fields["Action Taken"]}`);
+  }
   if (codeCategory && orderCode?.[0]) {
     const codeText = replacementCode(codeCategory, orderCode[0], fields["Order ID"] || "");
     base.push(`Category: ${codeCategory}`, `Reason Code: ${codeText}`);
@@ -210,7 +215,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   base.push(`Resolution: ${val("Resolution")}`);
   const known = new Set([
     "caseType", "Order ID", "Order Date", "SKU", "Issue", "Tracking Number",
-    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus"
+    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus, "returnOutcome", "returnEmailTemplate"
   ]);
   for (const [key, value] of Object.entries(fields)) {
     if (!known.has(key) && String(value || "").trim()) base.push(`${key}: ${value}`);
@@ -287,6 +292,61 @@ export function buildWarrantyReply(fields = {}) {
   return paragraphs.join("\n");
 }
 
+
+export function returnEmailKind(fields = {}) {
+  if (fields.caseType !== "Return / Refund") return "";
+  if (fields.returnEmailTemplate === "refundProcessed") {
+    const received = hasCaseAction(fields.Resolution, "Returned to the warehouse");
+    const refunded = hasCaseAction(fields.Resolution, "Processed refund");
+    return received && refunded ? "refundProcessed" : "";
+  }
+  const incorrectFilter = hasCaseAction(fields.Issue, "Wrong Filter Received");
+  const returnLabelSent = [fields.Issue, fields.Resolution, fields["Action Taken"]].some(value => hasCaseAction(value, "Sent RL for return"));
+  const notSatisfied = hasCaseAction(fields.Issue, "Not satisfied with the order");
+  return incorrectFilter && returnLabelSent && !notSatisfied ? "incorrectFilterLabel" : "";
+}
+
+export function buildReturnEmail(fields = {}) {
+  const kind = returnEmailKind(fields);
+  if (!kind) return "";
+  const photosReceived = hasCaseAction(fields["Action Taken"], "Photos Sent");
+  const attachedInvoice = hasCaseAction(fields["Action Taken"], "Attached Invoice");
+  if (kind === "incorrectFilterLabel") {
+    const tracking = String(fields["Tracking Number"] || "").trim() || "[Return Tracking Number]";
+    const outcome = fields.returnOutcome === "Refund" ? "refund"
+      : fields.returnOutcome === "Replacement" ? "replacement" : "[refund or replacement]";
+    return [
+      ...(photosReceived ? ["Thank you for sending the photos we requested.", ""] : []),
+      "Please follow the instructions below to start the return process.",
+      "",
+      `Please see the attached prepaid return label. For your reference, your return tracking number is ${tracking}.`,
+      "1. Pack the unit securely, print the label, and attach it to the package.",
+      "2. Drop off the package at the nearest UPS Access Point at your convenience.",
+      "",
+      "Please remove any existing waybills or labels attached to the box. This will prevent UPS from scanning an incorrect label.",
+      "",
+      `We would also appreciate it if you could let us know once you've sent back the package. Once our warehouse receives it, we'll process your ${outcome} promptly.`
+    ].join("\n");
+  }
+  return [
+    ...(photosReceived ? ["Thank you for sending the photos we requested.", ""] : []),
+    "I can confirm that our warehouse received your return, so we went ahead and processed your refund.",
+    "",
+    "You will receive an email with the final refund amount. The refund may appear on your original payment method right away or take 5–10 business days, depending on your bank. If you need to verify the refund after that timeframe, please contact your bank.",
+    "",
+    "You should also receive an automated email confirming the refund. If you cannot find it in your Inbox, please check your Spam or Junk folder.",
+    ...(attachedInvoice ? ["", "I've also attached a copy of the invoice showing the refund we processed today."] : [])
+  ].join("\n");
+}
+
+export function canCopyReturnEmail(fields = {}) {
+  const kind = returnEmailKind(fields);
+  if (kind === "refundProcessed") return true;
+  return kind === "incorrectFilterLabel"
+    && ["Refund", "Replacement"].includes(fields.returnOutcome)
+    && Boolean(String(fields["Tracking Number"] || "").trim());
+}
+
 export function canCopyWarrantyReply(fields = {}) {
   if (!String(fields["Customer Name"] || "").trim()) return false;
   if (hasCaseAction(fields["Action Taken"], "Address updated") && !String(fields["Updated Shipping Address"] || "").trim()) return false;
@@ -306,6 +366,7 @@ export const EMAIL_TEMPLATES = {
   "Fraud - Initial Cancellation Email": { Issue: "Flagged for Fraud", Resolution: "" },
   "Fraud - Repeat Order Follow-Up Email": { Issue: "Flagged for Fraud", Resolution: "" },
   "Return / Refund": { Issue: "Return / Refund", Resolution: "" },
+  "Order Returned – Processed Refund": { Issue: "Order Returned", Resolution: "Returned to the warehouse\nProcessed refund", returnOutcome: "Refund", returnEmailTemplate: "refundProcessed" },
   "Delivered — Not Received": { Issue: "Delivered — Not Received", Resolution: "" },
   "Warranty Photo Request": { Issue: "Warranty photo request", Resolution: "Photos requested for warranty review." },
   "Cancellation Confirmation": { Issue: "Cancellation request", Resolution: "Cancellation confirmed." },
