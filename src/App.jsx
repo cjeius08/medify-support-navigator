@@ -317,7 +317,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     {hasPreviousOrderDraft && <div className="smart-case-restore"><button type="button" className="secondary-button" onClick={restorePreviousOrderDraft}><Icon name="reset"/>Load saved Order Codes draft</button><small>Recovers fields from the previous Order Codes / Replacement tool.</small></div>}
     <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
     {workflow && <section className="smart-workflow-guide" aria-label="Smart Case workflow guidance">
-      <div><Icon name="zap" size={16}/><strong>Smart workflow · {workflow.stage}</strong></div>
+      <div><Icon name="note" size={16}/><strong>Smart workflow · {workflow.stage}</strong></div>
       <p>{workflow.next}</p>
       <small>Email and note previews update automatically from your recorded actions. Only select steps actually completed.</small>
     </section>}
