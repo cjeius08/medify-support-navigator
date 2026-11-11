@@ -4,7 +4,7 @@ import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
   ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, FRAUD_REVIEW_STATUSES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, canCopyWarrantyReply, canCopyReturnEmail, caseQuickOptions, hasCaseAction, returnEmailKind, parseFraudOrderNumbers,
+  ORDER_CODES, UPS_LOST_SUBCATEGORIES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, caseQuickOptions, hasCaseAction, returnEmailKind, upsEmailKind, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -160,8 +160,13 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const [editedEmail, setEditedEmail] = useState(null);
   const [editedWarrantyReply, setEditedWarrantyReply] = useState(null);
   const [editedReturnEmail, setEditedReturnEmail] = useState(null);
+  const [editedUpsEmail, setEditedUpsEmail] = useState(null);
   const caseType = CASE_TYPES.includes(general.caseType) ? general.caseType : "General Inquiry";
   const isUps = caseType === "UPS Lost Claim" || caseType === "UPS Damaged Claim";
+  const isUpsLost = caseType === "UPS Lost Claim";
+  const upsEmailType = upsEmailKind(general);
+  const upsEmail = editedUpsEmail ?? buildUpsEmail(general);
+  const upsEmailCopyReady = canCopyUpsEmail(general);
   const isWarranty = caseType === "Warranty Replacement";
   const isReturn = caseType === "Return / Refund";
   const isIncorrectFilter = isReturn && hasCaseAction(general.Issue, "Wrong Filter Received");
@@ -200,6 +205,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setEditedEmail(null);
     setEditedWarrantyReply(null);
     setEditedReturnEmail(null);
+    setEditedUpsEmail(null);
   };
 
 
@@ -212,6 +218,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     if (field === "Order ID") setEditedEmail(null);
     if (["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address", "Action Taken", "Resolution"].includes(field)) setEditedWarrantyReply(null);
     setEditedReturnEmail(null);
+    setEditedUpsEmail(null);
     setGeneral(next);
   };
   const selectCaseType = (nextType) => {
@@ -223,6 +230,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     delete next.fraudReviewStatus;
     delete next.returnOutcome;
     delete next.returnEmailTemplate;
+    delete next.upsLostSubcategory;
     for (const field of ["Customer Name", "Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
     setGeneral(next);
     const category = CASE_CODE_CATEGORIES[nextType] || (nextType.startsWith("UPS ") ? "UPS" : "");
@@ -236,6 +244,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setEditedEmail(null);
     setEditedWarrantyReply(null);
     setEditedReturnEmail(null);
+    setEditedUpsEmail(null);
   };
   const applyTemplate = (name) => {
     if (!name) return;
@@ -243,6 +252,8 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     if (!template) return;
     const targetType = (Boolean(FRAUD_EMAIL_TYPES[name]) || name === "High Risk of Fraud Detected")
       ? "Fraud / High Risk"
+      : name === "UPS Lost" ? "UPS Lost Claim"
+      : name === "UPS Damaged" ? "UPS Damaged Claim"
       : name === "Return / Refund" || name === "Wrong Filter Return" || name === "Order Returned – Processed Refund"
         ? "Return / Refund"
         : name === "Warranty Photo Request" || name === "Warranty Replacement Reply"
@@ -250,11 +261,13 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
           : name === "Cancellation Confirmation" || name === "Subscription Cancellation" || name === "Address Update"
             ? "Subscription / Filter Club"
             : "General Inquiry";
-    const next = { ...general, returnOutcome: "", returnEmailTemplate: "", ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
+    const next = { ...general, returnOutcome: "", returnEmailTemplate: "", upsLostSubcategory: "", ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
     delete next.fraudReviewStatus;
-    if (targetType !== "Warranty Replacement" && targetType !== "Return / Refund") delete next["Customer Name"];
-    if (targetType !== "Warranty Replacement") for (const field of ["Product Model", "Replacement Order ID", "Updated Shipping Address"]) delete next[field];
+    if (!["Warranty Replacement", "Return / Refund", "UPS Lost Claim", "UPS Damaged Claim"].includes(targetType)) delete next["Customer Name"];
+    if (targetType !== "Warranty Replacement") for (const field of ["Product Model", "Updated Shipping Address"]) delete next[field];
+    if (!["Warranty Replacement", "UPS Lost Claim", "UPS Damaged Claim"].includes(targetType)) delete next["Replacement Order ID"];
+    if (targetType === "UPS Lost Claim" || targetType === "UPS Damaged Claim") next["Replacement Order ID"] = "";
     const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
     if (!rl) delete next["Tracking Number"];
     setGeneral(next);
@@ -266,6 +279,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setEditedEmail(null);
     setEditedWarrantyReply(null);
     setEditedReturnEmail(null);
+    setEditedUpsEmail(null);
   };
   const reset = () => {
     setGeneral({ ...BLANK_CASE, caseType: "General Inquiry" });
@@ -275,6 +289,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     setEditedEmail(null);
     setEditedWarrantyReply(null);
     setEditedReturnEmail(null);
+    setEditedUpsEmail(null);
   };
   return <ToolCard id="tool-general" title="Smart Case Notes" icon="note" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="smart-case-heading">
@@ -292,8 +307,10 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
       <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>
       <SkuPicker label="SKU" value={general.SKU || ""} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
+      {isUpsLost && <label className="span-all">UPS Lost Subcategory (optional)<select value={UPS_LOST_SUBCATEGORIES.includes(general.upsLostSubcategory) ? general.upsLostSubcategory : ""} onChange={(event) => update("upsLostSubcategory", event.target.value)}><option value="">No subcategory selected</option>{UPS_LOST_SUBCATEGORIES.map((subcategory) => <option key={subcategory} value={subcategory}>{subcategory}</option>)}</select></label>}
       {isUps && <div className="span-all smart-case-outcome">
         <label>Customer Resolution<select value={customerResolution} onChange={(event) => {
+          setEditedUpsEmail(null);
           setGeneral({ ...general, customerResolution: event.target.value, Resolution: "" });
           setOrder({ ...order, category: "UPS", reason: caseType === "UPS Lost Claim" ? "UPS | Lost | XXXXXX" : "UPS | Damaged | XXXXXX" });
         }}><option value="">Select refund or replacement…</option><option>Replacement</option><option>Refund</option></select></label>
@@ -330,6 +347,22 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </div>}
       </>}
     </div>
+    {isUps && upsEmailType && <section className="fraud-email-panel ups-email-panel" aria-label="UPS customer email generator">
+      <h3>{upsEmailType === "lostClaimIssued" ? "UPS Lost – Approved Claim Replacement Email" : upsEmailType === "damagedPhotosRequested" ? "UPS Damaged – Photo Request Email" : "UPS Damaged – Photos Received Replacement Email"}</h3>
+      <p>{upsEmailType === "damagedPhotosRequested"
+        ? "Send this only when you have requested photos for the damaged UPS shipment."
+        : "For replacement confirmation, select Customer Resolution: Replacement and Processed replacement (or advance replacement) before copying. The fulfillment-priority sentence appears only if Priority fulfillment requested was recorded."}</p>
+      <div className="fraud-email-fields">
+        <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer first name" autoComplete="off"/></label>
+        {upsEmailType !== "damagedPhotosRequested" && <label>New Replacement Order Number<input value={general["Replacement Order ID"] || ""} onChange={(event) => update("Replacement Order ID", event.target.value)} placeholder="e.g. 811370"/></label>}
+      </div>
+      <label>Generated UPS Email<textarea rows="17" value={upsEmail} onChange={(event) => setEditedUpsEmail(event.target.value)} spellCheck="true"/></label>
+      <div className="fraud-email-actions">
+        <button type="button" className="primary-button" disabled={!upsEmailCopyReady} onClick={() => copy("UPS Customer Email", upsEmail, false)}><Icon name="copy"/>Copy UPS Email</button>
+        <button type="button" className="secondary-button" onClick={() => setEditedUpsEmail(null)}>Restore UPS Template</button>
+      </div>
+      <small>Customer name is required. Replacement emails also require a processed replacement and its new order number; never state a replacement or priority request that was not completed. Chat templates are pending for a later update.</small>
+    </section>}
     {isReturn && returnEmailType && <section className="fraud-email-panel return-email-panel" aria-label="Return/refund email generator">
       <h3>{returnEmailType === "incorrectFilterLabel" ? "Incorrect Filter – Return Label Email" : "Order Returned – Refund Processed Email"}</h3>
       <p>{returnEmailType === "incorrectFilterLabel"
