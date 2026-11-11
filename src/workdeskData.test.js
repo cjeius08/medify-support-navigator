@@ -1,7 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, returnEmailKind, upsEmailKind, UPS_LOST_SUBCATEGORIES, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, toggleCaseSnippet, smartCaseWorkflow, missingCaseEmailFields, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, returnEmailKind, upsEmailKind, UPS_LOST_SUBCATEGORIES, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+
+  it("toggles case quick actions without duplicate lines and preserves handwritten context", () => {
+    expect(toggleCaseSnippet("", "Photos Sent")).toBe("Photos Sent");
+    expect(toggleCaseSnippet("Photos Sent", "Photos Sent")).toBe("");
+    expect(toggleCaseSnippet("Examined the carton", "Photos Sent")).toBe("Examined the carton\nPhotos Sent");
+    expect(toggleCaseSnippet("Examined the carton\nPhotos Sent", "Photos Sent")).toBe("Examined the carton");
+    expect(toggleCaseSnippet("Photos Sent\nPhotos sent\nInvestigated", "Photos Sent")).toBe("Investigated");
+    expect(toggleCaseSnippet("Photos were requested", "Photos requested")).toBe("Photos were requested\nPhotos requested");
+    expect(appendSnippet("Photos Sent", "Photos Sent")).toBe("Photos Sent\nPhotos Sent");
+  });
+
+  it("explains automatic Smart Case stages without falsely completing steps", () => {
+    expect(smartCaseWorkflow({ caseType: "UPS Damaged Claim" }).stage).toBe("UPS damaged claim");
+    expect(smartCaseWorkflow({ caseType: "UPS Damaged Claim", "Action Taken": "Photos requested" }).stage).toBe("Photos requested");
+    expect(smartCaseWorkflow({ caseType: "UPS Damaged Claim", "Action Taken": "Photos requested\nPhotos Sent" }).stage).toBe("Photos received");
+    expect(smartCaseWorkflow({ caseType: "UPS Lost Claim" }).stage).toBe("UPS lost claim");
+    expect(smartCaseWorkflow({ caseType: "UPS Lost Claim", "Claim Status": "Claim Issued" }).stage).toBe("Claim Issued selected");
+    expect(smartCaseWorkflow({ caseType: "Return / Refund", Issue: "Not satisfied with the order" }).next).toContain("notes-only");
+    expect(smartCaseWorkflow({ caseType: "Return / Refund", Issue: "Wrong Filter Received\nSent RL for return" }).stage).toContain("return label sent");
+    expect(smartCaseWorkflow({ caseType: "Return / Refund", Resolution: "Returned to the warehouse\nProcessed refund", returnEmailTemplate: "refundProcessed" }).stage).toContain("refund processed");
+    expect(smartCaseWorkflow({ caseType: "Warranty Replacement", Resolution: "Processed replacement" }).stage).toBe("Warranty replacement processed");
+    expect(smartCaseWorkflow({ caseType: "General Inquiry" })).toBeNull();
+  });
+
+  it("identifies required copy fields for UPS, return, warranty, and fraud emails", () => {
+    const upsRequest = { caseType: "UPS Damaged Claim", "Action Taken": "Photos requested" };
+    expect(missingCaseEmailFields("ups", upsRequest)).toEqual(["Customer Name"]);
+    expect(missingCaseEmailFields("ups", { ...upsRequest, "Customer Name": "Kim" })).toEqual([]);
+    const upsReplacement = { caseType: "UPS Damaged Claim", "Action Taken": "Photos Sent", "Customer Name": "Kim" };
+    expect(missingCaseEmailFields("ups", upsReplacement)).toEqual([
+      "Customer Resolution: Replacement", "Processed replacement", "New Replacement Order Number"
+    ]);
+    expect(missingCaseEmailFields("ups", {
+      ...upsReplacement, customerResolution: "Replacement", Resolution: "Processed replacement", "Replacement Order ID": "811370"
+    })).toEqual([]);
+    expect(missingCaseEmailFields("ups", { caseType: "UPS Lost Claim" })).toEqual([]);
+
+    const returnLabel = { caseType: "Return / Refund", Issue: "Wrong Filter Received\nSent RL for return" };
+    expect(missingCaseEmailFields("return", returnLabel)).toEqual([
+      "Customer Name", "Return Outcome: Refund or Replacement", "Return Tracking Number"
+    ]);
+    expect(missingCaseEmailFields("return", {
+      ...returnLabel, "Customer Name": "Kim", returnOutcome: "Refund", "Tracking Number": "1Z-TEST"
+    })).toEqual([]);
+    expect(missingCaseEmailFields("return", { caseType: "Return / Refund", Issue: "Not satisfied with the order" })).toEqual([]);
+
+    expect(missingCaseEmailFields("warranty", {
+      caseType: "Warranty Replacement", Resolution: "Processed replacement", "Action Taken": "Address updated"
+    })).toEqual(["Customer Name", "Replacement Order Number", "Updated Shipping Address"]);
+    expect(missingCaseEmailFields("warranty", {
+      caseType: "Warranty Replacement", "Customer Name": "Kim", Resolution: "Processed replacement",
+      "Replacement Order ID": "811370", "Action Taken": "Address updated", "Updated Shipping Address": "123 Main St"
+    })).toEqual([]);
+    expect(missingCaseEmailFields("fraud", { "Order ID": "" }, "")).toEqual(["Customer Name", "Order Number(s)"]);
+    expect(missingCaseEmailFields("fraud", { "Order ID": "811370" }, "Kim")).toEqual([]);
+  });
+
+
 
   it("keeps UPS Lost subcategories optional and preserves the existing claim and refund quick options", () => {
     expect(UPS_LOST_SUBCATEGORIES).toEqual([

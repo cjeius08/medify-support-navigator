@@ -195,6 +195,10 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .snippet-row > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .snippet-row button { border: 1px solid #cfe0e1; padding: 7px 9px; border-radius: 4px; background: #f3f8f8; color: #27646a; font-size: .8125rem; line-height: 1.4; text-align: left; }
 .snippet-row button:hover { border-color: #94bcba; background: var(--teal-soft); }
+.quick-action-row button { display: inline-flex; align-items: center; gap: 5px; }
+.quick-action-row button.is-selected, .quick-action-row button[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-soft); color: var(--teal-hover); font-weight: 600; }
+.quick-action-row button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 .followup-box { padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-small); background: var(--surface-soft); }
 .followup-box.is-needed { border-color: #a8ceca; background: #f1f9f7; }
 .check-label { display: flex; gap: 10px; align-items: center; cursor: pointer; min-height: 24px; }
@@ -214,6 +218,17 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .smart-code-panel .secondary-button { width: fit-content; max-width: 100%; }
 .smart-case-restore { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 20px 14px; }
 .smart-case-restore small { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.smart-workflow-guide { display: grid; gap: 7px; margin: 0 20px 16px; padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: var(--radius-small); background: var(--surface-soft); }
+.smart-workflow-guide > div { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: .875rem; }
+.smart-workflow-guide > div .icon { color: var(--teal); }
+.smart-workflow-guide p { margin: 0; color: var(--ink); font-size: .8125rem; line-height: 1.55; }
+.smart-workflow-guide small { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.email-copy-checklist { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-small); background: var(--surface); color: var(--ink); }
+.email-copy-checklist strong { display: flex; align-items: center; gap: 8px; font-size: .8125rem; }
+.email-copy-checklist:not(.is-ready) strong { color: var(--warning); }
+.email-copy-checklist.is-ready strong { color: var(--teal-hover); }
+.email-copy-checklist ul { margin: 0 0 0 20px; padding: 0; font-size: .8125rem; line-height: 1.6; }
+
 .template-picker { padding: 0 20px 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border-soft); }
 .template-picker small { display: block; margin-top: 8px; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .fraud-email-panel { display: grid; gap: 14px; margin: 4px 20px 20px; padding: 16px; border: 1px solid #cfe0e1; border-radius: var(--radius-small); background: #f7faf9; }
