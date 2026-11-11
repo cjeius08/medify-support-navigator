@@ -1,7 +1,84 @@
 import { describe, expect, it } from "vitest";
-import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, canCopyWarrantyReply, canCopyReturnEmail, returnEmailKind, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
+import { appendSnippet, buildCallNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, returnEmailKind, upsEmailKind, UPS_LOST_SUBCATEGORIES, caseQuickOptions, detectCallDriver, FILTER_SKUS, FILTER_VARIANT_IDS, followupState, MASTER_SKUS, parseFraudOrderNumbers, periodKey, replacementCode } from "./workdeskData";
 
 describe("WorkDesk helpers", () => {
+
+  it("keeps UPS Lost subcategories optional and preserves the existing claim and refund quick options", () => {
+    expect(UPS_LOST_SUBCATEGORIES).toEqual([
+      "Lost in Transit", "Delivered but Not Received", "Delivered to Wrong Address", "Returned to Sender"
+    ]);
+    const base = { caseType: "UPS Lost Claim", Issue: "Lost", "Claim Status": "Package Search In Progress", customerResolution: "Refund", Resolution: "Processed refund" };
+    expect(buildSmartCaseNote(base, "JA")).not.toContain("UPS Lost Subcategory:");
+    for (const subcategory of UPS_LOST_SUBCATEGORIES) {
+      expect(buildSmartCaseNote({ ...base, upsLostSubcategory: subcategory }, "JA")).toContain(`UPS Lost Subcategory: ${subcategory}`);
+    }
+    expect(buildSmartCaseNote({ ...base, upsLostSubcategory: "not-a-valid-category" }, "JA")).not.toContain("UPS Lost Subcategory");
+    expect(buildSmartCaseNote({ ...base, caseType: "UPS Damaged Claim", upsLostSubcategory: "Lost in Transit" }, "JA")).not.toContain("UPS Lost Subcategory:");
+    expect(caseQuickOptions("UPS Lost Claim", "Refund").resolutions).toContain("Processed refund");
+    expect(caseQuickOptions("UPS Damaged Claim", "Replacement").resolutions).toContain("Processed replacement");
+    expect(caseQuickOptions("UPS Lost Claim", "").actions).toContain("Priority fulfillment requested");
+  });
+
+  it("creates a warm UPS Lost replacement email for Claim Issued without inventing unfinished actions", () => {
+    const base = { caseType: "UPS Lost Claim", "Claim Status": "Claim Issued", "Customer Name": "Kim", customerResolution: "Replacement", "Replacement Order ID": "811370", Resolution: "Processed replacement" };
+    expect(upsEmailKind(base)).toBe("lostClaimIssued");
+    expect(canCopyUpsEmail(base)).toBe(true);
+    const email = buildUpsEmail(base);
+    expect(email).toContain("Hi Kim,");
+    expect(email).toContain("UPS claim we filed has been approved");
+    expect(email).toContain("processed your replacement. Your new order number is #811370.");
+    expect(email).toContain("1–3 business days");
+    expect(email).toContain("3–7 business days");
+    expect(email).toContain("tracking information is available");
+    expect(email).not.toContain("today's fulfillment batch");
+    expect(buildUpsEmail({ ...base, "Action Taken": "Priority fulfillment requested" })).toContain("today's fulfillment batch");
+    expect(canCopyUpsEmail({ ...base, "Replacement Order ID": "" })).toBe(false);
+    expect(canCopyUpsEmail({ ...base, "Customer Name": "" })).toBe(false);
+    expect(buildUpsEmail({ ...base, "Customer Name": "" })).toContain("Hi [Customer Name],");
+    const pending = { ...base, Resolution: "" };
+    expect(canCopyUpsEmail(pending)).toBe(false);
+    expect(buildUpsEmail(pending)).not.toContain("gone ahead and processed your replacement");
+    expect(buildUpsEmail(pending)).not.toContain("1–3 business days");
+    const refund = { ...base, customerResolution: "Refund", Resolution: "Processed refund" };
+    expect(canCopyUpsEmail(refund)).toBe(false);
+    expect(buildUpsEmail(refund)).not.toContain("processed your replacement");
+    expect(upsEmailKind({ ...base, "Claim Status": "Package Search In Progress" })).toBe("");
+    expect(upsEmailKind({ ...base, caseType: "General Inquiry" })).toBe("");
+  });
+
+  it("requests full UPS Damaged photo evidence before generating a photo-received replacement email", () => {
+    const base = { caseType: "UPS Damaged Claim", "Customer Name": "Alex", "Action Taken": "Photos requested" };
+    expect(upsEmailKind(base)).toBe("damagedPhotosRequested");
+    expect(canCopyUpsEmail(base)).toBe(true);
+    const request = buildUpsEmail(base);
+    for (const item of [
+      "Hi Alex,", "packaging material", "shipping label", "tracking number", "manufacturer's certificate",
+      "round stamp", "all six sides of the package", "top and two sides", "bottom and opposite sides", "UPS"
+    ]) expect(request).toContain(item);
+    expect(request).not.toContain("processed your replacement");
+    expect(canCopyUpsEmail({ ...base, "Customer Name": "" })).toBe(false);
+    const received = { ...base, "Action Taken": "Photos requested\nPhotos Sent", customerResolution: "Replacement", Resolution: "Processed replacement", "Replacement Order ID": "811371" };
+    expect(upsEmailKind(received)).toBe("damagedPhotosSent");
+    expect(canCopyUpsEmail(received)).toBe(true);
+    const processed = buildUpsEmail(received);
+    expect(processed).toContain("Thank you so much for sending the photos we requested.");
+    expect(processed).toContain("take care of the UPS claim on your behalf");
+    expect(processed).toContain("processed your replacement. Your new order number is #811371.");
+    expect(processed).toContain("1–3 business days");
+    expect(processed).not.toContain("today's fulfillment batch");
+    expect(buildUpsEmail({ ...received, "Action Taken": "Photos Sent\nPriority fulfillment requested" })).toContain("today's fulfillment batch");
+    const unresolved = { ...received, Resolution: "Replacement pending" };
+    expect(canCopyUpsEmail(unresolved)).toBe(false);
+    expect(buildUpsEmail(unresolved)).not.toContain("processed your replacement");
+    expect(buildUpsEmail(unresolved)).not.toContain("1–3 business days");
+    expect(canCopyUpsEmail({ ...received, customerResolution: "Refund" })).toBe(false);
+    expect(canCopyUpsEmail({ ...received, "Replacement Order ID": "" })).toBe(false);
+    expect(upsEmailKind({ ...base, "Action Taken": "" })).toBe("");
+    expect(upsEmailKind({ ...base, caseType: "UPS Lost Claim" })).toBe("");
+    expect(caseQuickOptions("UPS Damaged Claim", "Replacement").actions).toEqual(expect.arrayContaining(["Photos requested", "Photos Sent", "Priority fulfillment requested"]));
+  });
+
+
 
   it("shows the incorrect-filter return email only when both the reason and return label are selected", () => {
     const fields = { caseType: "Return / Refund", Issue: "Wrong Filter Received\nSent RL for return" };
