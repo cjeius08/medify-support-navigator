@@ -132,11 +132,11 @@ const CASE_SNIPPETS = {
   },
   "UPS Lost Claim": {
     issues: ["Lost", "Tracking shows no movement", "Package not received"],
-    actions: ["Filed UPS Lost Claim", "Package Search In Progress", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim"]
+    actions: ["Filed UPS Lost Claim", "Package Search In Progress", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim", "Priority fulfillment requested"]
   },
   "UPS Damaged Claim": {
     issues: ["Damaged", "Damaged packaging", "Item damaged in transit"],
-    actions: ["Filed UPS Damaged Claim", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim"]
+    actions: ["Filed UPS Damaged Claim", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim", "Photos requested", "Photos Sent", "Priority fulfillment requested"]
   },
   "Return / Refund": {
     issues: ["Not satisfied with the order", "Wrong Filter Received", "Return / Refund", "Sent RL for return"],
@@ -199,6 +199,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   if (ups) {
     if (String(fields["Claim Number"] || "").trim()) base.push(`Claim Number: ${fields["Claim Number"]}`);
     if (String(fields["Claim Status"] || "").trim()) base.push(`Claim Status: ${fields["Claim Status"]}`);
+    if (caseType === "UPS Lost Claim" && UPS_LOST_SUBCATEGORIES.includes(fields.upsLostSubcategory)) base.push(`UPS Lost Subcategory: ${fields.upsLostSubcategory}`);
     base.push(`Action Taken: ${val("Action Taken")}`);
     base.push(`Customer Resolution: ${val("customerResolution")}`);
   }
@@ -215,7 +216,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   base.push(`Resolution: ${val("Resolution")}`);
   const known = new Set([
     "caseType", "Order ID", "Order Date", "SKU", "Issue", "Tracking Number",
-    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus", "returnOutcome", "returnEmailTemplate"
+    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus", "returnOutcome", "returnEmailTemplate", "upsLostSubcategory"
   ]);
   for (const [key, value] of Object.entries(fields)) {
     if (!known.has(key) && String(value || "").trim()) base.push(`${key}: ${value}`);
@@ -353,6 +354,81 @@ export function canCopyReturnEmail(fields = {}) {
     && Boolean(String(fields["Tracking Number"] || "").trim());
 }
 
+
+export function upsEmailKind(fields = {}) {
+  if (fields.caseType === "UPS Lost Claim") {
+    return fields["Claim Status"] === "Claim Issued" ? "lostClaimIssued" : "";
+  }
+  if (fields.caseType !== "UPS Damaged Claim") return "";
+  if (hasCaseAction(fields["Action Taken"], "Photos Sent")) return "damagedPhotosSent";
+  if (hasCaseAction(fields["Action Taken"], "Photos requested")) return "damagedPhotosRequested";
+  return "";
+}
+
+export function buildUpsEmail(fields = {}) {
+  const kind = upsEmailKind(fields);
+  if (!kind) return "";
+  const name = String(fields["Customer Name"] || "").trim() || "[Customer Name]";
+  const replacementOrder = String(fields["Replacement Order ID"] || "").trim().replace(/^#\s*/, "") || "[New Replacement Order Number]";
+  const processed = fields.customerResolution === "Replacement" && ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action));
+  const priority = hasCaseAction(fields["Action Taken"], "Priority fulfillment requested");
+  const paragraphs = [`Hi ${name},`, ""];
+  if (kind === "lostClaimIssued") {
+    paragraphs.push(
+      "I can see that the UPS claim we filed has been approved. Thank you for your patience while we worked on this."
+    );
+    if (processed) {
+      paragraphs.push("", `I've gone ahead and processed your replacement. Your new order number is #${replacementOrder}.`);
+    } else {
+      paragraphs.push("", "We're working on the next steps for your order and will confirm the replacement details once they are available.");
+    }
+  } else if (kind === "damagedPhotosRequested") {
+    paragraphs.push(
+      "We're sorry to hear about the condition in which your order was delivered. All of our products undergo careful quality checks before shipment, but we understand that damage can happen during transit. We know this has been inconvenient, and we're here to help make it right.",
+      "",
+      "We will file a claim with UPS for your order. To help us move forward, could you please send us the following photos?",
+      "",
+      "• A photo of the packaging material used.",
+      "• A close-up photo of the shipping label showing the tracking number (generally starting with 1Z).",
+      "• A close-up photo of the box manufacturer's certificate (the round stamp on the outside of the box).",
+      "• Two photos showing all six sides of the package: one showing the top and two sides, and another showing the bottom and opposite sides.",
+      "",
+      "Once we receive these photos, we'll proceed with the next steps. We truly appreciate your patience and cooperation."
+    );
+  } else {
+    paragraphs.push(
+      "Thank you so much for sending the photos we requested. We'll take care of the UPS claim on your behalf. We understand that the shipping damage was beyond your control, and we appreciate your patience."
+    );
+    if (processed) {
+      paragraphs.push("", `In the meantime, we've gone ahead and processed your replacement. Your new order number is #${replacementOrder}.`);
+    } else {
+      paragraphs.push("", "We're reviewing the next steps for your order and will confirm the replacement details as soon as they are available.");
+    }
+  }
+  if (kind !== "damagedPhotosRequested" && processed) {
+    paragraphs.push(
+      "",
+      "Once your order has been processed, it will be fulfilled and shipped in 1–3 business days and delivered within 3–7 business days after.",
+      "An email confirmation will be sent once the order ships and the tracking information is available."
+    );
+    if (priority) paragraphs.push(
+      "",
+      "I've also made a special request to include your order in today's fulfillment batch so we can try to get it out sooner than the standard timeframe, if possible."
+    );
+  }
+  paragraphs.push("", "Thank you again for your patience.", "", "Warm regards,");
+  return paragraphs.join("\n");
+}
+
+export function canCopyUpsEmail(fields = {}) {
+  const kind = upsEmailKind(fields);
+  if (!kind || !String(fields["Customer Name"] || "").trim()) return false;
+  if (kind === "damagedPhotosRequested") return true;
+  return fields.customerResolution === "Replacement"
+    && ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action))
+    && Boolean(String(fields["Replacement Order ID"] || "").trim().replace(/^#\s*/, ""));
+}
+
 export function canCopyWarrantyReply(fields = {}) {
   if (!String(fields["Customer Name"] || "").trim()) return false;
   if (hasCaseAction(fields["Action Taken"], "Address updated") && !String(fields["Updated Shipping Address"] || "").trim()) return false;
@@ -371,6 +447,8 @@ export const EMAIL_TEMPLATES = {
   "High Risk of Fraud Detected": { Issue: "Flagged for Fraud", Resolution: "" },
   "Fraud - Initial Cancellation Email": { Issue: "Flagged for Fraud", Resolution: "" },
   "Fraud - Repeat Order Follow-Up Email": { Issue: "Flagged for Fraud", Resolution: "" },
+  "UPS Lost": { Issue: "Lost", Resolution: "", "Claim Status": "", customerResolution: "" },
+  "UPS Damaged": { Issue: "Damaged", Resolution: "", "Claim Status": "", customerResolution: "" },
   "Return / Refund": { Issue: "Return / Refund", Resolution: "" },
   "Order Returned – Processed Refund": { Issue: "Order Returned", Resolution: "Returned to the warehouse\nProcessed refund", returnOutcome: "Refund", returnEmailTemplate: "refundProcessed" },
   "Delivered — Not Received": { Issue: "Delivered — Not Received", Resolution: "" },
@@ -438,6 +516,7 @@ export function buildFraudEmail(kind, customerName = "", orderNumbers = "") {
 }
 
 export const CLAIM_STATUSES = ["Claim Issued", "Package Search In Progress", "On Going", "Disputed Claim", "Claim Approved for Payment"];
+export const UPS_LOST_SUBCATEGORIES = ["Lost in Transit", "Delivered but Not Received", "Delivered to Wrong Address", "Returned to Sender"];
 export const PERIODS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
 
 export function readStorage(key, fallback) {
