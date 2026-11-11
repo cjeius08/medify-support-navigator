@@ -4,7 +4,7 @@ import { supabase, usernameEmail } from "./supabase";
 import Icon from "./Icon";
 import {
   ACTION_SNIPPETS, BLANK_CALL, BLANK_CASE, CASE_CODE_CATEGORIES, CASE_TYPES, CLAIM_STATUSES, EMAIL_TEMPLATES, FILTER_SKUS, FILTER_VARIANT_IDS, FRAUD_EMAIL_TYPES, FRAUD_REVIEW_STATUSES, ISSUE_SNIPPETS, MASTER_SKUS, RESOLUTION_SNIPPETS,
-  ORDER_CODES, UPS_LOST_SUBCATEGORIES, appendSnippet, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, caseQuickOptions, hasCaseAction, returnEmailKind, upsEmailKind, parseFraudOrderNumbers,
+  ORDER_CODES, UPS_LOST_SUBCATEGORIES, appendSnippet, toggleCaseSnippet, missingCaseEmailFields, smartCaseWorkflow, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, caseQuickOptions, hasCaseAction, returnEmailKind, upsEmailKind, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
@@ -43,7 +43,24 @@ function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder
     buttons?.[next]?.focus();
   }}><span>{sku}</span><Icon name="plus" size={16}/></button>) : <p role="status">No matching SKU. Try a model like MA-50.</p>}</div>}</div></div>;
 }
-function QuickInsert({ value, onChange, snippets, label }) { return <div className="snippet-row" role="group" aria-label={`Quick insert into ${label.toLowerCase()}`}><span>Quick insert</span><div>{snippets.map((snippet) => <button key={snippet} type="button" onClick={() => onChange(appendSnippet(value, snippet))}>{snippet}</button>)}</div></div>; }
+function QuickInsert({ value, onChange, snippets, label, toggle = false }) {
+  return <div className={`snippet-row ${toggle ? "quick-action-row" : ""}`} role="group" aria-label={`${toggle ? "Quick actions for" : "Quick insert into"} ${label.toLowerCase()}`}>
+    <span>{toggle ? "Quick actions · select to add, select again to remove" : "Quick insert"}</span>
+    <div>{snippets.map((snippet) => {
+      const selected = toggle && hasCaseAction(value, snippet);
+      return <button key={snippet} type="button" className={selected ? "is-selected" : ""} aria-pressed={toggle ? selected : undefined} onClick={() => onChange(toggle ? toggleCaseSnippet(value, snippet) : appendSnippet(value, snippet))}>{selected && <Icon name="check" size={13}/>} {snippet}</button>;
+    })}</div>
+  </div>;
+}
+
+function EmailCopyChecklist({ label, missing }) {
+  const ready = missing.length === 0;
+  return <div className={`email-copy-checklist ${ready ? "is-ready" : ""}`} role="status" aria-label={`${label} copy checklist`}>
+    <strong><Icon name={ready ? "check" : "alert"} size={15}/>{ready ? "Ready to copy — review the email before sending." : "Complete these fields before copying:"}</strong>
+    {!ready && <ul>{missing.map(item => <li key={item}>{item}</li>)}</ul>}
+  </div>;
+}
+
 
 function CallTimer({ running, seconds, onStart, onStop, onNew }) {
   return <section className={`timer-bar ${running ? "timer-running" : ""}`} aria-label="Call Timer">
@@ -180,6 +197,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const warrantyCopyReady = canCopyWarrantyReply(general);
   const customerResolution = general.customerResolution || "";
   const snippets = caseQuickOptions(caseType, customerResolution);
+  const workflow = smartCaseWorkflow({ ...general, caseType });
   const codeCategory = CASE_CODE_CATEGORIES[caseType] || (isUps && customerResolution === "Replacement" ? "UPS" : "");
   const codes = codeCategory ? ORDER_CODES[codeCategory] || [] : [];
   const effectiveReason = codes.some(([code]) => code === order.reason) && order.category === codeCategory
@@ -298,6 +316,11 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     </div>
     {hasPreviousOrderDraft && <div className="smart-case-restore"><button type="button" className="secondary-button" onClick={restorePreviousOrderDraft}><Icon name="reset"/>Load saved Order Codes draft</button><small>Recovers fields from the previous Order Codes / Replacement tool.</small></div>}
     <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
+    {workflow && <section className="smart-workflow-guide" aria-label="Smart Case workflow guidance">
+      <div><Icon name="zap" size={16}/><strong>Smart workflow · {workflow.stage}</strong></div>
+      <p>{workflow.next}</p>
+      <small>Email and note previews update automatically from your recorded actions. Only select steps actually completed.</small>
+    </section>}
     <div className="field-layout compact-fields">
       {isFraudReview ? <>
         <label>Order Number<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)} placeholder="Enter order number"/></label>
@@ -317,25 +340,25 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         <small>Claim reason (Lost/Damaged) and customer resolution (Refund/Replacement) are independent.</small>
       </div>}
       <label className="span-all">Issue<textarea rows="3" value={general.Issue || ""} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe this case…"/></label>
-      <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues}/></div>
+      <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues} toggle/></div>
       {isReturn && isIncorrectFilter && <label className="span-all">Return Outcome<select value={["Refund", "Replacement"].includes(general.returnOutcome) ? general.returnOutcome : ""} onChange={(event) => update("returnOutcome", event.target.value)}><option value="">Select Refund or Replacement…</option><option>Refund</option><option>Replacement</option></select></label>}
       {isReturn && (isIncorrectFilter || returnEmailType === "refundProcessed") && <>
         <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only completed steps…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]}/></div>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]} toggle/></div>
       </>}
       {isWarranty && <>
         <label className="span-all">Action Taken<textarea rows="3" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only the steps actually completed…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions}/></div>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} toggle/></div>
       </>}
       {showTracking && <label>Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter tracking number"/></label>}
       {isUps && <>
         <label>Claim Number<input value={general["Claim Number"] || ""} onChange={(event) => update("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>
         <label>Claim Status<select value={general["Claim Status"] || ""} onChange={(event) => update("Claim Status", event.target.value)}><option value="">Not specified</option>{CLAIM_STATUSES.map(status=><option key={status}>{status}</option>)}</select></label>
         <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record what actually happened…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions}/></div>
+        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} toggle/></div>
       </>}
       <label className="span-all">Resolution<textarea rows="3" value={general.Resolution || ""} onChange={(event) => update("Resolution", event.target.value)} placeholder={isUps && !customerResolution ? "Select Refund or Replacement above…" : "Record the actual outcome…"}/></label>
-      {(!isUps || customerResolution) && <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution || ""} onChange={(value) => update("Resolution", value)} snippets={snippets.resolutions}/></div>}
+      {(!isUps || customerResolution) && <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution || ""} onChange={(value) => update("Resolution", value)} snippets={snippets.resolutions} toggle/></div>}
       {codeCategory && orderCode && <div className="span-all smart-code-panel">
         <div className="smart-code-heading"><strong>{isUps ? "Existing UPS Code" : "Order / Replacement Code"}</strong><small>Available when this case uses an existing code.</small></div>
         {!isUps && <label>Reason Code<select value={effectiveReason || ""} onChange={(event) => setOrder({ ...order, category: codeCategory, reason: event.target.value })}>{codes.map(([value]) => <option key={value} value={value}>{value.replaceAll("XXXXXX", general["Order ID"] || "XXXXXX")}</option>)}</select></label>}
@@ -357,6 +380,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         {upsEmailType !== "damagedPhotosRequested" && <label>New Replacement Order Number<input value={general["Replacement Order ID"] || ""} onChange={(event) => update("Replacement Order ID", event.target.value)} placeholder="e.g. 811370"/></label>}
       </div>
       <label>Generated UPS Email<textarea rows="17" value={upsEmail} onChange={(event) => setEditedUpsEmail(event.target.value)} spellCheck="true"/></label>
+      <EmailCopyChecklist label="UPS Email" missing={missingCaseEmailFields("ups", general)}/>
       <div className="fraud-email-actions">
         <button type="button" className="primary-button" disabled={!upsEmailCopyReady} onClick={() => copy("UPS Customer Email", upsEmail, false)}><Icon name="copy"/>Copy UPS Email</button>
         <button type="button" className="secondary-button" onClick={() => setEditedUpsEmail(null)}>Restore UPS Template</button>
@@ -370,6 +394,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         : "Refund confirmation is available when the selected template confirms both warehouse receipt and a processed refund. Include the invoice sentence only if you actually attached the invoice."}</p>
       <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer first name" autoComplete="off"/></label>
       <label>Generated Return / Refund Email<textarea rows="15" value={returnEmail} onChange={(event) => setEditedReturnEmail(event.target.value)} spellCheck="true"/></label>
+      <EmailCopyChecklist label="Return / Refund Email" missing={missingCaseEmailFields("return", general)}/>
       <div className="fraud-email-actions">
         <button type="button" className="primary-button" disabled={!returnEmailCopyReady} onClick={() => copy("Return / Refund Email", returnEmail, false)}><Icon name="copy"/>Copy Return/Refund Email</button>
         <button type="button" className="secondary-button" onClick={() => setEditedReturnEmail(null)}>Restore Return Template</button>
@@ -386,6 +411,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </div>
       {warrantyAddressUpdated && <label>Updated Shipping Address<textarea className="warranty-address" rows="3" value={general["Updated Shipping Address"] || ""} onChange={(event) => update("Updated Shipping Address", event.target.value)} placeholder="Street address, apartment, city, state and ZIP"/></label>}
       <label>Generated Warranty Reply<textarea rows="17" value={warrantyReply} onChange={(event) => setEditedWarrantyReply(event.target.value)} spellCheck="true"/></label>
+      <EmailCopyChecklist label="Warranty Email" missing={missingCaseEmailFields("warranty", general)}/>
       <div className="fraud-email-actions">
         <button type="button" className="primary-button" disabled={!warrantyCopyReady} onClick={() => copy("Warranty Replacement Email", warrantyReply, false)}><Icon name="copy"/>Copy Warranty Email</button>
         <button type="button" className="secondary-button" onClick={() => setEditedWarrantyReply(null)}>Restore Warranty Template</button>
@@ -400,6 +426,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         <label>Order Number(s)<input value={fraudOrderNumbers} onChange={(event) => update("Order ID", event.target.value)} placeholder="730889, 730890"/></label>
       </div>
       <label>Email draft<textarea rows="15" value={fraudEmailBody} onChange={(event) => setEditedEmail(event.target.value)} spellCheck="true"/></label>
+      <EmailCopyChecklist label="Fraud Email" missing={missingCaseEmailFields("fraud", general, fraudCustomerName)}/>
       <div className="fraud-email-actions">
         <button type="button" className="primary-button" disabled={!canCopyEmail} onClick={() => copy("Fraud Email", fraudEmailBody, false)}><Icon name="copy"/>Copy Email</button>
         <button type="button" className="secondary-button" onClick={() => setEditedEmail(null)}>Restore template</button>
