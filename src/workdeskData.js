@@ -429,6 +429,72 @@ export function canCopyUpsEmail(fields = {}) {
     && Boolean(String(fields["Replacement Order ID"] || "").trim().replace(/^#\s*/, ""));
 }
 
+
+export function missingCaseEmailFields(kind, fields = {}, fraudCustomerName = "") {
+  const missing = [];
+  const filled = key => Boolean(String(fields[key] || "").trim());
+  const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action));
+  if (kind === "ups") {
+    const type = upsEmailKind(fields);
+    if (!type) return [];
+    if (!filled("Customer Name")) missing.push("Customer Name");
+    if (type !== "damagedPhotosRequested") {
+      if (fields.customerResolution !== "Replacement") missing.push("Customer Resolution: Replacement");
+      if (!processed) missing.push("Processed replacement");
+      if (!filled("Replacement Order ID")) missing.push("New Replacement Order Number");
+    }
+  } else if (kind === "return") {
+    const type = returnEmailKind(fields);
+    if (!type) return [];
+    if (!filled("Customer Name")) missing.push("Customer Name");
+    if (type === "incorrectFilterLabel") {
+      if (!["Refund", "Replacement"].includes(fields.returnOutcome)) missing.push("Return Outcome: Refund or Replacement");
+      if (!filled("Tracking Number")) missing.push("Return Tracking Number");
+    }
+  } else if (kind === "warranty") {
+    if (!filled("Customer Name")) missing.push("Customer Name");
+    if (processed && !filled("Replacement Order ID")) missing.push("Replacement Order Number");
+    if (hasCaseAction(fields["Action Taken"], "Address updated") && !filled("Updated Shipping Address")) missing.push("Updated Shipping Address");
+  } else if (kind === "fraud") {
+    if (!String(fraudCustomerName || "").trim()) missing.push("Customer Name");
+    if (!parseFraudOrderNumbers(fields["Order ID"]).length) missing.push("Order Number(s)");
+  }
+  return missing;
+}
+
+export function smartCaseWorkflow(fields = {}) {
+  const type = fields.caseType;
+  if (type === "UPS Lost Claim") {
+    const kind = upsEmailKind(fields);
+    return kind
+      ? { stage: "Claim Issued selected", next: "Confirm the replacement was processed, enter the new order number, and review the automatically generated UPS email." }
+      : { stage: "UPS lost claim", next: "Record the claim status. Selecting Claim Issued prepares the replacement email; you can leave the lost subcategory blank." };
+  }
+  if (type === "UPS Damaged Claim") {
+    const kind = upsEmailKind(fields);
+    if (kind === "damagedPhotosSent")
+      return { stage: "Photos received", next: "The email updates to thank the customer. Confirm a processed replacement and new order number before copying replacement details." };
+    if (kind === "damagedPhotosRequested")
+      return { stage: "Photos requested", next: "The damaged-package photo checklist email is prepared. Enter the customer name, review, then copy." };
+    return { stage: "UPS damaged claim", next: "Select Photos requested to prepare the photo checklist, or Photos Sent after receiving the evidence." };
+  }
+  if (type === "Return / Refund") {
+    const kind = returnEmailKind(fields);
+    if (kind === "incorrectFilterLabel")
+      return { stage: "Incorrect filter · return label sent", next: "Choose Refund or Replacement and enter the return tracking number to complete the customer email." };
+    if (kind === "refundProcessed")
+      return { stage: "Warehouse return · refund processed", next: "The refund confirmation is ready to personalize. Select Attached Invoice only if it was included." };
+    return { stage: "Return / Refund", next: "For an incorrect filter, select Wrong Filter Received and Sent RL for return. Not Satisfied remains notes-only." };
+  }
+  if (type === "Warranty Replacement") {
+    const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action));
+    return processed
+      ? { stage: "Warranty replacement processed", next: "Enter the replacement order number; shipping and priority wording will reflect completed actions only." }
+      : { stage: "Warranty review", next: "Record completed troubleshooting and video steps. Select Processed replacement only after the order is created." };
+  }
+  return null;
+}
+
 export function canCopyWarrantyReply(fields = {}) {
   if (!String(fields["Customer Name"] || "").trim()) return false;
   if (hasCaseAction(fields["Action Taken"], "Address updated") && !String(fields["Updated Shipping Address"] || "").trim()) return false;
@@ -683,6 +749,15 @@ export function buildClaimNote(claim, agentInitials, number) {
 export function appendSnippet(current, snippet) {
   return current.trim() ? `${current.trim()}\n${snippet}` : snippet;
 }
+
+
+export function toggleCaseSnippet(current = "", snippet = "") {
+  const lines = String(current).split("\n");
+  const selected = lines.some(line => line.trim().toLowerCase() === snippet.trim().toLowerCase());
+  if (selected) return lines.filter(line => line.trim().toLowerCase() !== snippet.trim().toLowerCase()).join("\n").trim();
+  return appendSnippet(String(current), snippet);
+}
+
 
 export function reportDate(report) { return new Date(report.start || report.stop); }
 
