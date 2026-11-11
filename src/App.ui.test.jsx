@@ -195,6 +195,93 @@ describe("preserved workspace workflows", () => {
     expect(copyText.mock.calls.at(-1)[0]).toContain("Reason Code: Warranty Replacement | WR-01 | QA-112");
   });
 
+  it("makes Smart Case quick actions reversible and automatically switches UPS Damaged email stages", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "UPS Damaged Claim", smart);
+    const workflow = smart.getByLabelText("Smart Case workflow guidance");
+    expect(workflow.textContent).toContain("UPS damaged claim");
+    click("Photos requested", smart);
+    expect(smart.getByRole("button", { name: "Photos requested" }).getAttribute("aria-pressed")).toBe("true");
+    expect(workflow.textContent).toContain("Photos requested");
+    expect(smart.getByLabelText("Generated UPS Email").value).toContain("packaging material");
+    let checklist = smart.getByLabelText("UPS Email copy checklist");
+    expect(checklist.textContent).toContain("Customer Name");
+    click("Photos requested", smart);
+    expect(smart.getByRole("button", { name: "Photos requested" }).getAttribute("aria-pressed")).toBe("false");
+    expect(smart.queryByLabelText("Generated UPS Email")).toBeNull();
+    expect(smart.getByLabelText("Action Taken").value).toBe("");
+    click("Photos Sent", smart);
+    expect(workflow.textContent).toContain("Photos received");
+    expect(smart.getByLabelText("Generated UPS Email").value).toContain("Thank you so much for sending the photos");
+    change("Customer Name", "Alex", smart);
+    change("Customer Resolution", "Replacement", smart);
+    checklist = smart.getByLabelText("UPS Email copy checklist");
+    expect(checklist.textContent).toContain("Processed replacement");
+    expect(checklist.textContent).toContain("New Replacement Order Number");
+    click("Processed replacement", smart);
+    change("New Replacement Order Number", "811371", smart);
+    expect(checklist.textContent).toContain("Ready to copy");
+    expect(smart.getByRole("button", { name: "Copy UPS Email" }).disabled).toBe(false);
+    click("Priority fulfillment requested", smart);
+    expect(smart.getByLabelText("Generated UPS Email").value).toContain("today's fulfillment batch");
+    click("Priority fulfillment requested", smart);
+    expect(smart.getByLabelText("Generated UPS Email").value).not.toContain("today's fulfillment batch");
+    click("Processed replacement", smart);
+    expect(smart.getByRole("button", { name: "Processed replacement" }).getAttribute("aria-pressed")).toBe("false");
+    expect(smart.getByRole("button", { name: "Copy UPS Email" }).disabled).toBe(true);
+    expect(checklist.textContent).toContain("Processed replacement");
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Photos Sent"));
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("Priority fulfillment requested");
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("Resolution: Processed replacement");
+  });
+
+  it("guides return/refund and warranty cases with clear copy requirements", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Case Type", "Return / Refund", smart);
+    click("Not satisfied with the order", smart);
+    expect(smart.getByLabelText("Smart Case workflow guidance").textContent).toContain("Not Satisfied remains notes-only");
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    click("Not satisfied with the order", smart);
+    click("Wrong Filter Received", smart);
+    click("Sent RL for return", smart);
+    const checklist = smart.getByLabelText("Return / Refund Email copy checklist");
+    expect(checklist.textContent).toContain("Customer Name");
+    expect(checklist.textContent).toContain("Return Outcome: Refund or Replacement");
+    expect(checklist.textContent).toContain("Return Tracking Number");
+    expect(smart.getByRole("button", { name: "Copy Return/Refund Email" }).disabled).toBe(true);
+    change("Customer Name", "Kim", smart);
+    change("Return Outcome", "Replacement", smart);
+    change("Tracking Number", "1ZRETURN", smart);
+    expect(checklist.textContent).toContain("Ready to copy");
+    expect(smart.getByRole("button", { name: "Copy Return/Refund Email" }).disabled).toBe(false);
+    click("Sent RL for return", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.getByLabelText("Issue").value).toBe("Wrong Filter Received");
+    change("Case Type", "Warranty Replacement", smart);
+    expect(smart.getByLabelText("Warranty Email copy checklist").textContent).toContain("Customer Name");
+    change("Customer Name", "Kim", smart);
+    expect(smart.getByLabelText("Warranty Email copy checklist").textContent).toContain("Ready to copy");
+    click("Processed replacement", smart);
+    expect(smart.getByLabelText("Warranty Email copy checklist").textContent).toContain("Replacement Order Number");
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(true);
+    change("Replacement Order Number", "811370", smart);
+    expect(smart.getByLabelText("Warranty Email copy checklist").textContent).toContain("Ready to copy");
+  });
+
+  it("shows fraud email missing fields without changing fraud email generation", async () => {
+    await openApp(); const smart = tool("Smart Case Notes");
+    change("Saved template", "Fraud - Initial Cancellation Email", smart);
+    const checklist = smart.getByLabelText("Fraud Email copy checklist");
+    expect(checklist.textContent).toContain("Customer Name");
+    expect(checklist.textContent).toContain("Order Number(s)");
+    change("Customer Name", "Kim", smart);
+    change("Order Number(s)", "811370", smart);
+    expect(checklist.textContent).toContain("Ready to copy");
+    expect(smart.getByRole("button", { name: "Copy Email" }).disabled).toBe(false);
+    expect(smart.getByLabelText("Email draft").value).toContain("Hi Kim");
+  });
+
   it("shows only UPS Lost Claim actions and a separate Replacement customer resolution", async () => {
     await openApp(); const smart = tool("Smart Case Notes");
     change("Case Type", "UPS Lost Claim", smart);
