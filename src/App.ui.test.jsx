@@ -25,6 +25,39 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("preserved workspace workflows", () => {
+
+  it("keeps the chosen Saved Template visible and persists it with the Smart Case draft", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    const template = smart.getByLabelText("Saved template");
+    expect(template.value).toBe("");
+
+    change("Saved template", "UPS Damaged", smart);
+    expect(template.value).toBe("UPS Damaged");
+    expect(smart.getByLabelText("Case Type").value).toBe("UPS Damaged Claim");
+    click("Photos requested", smart);
+    expect(template.value).toBe("UPS Damaged");
+    expect(smart.getByLabelText("Generated UPS Email").value).toContain("packaging material");
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("medify-workdesk-general-draft")).selectedTemplate).toBe("UPS Damaged"));
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Case Type: UPS Damaged Claim"));
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("selectedTemplate");
+
+    change("Saved template", "Warranty Replacement Reply", smart);
+    expect(template.value).toBe("Warranty Replacement Reply");
+    expect(smart.getByLabelText("Case Type").value).toBe("Warranty Replacement");
+    change("Case Type", "Return / Refund", smart);
+    expect(template.value).toBe("");
+
+    change("Saved template", "Order Returned – Processed Refund", smart);
+    expect(template.value).toBe("Order Returned – Processed Refund");
+    expect(smart.getByLabelText("Return/refund email generator")).toBeTruthy();
+    click("Reset", smart);
+    expect(template.value).toBe("");
+    expect(smart.getByLabelText("Case Type").value).toBe("General Inquiry");
+  });
+
+
   it("navigates all destinations and keeps entered drafts and each tool's independent fold state", async () => {
     await openApp(); change("Spoke With", "QA Caller");
     for (const title of ["Call Notes", "Swapped Filter Subscription", "UPS Claim", "Smart Case Notes"]) {

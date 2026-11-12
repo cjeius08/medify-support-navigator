@@ -241,7 +241,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   };
   const selectCaseType = (nextType) => {
     if (nextType === caseType) return;
-    const next = { ...general, caseType: nextType, Issue: "", Resolution: "", "Action Taken": "", customerResolution: "" };
+    const next = { ...general, caseType: nextType, Issue: "", Resolution: "", "Action Taken": "", customerResolution: "", selectedTemplate: "" };
     delete next["Claim Number"];
     delete next["Claim Status"];
     delete next["Tracking Number"];
@@ -279,7 +279,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
           : name === "Cancellation Confirmation" || name === "Subscription Cancellation" || name === "Address Update"
             ? "Subscription / Filter Club"
             : "General Inquiry";
-    const next = { ...general, returnOutcome: "", returnEmailTemplate: "", upsLostSubcategory: "", ...template, caseType: targetType, "Action Taken": "", customerResolution: "" };
+    const next = { ...general, returnOutcome: "", returnEmailTemplate: "", upsLostSubcategory: "", ...template, caseType: targetType, selectedTemplate: name, "Action Taken": "", customerResolution: "" };
     delete next["Claim Number"]; delete next["Claim Status"];
     delete next.fraudReviewStatus;
     if (!["Warranty Replacement", "Return / Refund", "UPS Lost Claim", "UPS Damaged Claim"].includes(targetType)) delete next["Customer Name"];
@@ -315,7 +315,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       <p>Only the relevant fields and quick inserts are shown for the selected case.</p>
     </div>
     {hasPreviousOrderDraft && <div className="smart-case-restore"><button type="button" className="secondary-button" onClick={restorePreviousOrderDraft}><Icon name="reset"/>Load saved Order Codes draft</button><small>Recovers fields from the previous Order Codes / Replacement tool.</small></div>}
-    <div className="template-picker"><label>Saved template<select defaultValue="" onChange={(event) => { applyTemplate(event.target.value); event.target.value = ""; }}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Saved templates remain editable, including both fraud email templates.</small></div>
+    <div className="template-picker"><label>Saved template<select value={EMAIL_TEMPLATES[general.selectedTemplate] ? general.selectedTemplate : ""} onChange={(event) => applyTemplate(event.target.value)}><option value="">Select a starting template…</option>{Object.keys(EMAIL_TEMPLATES).map((name) => <option key={name}>{name}</option>)}</select></label><small>Selected template stays visible while you edit. Saved templates remain editable, including both fraud email templates.</small></div>
     {workflow && <section className="smart-workflow-guide" aria-label="Smart Case workflow guidance">
       <div><Icon name="note" size={16}/><strong>Smart workflow · {workflow.stage}</strong></div>
       <p>{workflow.next}</p>

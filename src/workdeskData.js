@@ -216,7 +216,7 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
   base.push(`Resolution: ${val("Resolution")}`);
   const known = new Set([
     "caseType", "Order ID", "Order Date", "SKU", "Issue", "Tracking Number",
-    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus", "returnOutcome", "returnEmailTemplate", "upsLostSubcategory"
+    "Claim Number", "Claim Status", "Action Taken", "customerResolution", "Resolution", "fraudReviewStatus", "returnOutcome", "returnEmailTemplate", "upsLostSubcategory", "selectedTemplate"
   ]);
   for (const [key, value] of Object.entries(fields)) {
     if (!known.has(key) && String(value || "").trim()) base.push(`${key}: ${value}`);
