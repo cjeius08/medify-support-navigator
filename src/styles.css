@@ -218,6 +218,23 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .smart-code-panel .secondary-button { width: fit-content; max-width: 100%; }
 .smart-case-restore { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 20px 14px; }
 .smart-case-restore small { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+
+/* Smart Case Notes: quick actions first, with optional details one click away. */
+.smart-case-entry { display: grid; gap: 9px; padding: 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-small); background: var(--surface-soft); min-width: 0; }
+.smart-case-entry-title { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.smart-case-entry-title strong { font-size: .875rem; color: var(--ink); }
+.smart-case-entry-title small { color: var(--muted); font-size: .75rem; }
+.smart-case-entry .snippet-row { margin: 0; }
+.smart-case-manual { border-top: 1px solid var(--border-soft); padding-top: 8px; min-width: 0; }
+.smart-case-manual summary, .smart-case-extras summary { color: var(--teal-hover); cursor: pointer; font-size: .8125rem; font-weight: 600; line-height: 1.5; }
+.smart-case-manual summary:focus-visible, .smart-case-extras summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 3px; }
+.smart-case-manual label { display: grid; gap: 7px; margin-top: 10px; }
+.smart-case-custom-preview { margin: 0; color: var(--muted); font-size: .77rem; line-height: 1.45; overflow-wrap: anywhere; }
+.smart-case-extras { min-width: 0; }
+.smart-case-extras details { border: 1px solid var(--border-soft); border-radius: var(--radius-small); padding: 10px 12px; }
+.smart-case-extras-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 12px; }
+@media (max-width: 700px) { .smart-case-extras-grid { grid-template-columns: minmax(0,1fr); } }
+
 .smart-workflow-guide { display: grid; gap: 7px; margin: 0 20px 16px; padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: var(--radius-small); background: var(--surface-soft); }
 .smart-workflow-guide > div { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: .875rem; }
 .smart-workflow-guide > div .icon { color: var(--teal); }
