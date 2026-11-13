@@ -57,17 +57,31 @@ function SmartCaseEntryField({ label, value, onChange, snippets = [], placeholde
   const lines = String(value || "").split("\n").filter(line => line.trim());
   const customLines = lines.filter(line => !snippets.some(snippet => snippet.toLowerCase() === line.trim().toLowerCase()));
   const selected = snippets.filter(snippet => hasCaseAction(value, snippet));
+  const [expanded, setExpanded] = useState(() => snippets.length === 0 || customLines.length > 0);
   return <div className="span-all smart-case-entry">
     <div className="smart-case-entry-title">
       <strong>{label}</strong>
       <small>{selected.length ? `${selected.length} quick action${selected.length === 1 ? "" : "s"} selected` : "Select relevant actions or write your own"}</small>
     </div>
     {snippets.length > 0 && <QuickInsert label={label} value={value} onChange={onChange} snippets={snippets} toggle compact/>}
-    <details className="smart-case-manual" defaultOpen={snippets.length === 0 || customLines.length > 0}>
-      <summary>{snippets.length ? `Add or edit ${label.toLowerCase()} manually` : `Write ${label.toLowerCase()} details`}{customLines.length > 0 ? ` · ${customLines.length} custom line${customLines.length === 1 ? "" : "s"}` : ""}</summary>
+    <details className="smart-case-manual" open={expanded}>
+      <summary onClick={(event) => { event.preventDefault(); setExpanded(current => !current); }}>{snippets.length ? `Add or edit ${label.toLowerCase()} manually` : `Write ${label.toLowerCase()} details`}{customLines.length > 0 ? ` · ${customLines.length} custom line${customLines.length === 1 ? "" : "s"}` : ""}</summary>
       <label>{label}<textarea rows={rows} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder}/></label>
     </details>
     {customLines.length > 0 && <p className="smart-case-custom-preview">Additional text: {customLines.join(" · ")}</p>}
+  </div>;
+}
+
+function SmartCaseExtraFields({ orderDate, claimNumber, isUps, onChange }) {
+  const [expanded, setExpanded] = useState(() => Boolean(orderDate || (isUps && claimNumber)));
+  return <div className="span-all smart-case-extras">
+    <details open={expanded}>
+      <summary onClick={(event) => { event.preventDefault(); setExpanded(current => !current); }}>Additional case details{orderDate || (isUps && claimNumber) ? " · filled in" : " · optional"}</summary>
+      <div className="smart-case-extras-grid">
+        <label>Order Date<input value={orderDate || ""} onChange={(event) => onChange("Order Date", event.target.value)}/></label>
+        {isUps && <label>Claim Number<input value={claimNumber || ""} onChange={(event) => onChange("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>}
+      </div>
+    </details>
   </div>;
 }
 
@@ -347,7 +361,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       </> : <>
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
       <SkuPicker label="SKU" value={general.SKU || ""} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
-      <div className="span-all smart-case-extras"><details key={`${caseType}:${general.selectedTemplate || ""}:extras`} defaultOpen={Boolean(general["Order Date"] || (isUps && general["Claim Number"]))}><summary>Additional case details{general["Order Date"] || (isUps && general["Claim Number"]) ? " · filled in" : " · optional"}</summary><div className="smart-case-extras-grid"><label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>{isUps && <label>Claim Number<input value={general["Claim Number"] || ""} onChange={(event) => update("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>}</div></details></div>
+      <SmartCaseExtraFields key={`${caseType}:${general.selectedTemplate || ""}:extras`} orderDate={general["Order Date"] || ""} claimNumber={general["Claim Number"] || ""} isUps={isUps} onChange={update}/>
       {isUpsLost && <label className="span-all">UPS Lost Subcategory (optional)<select value={UPS_LOST_SUBCATEGORIES.includes(general.upsLostSubcategory) ? general.upsLostSubcategory : ""} onChange={(event) => update("upsLostSubcategory", event.target.value)}><option value="">No subcategory selected</option>{UPS_LOST_SUBCATEGORIES.map((subcategory) => <option key={subcategory} value={subcategory}>{subcategory}</option>)}</select></label>}
       {isUps && <div className="span-all smart-case-outcome">
         <label>Customer Resolution<select value={customerResolution} onChange={(event) => {
