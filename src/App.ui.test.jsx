@@ -729,6 +729,17 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Issue").value).toBe("Warranty photo request");
   });
 
+  it("shows MA-35R-W2 Variant ID in Swapped Filter Subscription and copied note", async () => {
+    await openApp();
+    const filter = tool("Swapped Filter Subscription");
+    change("Filter Model(s)", "MA-35R-W2", filter);
+    click("Add MA-35R-W2", filter);
+    expect(filter.getByText("Original Variant ID#: 43720705704003")).toBeTruthy();
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("MA-35R-W2 x1\nReason: Variant Error\nNew Variant ID#: 43720705704003"));
+    expect(copyText.mock.calls.at(-1)[0]).not.toContain("New Variant ID#: \n");
+  });
+
   it("keeps SKU selection and filter conversions while showing MA-40E-4 in Smart Case Notes", async () => {
     await openApp();
     const filter = tool("Swapped Filter Subscription"), smart = tool("Smart Case Notes");
