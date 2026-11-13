@@ -43,13 +43,45 @@ function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder
     buttons?.[next]?.focus();
   }}><span>{sku}</span><Icon name="plus" size={16}/></button>) : <p role="status">No matching SKU. Try a model like MA-50.</p>}</div>}</div></div>;
 }
-function QuickInsert({ value, onChange, snippets, label, toggle = false }) {
+function QuickInsert({ value, onChange, snippets, label, toggle = false, compact = false }) {
   return <div className={`snippet-row ${toggle ? "quick-action-row" : ""}`} role="group" aria-label={`${toggle ? "Quick actions for" : "Quick insert into"} ${label.toLowerCase()}`}>
-    <span>{toggle ? "Quick actions · select to add, select again to remove" : "Quick insert"}</span>
+    {!compact && <span>{toggle ? "Quick actions · select to add, select again to remove" : "Quick insert"}</span>}
     <div>{snippets.map((snippet) => {
       const selected = toggle && hasCaseAction(value, snippet);
       return <button key={snippet} type="button" className={selected ? "is-selected" : ""} aria-pressed={toggle ? selected : undefined} onClick={() => onChange(toggle ? toggleCaseSnippet(value, snippet) : appendSnippet(value, snippet))}>{selected && <Icon name="check" size={13}/>} {snippet}</button>;
     })}</div>
+  </div>;
+}
+
+function SmartCaseEntryField({ label, value, onChange, snippets = [], placeholder = "", rows = 3 }) {
+  const lines = String(value || "").split("\n").filter(line => line.trim());
+  const customLines = lines.filter(line => !snippets.some(snippet => snippet.toLowerCase() === line.trim().toLowerCase()));
+  const selected = snippets.filter(snippet => hasCaseAction(value, snippet));
+  const [expanded, setExpanded] = useState(() => snippets.length === 0 || customLines.length > 0);
+  return <div className="span-all smart-case-entry">
+    <div className="smart-case-entry-title">
+      <strong>{label}</strong>
+      <small>{selected.length ? `${selected.length} quick action${selected.length === 1 ? "" : "s"} selected` : "Select relevant actions or write your own"}</small>
+    </div>
+    {snippets.length > 0 && <QuickInsert label={label} value={value} onChange={onChange} snippets={snippets} toggle compact/>}
+    <details className="smart-case-manual" open={expanded}>
+      <summary onClick={(event) => { event.preventDefault(); setExpanded(current => !current); }}>{snippets.length ? `Add or edit ${label.toLowerCase()} manually` : `Write ${label.toLowerCase()} details`}{customLines.length > 0 ? ` · ${customLines.length} custom line${customLines.length === 1 ? "" : "s"}` : ""}</summary>
+      <label>{label}<textarea rows={rows} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder}/></label>
+    </details>
+    {customLines.length > 0 && <p className="smart-case-custom-preview">Additional text: {customLines.join(" · ")}</p>}
+  </div>;
+}
+
+function SmartCaseExtraFields({ orderDate, claimNumber, isUps, onChange }) {
+  const [expanded, setExpanded] = useState(() => Boolean(orderDate || (isUps && claimNumber)));
+  return <div className="span-all smart-case-extras">
+    <details open={expanded}>
+      <summary onClick={(event) => { event.preventDefault(); setExpanded(current => !current); }}>Additional case details{orderDate || (isUps && claimNumber) ? " · filled in" : " · optional"}</summary>
+      <div className="smart-case-extras-grid">
+        <label>Order Date<input value={orderDate || ""} onChange={(event) => onChange("Order Date", event.target.value)}/></label>
+        {isUps && <label>Claim Number<input value={claimNumber || ""} onChange={(event) => onChange("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>}
+      </div>
+    </details>
   </div>;
 }
 
@@ -328,8 +360,8 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         <label className="span-all">Status<select value={FRAUD_REVIEW_STATUSES.includes(general.fraudReviewStatus) ? general.fraudReviewStatus : "Under Review"} onChange={(event) => update("fraudReviewStatus", event.target.value)}>{FRAUD_REVIEW_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
       </> : <>
       {!fraudEmailType && <label>Order ID<input value={general["Order ID"] || ""} onChange={(event) => update("Order ID", event.target.value)}/></label>}
-      <label>Order Date<input value={general["Order Date"] || ""} onChange={(event) => update("Order Date", event.target.value)}/></label>
       <SkuPicker label="SKU" value={general.SKU || ""} onChange={(value) => update("SKU", value)} skus={MASTER_SKUS}/>
+      <SmartCaseExtraFields key={`${caseType}:${general.selectedTemplate || ""}:extras`} orderDate={general["Order Date"] || ""} claimNumber={general["Claim Number"] || ""} isUps={isUps} onChange={update}/>
       {isUpsLost && <label className="span-all">UPS Lost Subcategory (optional)<select value={UPS_LOST_SUBCATEGORIES.includes(general.upsLostSubcategory) ? general.upsLostSubcategory : ""} onChange={(event) => update("upsLostSubcategory", event.target.value)}><option value="">No subcategory selected</option>{UPS_LOST_SUBCATEGORIES.map((subcategory) => <option key={subcategory} value={subcategory}>{subcategory}</option>)}</select></label>}
       {isUps && <div className="span-all smart-case-outcome">
         <label>Customer Resolution<select value={customerResolution} onChange={(event) => {
@@ -339,26 +371,20 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         }}><option value="">Select refund or replacement…</option><option>Replacement</option><option>Refund</option></select></label>
         <small>Claim reason (Lost/Damaged) and customer resolution (Refund/Replacement) are independent.</small>
       </div>}
-      <label className="span-all">Issue<textarea rows="3" value={general.Issue || ""} onChange={(event) => update("Issue", event.target.value)} placeholder="Describe this case…"/></label>
-      <div className="span-all"><QuickInsert label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues} toggle/></div>
+      <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:issue`} label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues} placeholder="Describe this case…"/>
       {isReturn && isIncorrectFilter && <label className="span-all">Return Outcome<select value={["Refund", "Replacement"].includes(general.returnOutcome) ? general.returnOutcome : ""} onChange={(event) => update("returnOutcome", event.target.value)}><option value="">Select Refund or Replacement…</option><option>Refund</option><option>Replacement</option></select></label>}
       {isReturn && (isIncorrectFilter || returnEmailType === "refundProcessed") && <>
-        <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only completed steps…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]} toggle/></div>
+        <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:return-action`} label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]} rows={2} placeholder="Record only completed steps…"/>
       </>}
       {isWarranty && <>
-        <label className="span-all">Action Taken<textarea rows="3" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record only the steps actually completed…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} toggle/></div>
+        <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:warranty-action`} label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} placeholder="Record only the steps actually completed…"/>
       </>}
       {showTracking && <label>Tracking Number<input value={general["Tracking Number"] || ""} onChange={(event) => update("Tracking Number", event.target.value)} placeholder="Enter tracking number"/></label>}
       {isUps && <>
-        <label>Claim Number<input value={general["Claim Number"] || ""} onChange={(event) => update("Claim Number", event.target.value)} placeholder="Optional claim reference"/></label>
         <label>Claim Status<select value={general["Claim Status"] || ""} onChange={(event) => update("Claim Status", event.target.value)}><option value="">Not specified</option>{CLAIM_STATUSES.map(status=><option key={status}>{status}</option>)}</select></label>
-        <label className="span-all">Action Taken<textarea rows="2" value={general["Action Taken"] || ""} onChange={(event) => update("Action Taken", event.target.value)} placeholder="Record what actually happened…"/></label>
-        <div className="span-all"><QuickInsert label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} toggle/></div>
+        <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:ups-action`} label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={snippets.actions} rows={2} placeholder="Record what actually happened…"/>
       </>}
-      <label className="span-all">Resolution<textarea rows="3" value={general.Resolution || ""} onChange={(event) => update("Resolution", event.target.value)} placeholder={isUps && !customerResolution ? "Select Refund or Replacement above…" : "Record the actual outcome…"}/></label>
-      {(!isUps || customerResolution) && <div className="span-all"><QuickInsert label="Resolution" value={general.Resolution || ""} onChange={(value) => update("Resolution", value)} snippets={snippets.resolutions} toggle/></div>}
+      <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:resolution:${customerResolution}`} label="Resolution" value={general.Resolution || ""} onChange={(value) => update("Resolution", value)} snippets={(!isUps || customerResolution) ? snippets.resolutions : []} placeholder={isUps && !customerResolution ? "Select Refund or Replacement above…" : "Record the actual outcome…"}/>
       {codeCategory && orderCode && <div className="span-all smart-code-panel">
         <div className="smart-code-heading"><strong>{isUps ? "Existing UPS Code" : "Order / Replacement Code"}</strong><small>Available when this case uses an existing code.</small></div>
         {!isUps && <label>Reason Code<select value={effectiveReason || ""} onChange={(event) => setOrder({ ...order, category: codeCategory, reason: event.target.value })}>{codes.map(([value]) => <option key={value} value={value}>{value.replaceAll("XXXXXX", general["Order ID"] || "XXXXXX")}</option>)}</select></label>}
