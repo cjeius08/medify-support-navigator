@@ -58,6 +58,58 @@ describe("preserved workspace workflows", () => {
   });
 
 
+  it("shows Smart Case quick actions first and keeps manual edits available without duplicating entry fields", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "UPS Damaged Claim", smart);
+    const issue = smart.getByLabelText("Issue");
+    const action = smart.getByLabelText("Action Taken");
+    const resolution = smart.getByLabelText("Resolution");
+    expect(issue.closest("details").open).toBe(false);
+    expect(action.closest("details").open).toBe(false);
+    expect(resolution.closest("details").open).toBe(true); // No resolution chips until an outcome is selected
+    expect(smart.getByRole("button", { name: "Photos requested" })).toBeTruthy();
+    click("Damaged", smart);
+    click("Photos requested", smart);
+    expect(smart.getByLabelText("Issue").value).toBe("Damaged");
+    expect(smart.getByLabelText("Action Taken").value).toBe("Photos requested");
+    expect(smart.getByLabelText("Generated UPS Email").value).toContain("packaging material");
+
+    const actionDetails = action.closest("details");
+    fireEvent.click(actionDetails.querySelector("summary"));
+    expect(actionDetails.open).toBe(true);
+    change("Action Taken", "Photos requested\nCalled customer for updates", smart);
+    expect(smart.getByText(/Additional text: Called customer for updates/)).toBeTruthy();
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action Taken: Photos requested\nCalled customer for updates"));
+    click("Photos requested", smart);
+    expect(smart.getByLabelText("Action Taken").value).toBe("Called customer for updates");
+    expect(smart.queryByLabelText("UPS customer email generator")).toBeNull();
+  });
+
+  it("groups optional order and UPS claim fields while preserving SKU, status and copied notes", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "UPS Lost Claim", smart);
+    const extras = smart.getByLabelText("Order Date").closest("details");
+    expect(extras).toBe(smart.getByLabelText("Claim Number").closest("details"));
+    expect(extras.open).toBe(false);
+    expect(smart.getByLabelText("SKU")).toBeTruthy();
+    expect(smart.getByLabelText("Claim Status")).toBeTruthy();
+    fireEvent.click(extras.querySelector("summary"));
+    expect(extras.open).toBe(true);
+    change("Order Date", "2026-11-13", smart);
+    change("Claim Number", "UPS-457", smart);
+    change("Claim Status", "Claim Issued", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Order Date: 2026-11-13"));
+    expect(copyText.mock.calls.at(-1)[0]).toContain("Claim Number: UPS-457");
+    expect(smart.getByLabelText("UPS customer email generator")).toBeTruthy();
+    change("Case Type", "Return / Refund", smart);
+    expect(smart.queryByLabelText("Claim Number")).toBeNull();
+    expect(smart.getByLabelText("Order Date")).toBeTruthy();
+  });
+
   it("navigates all destinations and keeps entered drafts and each tool's independent fold state", async () => {
     await openApp(); change("Spoke With", "QA Caller");
     for (const title of ["Call Notes", "Swapped Filter Subscription", "UPS Claim", "Smart Case Notes"]) {
