@@ -438,6 +438,28 @@ describe("WorkDesk helpers", () => {
     expect(incomplete).not.toContain("Converted MA-50R-1");
   });
 
+  it("shows MA-35R-W2 Variant ID in direct notes and converted filter notes", () => {
+    expect(FILTER_SKUS).toContain("MA-35R-W2");
+    expect(MASTER_SKUS).toContain("MA-35R-W2");
+    expect(FILTER_VARIANT_IDS["MA-35R-W2"]).toBe("43720705704003");
+    expect(buildFilterNote({
+      reason: "Variant Error", selected: { "MA-35R-W2": 1 }
+    }, "JA")).toBe([
+      "Swapped Filter Subscription",
+      "Filter(s):",
+      "MA-35R-W2 x1",
+      "Reason: Variant Error",
+      "New Variant ID#: 43720705704003",
+      "JA"
+    ].join("\n"));
+    expect(buildFilterNote({
+      reason: "Variant Error",
+      selected: { "MA-35R-W1": 2 },
+      conversions: { "MA-35R-W1": { sku: "MA-35R-W2", sourceQuantity: 1, quantity: 1 } }
+    }, "JA")).toContain("New Variant ID#:\nMA-35R-W2: 43720705704003");
+    expect(FILTER_VARIANT_IDS["MA-35R-W1"]).toBe("43720705671235");
+  });
+
   it("shows MA-45R-2 Variant ID in filter notes and partial conversions", () => {
     expect(FILTER_SKUS).toContain("MA-45R-2");
     expect(MASTER_SKUS).toContain("MA-45R-2");
