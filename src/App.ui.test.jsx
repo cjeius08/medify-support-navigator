@@ -740,6 +740,27 @@ describe("preserved workspace workflows", () => {
     expect(copyText.mock.calls.at(-1)[0]).not.toContain("New Variant ID#: \n");
   });
 
+  it("does not offer invalid MA-125R-1 in Filter Model or Smart Case SKU search", async () => {
+    await openApp();
+    const filter = tool("Swapped Filter Subscription");
+    const smart = tool("Smart Case Notes");
+
+    change("Filter Model(s)", "MA-125R-1", filter);
+    expect(filter.getByText(/No matching SKU/)).toBeTruthy();
+    expect(filter.queryByRole("button", { name: "Add MA-125R-1" })).toBeNull();
+
+    change("Filter Model(s)", "MA-125UR-1", filter);
+    expect(filter.getByRole("button", { name: "Add MA-125UR-1" })).toBeTruthy();
+    change("Filter Model(s)", "MA-125UR-2", filter);
+    expect(filter.getByRole("button", { name: "Add MA-125UR-2" })).toBeTruthy();
+
+    change("SKU", "MA-125R-1", smart);
+    expect(smart.getByText(/No matching SKU/)).toBeTruthy();
+    expect(smart.queryByRole("button", { name: "Select MA-125R-1" })).toBeNull();
+    change("SKU", "MA-125UR-1", smart);
+    expect(smart.getByRole("button", { name: "Select MA-125UR-1" })).toBeTruthy();
+  });
+
   it("keeps SKU selection and filter conversions while showing MA-40E-4 in Smart Case Notes", async () => {
     await openApp();
     const filter = tool("Swapped Filter Subscription"), smart = tool("Smart Case Notes");

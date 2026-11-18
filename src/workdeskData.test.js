@@ -225,7 +225,12 @@ describe("WorkDesk helpers", () => {
 
 
   it("keeps all Filter Model SKUs available in Smart Case Notes while adding requested purifier models only there", () => {
-    expect(FILTER_SKUS).toHaveLength(40);
+    expect(FILTER_SKUS).toHaveLength(39);
+    expect(FILTER_SKUS).not.toContain("MA-125R-1");
+    expect(MASTER_SKUS).not.toContain("MA-125R-1");
+    expect(FILTER_VARIANT_IDS).not.toHaveProperty("MA-125R-1");
+    expect(FILTER_SKUS).toEqual(expect.arrayContaining(["MA-125UR-1", "MA-125UR-2"]));
+    expect(MASTER_SKUS).toEqual(expect.arrayContaining(["MA-125UR-1", "MA-125UR-2", "MA-125-B1", "MA-125-W1"]));
     expect(FILTER_SKUS.every(sku => MASTER_SKUS.includes(sku))).toBe(true);
     expect(new Set(MASTER_SKUS).size).toBe(MASTER_SKUS.length);
     for (const sku of ["MA-35-W2", "MA-35-S2", "MA-40-B2"]) {
