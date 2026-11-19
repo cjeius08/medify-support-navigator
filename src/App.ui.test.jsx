@@ -724,6 +724,38 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Generated Warranty Reply")).toBeTruthy();
   });
 
+  it("shows Under Review by default when Fraud / High Risk issue Flagged for Fraud is selected", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Fraud / High Risk", smart);
+    expect(smart.queryByLabelText("Fraud Status")).toBeNull();
+
+    click("Flagged for Fraud", smart);
+    const status = smart.getByLabelText("Fraud Status");
+    expect(status.value).toBe("Under Review");
+    expect(Array.from(status.options, ({ value }) => value)).toEqual(["Under Review", "Passed", "Failed"]);
+
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nStatus: Under Review\nResolution:"));
+    change("Fraud Status", "Passed", smart);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nStatus: Passed\nResolution:"));
+
+    click("Flagged for Fraud", smart);
+    expect(smart.queryByLabelText("Fraud Status")).toBeNull();
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).not.toContain("Status: Passed"));
+
+    change("Saved template", "High Risk of Fraud Detected", smart);
+    expect(smart.getByLabelText("Fraud Status").value).toBe("Under Review");
+    expect(smart.getByLabelText("Issue").value).toBe("Flagged for Fraud");
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nStatus: Under Review\nResolution:"));
+
+    change("Case Type", "General Inquiry", smart);
+    expect(smart.queryByLabelText("Fraud Status")).toBeNull();
+  });
+
   it("keeps fraud quick inserts limited to the Fraud case and retains fraud email templates", async () => {
     await openApp(); const smart = tool("Smart Case Notes");
     change("Case Type", "Warranty Replacement", smart);
@@ -734,7 +766,7 @@ describe("preserved workspace workflows", () => {
     click("Order Cancelled", smart); click("Order Refunded", smart); click("Sent Email for Fraud", smart);
     expect(smart.getByLabelText("Resolution").value).toBe("Order Cancelled\nOrder Refunded\nSent Email for Fraud");
     click("Copy Note", smart);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nResolution: Order Cancelled\nOrder Refunded\nSent Email for Fraud\nJA"));
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Issue: Flagged for Fraud\nStatus: Under Review\nResolution: Order Cancelled\nOrder Refunded\nSent Email for Fraud\nJA"));
 
     change("Saved template", "Fraud - Initial Cancellation Email", smart);
     expect(smart.getByRole("button", { name: "Copy Email" }).disabled).toBe(true);
