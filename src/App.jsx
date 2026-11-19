@@ -262,6 +262,9 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
 
   const update = (field, value) => {
     const next = { ...general, [field]: value };
+    if (field === "Issue" && caseType === "Fraud / High Risk" && !hasCaseAction(value, "Flagged for Fraud")) {
+      delete next.fraudReviewStatus;
+    }
     if ((field === "Issue" || field === "Resolution") && !isUps) {
       const rl = [next.Issue, next.Resolution].some(text => String(text || "").split("\n").some(line => line.trim() === "Sent RL for return"));
       if (!rl) delete next["Tracking Number"];
