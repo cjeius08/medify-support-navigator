@@ -298,6 +298,30 @@ describe("WorkDesk helpers", () => {
   });
 
 
+  it("defaults Fraud / High Risk flagged-for-fraud notes to Under Review and allows status updates", () => {
+    const base = {
+      caseType: "Fraud / High Risk",
+      "Order ID": "801234",
+      Issue: "Flagged for Fraud",
+      Resolution: ""
+    };
+    const note = buildSmartCaseNote(base, "JA");
+    expect(note).toContain("Issue: Flagged for Fraud\nStatus: Under Review\nResolution: Not provided");
+    expect(note).not.toContain("fraudReviewStatus:");
+    for (const status of ["Under Review", "Passed", "Failed"]) {
+      expect(buildSmartCaseNote({ ...base, fraudReviewStatus: status }, "JA"))
+        .toContain("Issue: Flagged for Fraud\nStatus: " + status + "\nResolution:");
+    }
+    expect(buildSmartCaseNote({ ...base, fraudReviewStatus: "Pending" }, "JA"))
+      .toContain("Status: Under Review");
+    expect(buildSmartCaseNote({ ...base, Issue: "Repeated fraudulent order", fraudReviewStatus: "Failed" }, "JA"))
+      .not.toContain("Status:");
+    expect(buildSmartCaseNote({ ...base, Issue: "Flagged for Fraud\nRepeated fraudulent order" }, "JA"))
+      .toContain("Status: Under Review");
+    expect(buildSmartCaseNote({ ...base, caseType: "General Inquiry" }, "JA")).not.toContain("Status: Under Review");
+    expect(caseQuickOptions("Fraud / High Risk").issues).toContain("Flagged for Fraud");
+  });
+
   it("keeps the pending warranty reply simple and never claims an unprocessed replacement", () => {
     const reply = buildWarrantyReply({ "Customer Name": "Kim", "Product Model": "MA-35" });
     expect(reply).toContain("Hi Kim,");
