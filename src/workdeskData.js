@@ -140,7 +140,7 @@ const CASE_SNIPPETS = {
     actions: ["Filed UPS Damaged Claim", "Claim Under Review", "Claim Approved for Payment", "Disputed Claim", "Photos requested", "Photos Sent", "Priority fulfillment requested"]
   },
   "Return / Refund": {
-    issues: ["Not satisfied with the order", "Wrong Filter Received", "Return / Refund", "Sent RL for return"],
+    issues: ["Not satisfied with the order", "Wrong Filter Received", "Ordered Incorrect Filter", "Return / Refund", "Sent RL for return"],
     resolutions: ["Returned to the warehouse", "Processed refund", "Return instructions provided"],
     actions: ["Photos Sent", "Attached Invoice"]
   },
@@ -302,7 +302,7 @@ export function returnEmailKind(fields = {}) {
     const refunded = hasCaseAction(fields.Resolution, "Processed refund");
     return received && refunded ? "refundProcessed" : "";
   }
-  const incorrectFilter = hasCaseAction(fields.Issue, "Wrong Filter Received");
+  const incorrectFilter = ["Wrong Filter Received", "Ordered Incorrect Filter"].some(reason => hasCaseAction(fields.Issue, reason));
   const returnLabelSent = [fields.Issue, fields.Resolution, fields["Action Taken"]].some(value => hasCaseAction(value, "Sent RL for return"));
   const notSatisfied = hasCaseAction(fields.Issue, "Not satisfied with the order");
   return incorrectFilter && returnLabelSent && !notSatisfied ? "incorrectFilterLabel" : "";
@@ -485,7 +485,7 @@ export function smartCaseWorkflow(fields = {}) {
       return { stage: "Incorrect filter · return label sent", next: "Choose Refund or Replacement and enter the return tracking number to complete the customer email." };
     if (kind === "refundProcessed")
       return { stage: "Warehouse return · refund processed", next: "The refund confirmation is ready to personalize. Select Attached Invoice only if it was included." };
-    return { stage: "Return / Refund", next: "For an incorrect filter, select Wrong Filter Received and Sent RL for return. Not Satisfied remains notes-only." };
+    return { stage: "Return / Refund", next: "For an incorrect filter, select Wrong Filter Received or Ordered Incorrect Filter, then Sent RL for return. Not Satisfied remains notes-only." };
   }
   if (type === "Warranty Replacement") {
     const processed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(fields.Resolution, action));
