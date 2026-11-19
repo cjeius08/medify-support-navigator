@@ -218,7 +218,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const upsEmailCopyReady = canCopyUpsEmail(general);
   const isWarranty = caseType === "Warranty Replacement";
   const isReturn = caseType === "Return / Refund";
-  const isIncorrectFilter = isReturn && hasCaseAction(general.Issue, "Wrong Filter Received");
+  const isIncorrectFilter = isReturn && ["Wrong Filter Received", "Ordered Incorrect Filter"].some(reason => hasCaseAction(general.Issue, reason));
   const returnEmailType = returnEmailKind(general);
   const returnEmail = editedReturnEmail ?? buildReturnEmail(general);
   const returnEmailCopyReady = canCopyReturnEmail(general);
@@ -416,7 +416,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
     {isReturn && returnEmailType && <section className="fraud-email-panel return-email-panel" aria-label="Return/refund email generator">
       <h3>{returnEmailType === "incorrectFilterLabel" ? "Incorrect Filter – Return Label Email" : "Order Returned – Refund Processed Email"}</h3>
       <p>{returnEmailType === "incorrectFilterLabel"
-        ? "This template is generated only after Wrong Filter Received and Sent RL for return are selected. Choose Refund or Replacement and enter the return tracking number."
+        ? "This template is generated after Wrong Filter Received or Ordered Incorrect Filter and Sent RL for return are selected. Choose Refund or Replacement and enter the return tracking number."
         : "Refund confirmation is available when the selected template confirms both warehouse receipt and a processed refund. Include the invoice sentence only if you actually attached the invoice."}</p>
       <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer first name" autoComplete="off"/></label>
       <label>Generated Return / Refund Email<textarea rows="15" value={returnEmail} onChange={(event) => setEditedReturnEmail(event.target.value)} spellCheck="true"/></label>

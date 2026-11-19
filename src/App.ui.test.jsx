@@ -607,6 +607,35 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Status").value).toBe("Under Review");
   });
 
+  it("shows Ordered Incorrect Filter return-label email preview after Sent RL for return", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Return / Refund", smart);
+    click("Ordered Incorrect Filter", smart);
+    expect(smart.getByLabelText("Issue").value).toBe("Ordered Incorrect Filter");
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.getByLabelText("Return Outcome")).toBeTruthy();
+    click("Sent RL for return", smart);
+    const email = () => smart.getByLabelText("Generated Return / Refund Email").value;
+    expect(email()).toContain("Please see the attached prepaid return label");
+    expect(email()).toContain("[Return Tracking Number]");
+    expect(smart.getByLabelText("Tracking Number")).toBeTruthy();
+    expect(smart.getByRole("button", {name: "Copy Return/Refund Email"}).disabled).toBe(true);
+    change("Return Outcome", "Replacement", smart);
+    change("Tracking Number", "1Z-RL-123", smart);
+    change("Customer Name", "Kim", smart);
+    expect(email()).toContain("Hi Kim,");
+    expect(email()).toContain("tracking number is 1Z-RL-123");
+    expect(email()).toContain("process your replacement promptly");
+    expect(smart.getByRole("button", {name: "Copy Return/Refund Email"}).disabled).toBe(false);
+    click("Copy Note", smart);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Ordered Incorrect Filter\nSent RL for return"));
+    click("Sent RL for return", smart);
+    expect(smart.queryByLabelText("Return/refund email generator")).toBeNull();
+    expect(smart.queryByLabelText("Tracking Number")).toBeNull();
+    expect(smart.getByLabelText("Issue").value).toBe("Ordered Incorrect Filter");
+  });
+
   it("generates incorrect-filter return label instructions only after Sent RL for return", async () => {
     await openApp();
     const smart = tool("Smart Case Notes");

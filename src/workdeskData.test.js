@@ -159,6 +159,34 @@ describe("WorkDesk helpers", () => {
     expect(caseQuickOptions("Return / Refund").actions).toEqual(["Photos Sent", "Attached Invoice"]);
   });
 
+  it("generates return label email for Ordered Incorrect Filter only after Sent RL for return", () => {
+    expect(caseQuickOptions("Return / Refund").issues).toContain("Ordered Incorrect Filter");
+    const base = { caseType: "Return / Refund", Issue: "Ordered Incorrect Filter" };
+    expect(returnEmailKind(base)).toBe("");
+    expect(buildReturnEmail(base)).toBe("");
+    const sent = { ...base, Issue: "Ordered Incorrect Filter\nSent RL for return" };
+    expect(returnEmailKind(sent)).toBe("incorrectFilterLabel");
+    expect(buildReturnEmail(sent)).toContain("Please see the attached prepaid return label.");
+    expect(buildReturnEmail(sent)).toContain("[Return Tracking Number]");
+    expect(canCopyReturnEmail(sent)).toBe(false);
+    const ready = {
+      ...sent, "Customer Name": "Kim", "Tracking Number": "1Z-123", returnOutcome: "Refund"
+    };
+    expect(buildReturnEmail(ready)).toContain("Hi Kim,");
+    expect(buildReturnEmail(ready)).toContain("tracking number is 1Z-123");
+    expect(buildReturnEmail(ready)).toContain("process your refund promptly");
+    expect(canCopyReturnEmail(ready)).toBe(true);
+    expect(buildSmartCaseNote(ready, "JA")).toContain("Ordered Incorrect Filter\nSent RL for return");
+    expect(buildSmartCaseNote(ready, "JA")).toContain("Return Outcome: Refund");
+    const replacement = { ...ready, returnOutcome: "Replacement" };
+    expect(buildReturnEmail(replacement)).toContain("process your replacement promptly");
+    expect(returnEmailKind({ ...sent, Issue: "Ordered Incorrect Filter\nNot satisfied with the order\nSent RL for return" })).toBe("");
+    expect(returnEmailKind({ ...sent, Issue: "Ordered Incorrect Filter\nReturn / Refund" })).toBe("");
+    expect(returnEmailKind({ ...sent, caseType: "General Inquiry" })).toBe("");
+    // Existing wrong-filter trigger continues to work.
+    expect(returnEmailKind({ ...sent, Issue: "Wrong Filter Received\nSent RL for return" })).toBe("incorrectFilterLabel");
+  });
+
   it("adjusts the return label email and copied note to Refund or Replacement independently", () => {
     const base = {
       caseType: "Return / Refund",
