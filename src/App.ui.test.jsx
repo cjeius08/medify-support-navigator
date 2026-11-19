@@ -745,6 +745,8 @@ describe("preserved workspace workflows", () => {
     expect(smart.queryByLabelText("Fraud Status")).toBeNull();
     click("Copy Note", smart);
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).not.toContain("Status: Passed"));
+    click("Flagged for Fraud", smart);
+    expect(smart.getByLabelText("Fraud Status").value).toBe("Under Review");
 
     change("Saved template", "High Risk of Fraud Detected", smart);
     expect(smart.getByLabelText("Fraud Status").value).toBe("Under Review");
