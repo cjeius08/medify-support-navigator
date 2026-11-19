@@ -223,6 +223,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
   const returnEmail = editedReturnEmail ?? buildReturnEmail(general);
   const returnEmailCopyReady = canCopyReturnEmail(general);
   const isFraudReview = caseType === "Flagged for Fraud Review";
+  const isHighRiskFlagged = caseType === "Fraud / High Risk" && hasCaseAction(general.Issue, "Flagged for Fraud");
   const warrantyProcessed = ["Processed replacement", "Processed advance replacement"].some(action => hasCaseAction(general.Resolution, action));
   const warrantyAddressUpdated = hasCaseAction(general["Action Taken"], "Address updated");
   const warrantyReply = editedWarrantyReply ?? buildWarrantyReply(general);
@@ -372,6 +373,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
         <small>Claim reason (Lost/Damaged) and customer resolution (Refund/Replacement) are independent.</small>
       </div>}
       <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:issue`} label="Issue" value={general.Issue || ""} onChange={(value) => update("Issue", value)} snippets={snippets.issues} placeholder="Describe this case…"/>
+      {isHighRiskFlagged && <label className="span-all">Fraud Status<select value={FRAUD_REVIEW_STATUSES.includes(general.fraudReviewStatus) ? general.fraudReviewStatus : "Under Review"} onChange={(event) => update("fraudReviewStatus", event.target.value)}>{FRAUD_REVIEW_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}</select></label>}
       {isReturn && isIncorrectFilter && <label className="span-all">Return Outcome<select value={["Refund", "Replacement"].includes(general.returnOutcome) ? general.returnOutcome : ""} onChange={(event) => update("returnOutcome", event.target.value)}><option value="">Select Refund or Replacement…</option><option>Refund</option><option>Replacement</option></select></label>}
       {isReturn && (isIncorrectFilter || returnEmailType === "refundProcessed") && <>
         <SmartCaseEntryField key={`${caseType}:${general.selectedTemplate || ""}:return-action`} label="Action Taken" value={general["Action Taken"] || ""} onChange={(value) => update("Action Taken", value)} snippets={returnEmailType === "refundProcessed" ? ["Attached Invoice", "Photos Sent"] : ["Photos Sent"]} rows={2} placeholder="Record only completed steps…"/>
