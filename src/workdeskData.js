@@ -193,6 +193,9 @@ export function buildSmartCaseNote(fields = {}, agentInitials, orderCode = null)
     `SKU: ${val("SKU")}`,
     `Issue: ${val("Issue")}`
   ];
+  if (caseType === "Fraud / High Risk" && hasCaseAction(fields.Issue, "Flagged for Fraud")) {
+    base.push(`Status: ${FRAUD_REVIEW_STATUSES.includes(fields.fraudReviewStatus) ? fields.fraudReviewStatus : "Under Review"}`);
+  }
   const tracking = String(fields["Tracking Number"] || "").trim();
   if (tracking || String(fields.Issue || "").split("\n").some(line => line.trim() === "Sent RL for return") || ups) {
     base.push(`Tracking Number: ${tracking || "Not provided"}`);
