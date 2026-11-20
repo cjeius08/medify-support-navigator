@@ -64,6 +64,10 @@ html[data-motion="calm"] .motion-toggle-symbol { color: #87a3ae; }
   75% { opacity: .8; transform: rotate(calc(var(--ray) * 40deg)) translateY(-65px) scale(1); }
   100% { opacity: 0; transform: rotate(calc(var(--ray) * 40deg)) translateY(-80px) scale(.2); }
 }
+@keyframes fullmotion-nav-sheen {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 @keyframes fullmotion-button {
   0%, 24% { transform: translateX(-140%) rotate(-17deg); }
   52%, 100% { transform: translateX(160%) rotate(-17deg); }
@@ -123,7 +127,7 @@ html[data-motion="calm"] .motion-toggle-symbol { color: #87a3ae; }
   html[data-motion="full"] .main-nav button.active {
     background: linear-gradient(120deg, #d9f6f4, #f3ffff, #c7eeec);
     background-size: 230% 100%;
-    animation: fullmotion-aura 5s ease-in-out infinite;
+    animation: fullmotion-nav-sheen 5s ease-in-out infinite;
   }
   html[data-motion="full"] .motion-toggle-symbol {
     animation: medify-gentle-float 2.7s ease-in-out infinite;
@@ -194,7 +198,6 @@ html[data-motion="calm"] .app-shell *::before,
 html[data-motion="calm"] .app-shell *::after {
   animation: none !important;
   transition-duration: .01ms !important;
-  transform: none !important;
 }
 /* Accessibility: always honor OS reduced-motion, even if Full is selected. */
 @media (prefers-reduced-motion: reduce) {
@@ -203,6 +206,5 @@ html[data-motion="calm"] .app-shell *::after {
   .app-shell *, .app-shell *::before, .app-shell *::after {
     animation: none !important;
     transition-duration: .01ms !important;
-    transform: none !important;
   }
 }
