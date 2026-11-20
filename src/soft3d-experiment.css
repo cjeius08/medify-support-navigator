@@ -532,6 +532,12 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
   0%, 22%, 100% { transform: translateX(-135%) rotate(-19deg); }
   51%, 70% { transform: translateX(135%) rotate(-19deg); }
 }
+@keyframes medify-search-scan {
+  0%, 10% { left: 5%; opacity: 0; }
+  28% { opacity: .95; }
+  75% { opacity: .85; }
+  95%, 100% { left: 80%; opacity: 0; }
+}
 @keyframes medify-tab-light {
   0%, 100% { transform: translateX(-14px) scaleX(.7); opacity: .45; }
   50% { transform: translateX(14px) scaleX(1.25); opacity: 1; }
@@ -562,6 +568,21 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
 @media (max-width: 560px) {
   .site-header::before { top: -74px; left: 5%; width: 170px; height: 185px; }
 }
+/* A travelling cyan light traces the search field even without a hover. */
+.global-search { overflow: visible; }
+.global-search::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  bottom: -2px;
+  left: 5%;
+  width: 16%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #19c8c4, transparent);
+  box-shadow: 0 0 10px rgba(21,198,197,.35);
+  animation: medify-search-scan 5s ease-in-out infinite;
+}
 /* A small 3D ring breathes around every support-tool icon, including at 480px. */
 .card-heading .card-icon {
   position: relative;
@@ -579,7 +600,8 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
 }
 /* Moving highlight crosses a real primary action button every few seconds. */
 .primary-button::before {
-  background: linear-gradient(90deg, transparent 39%, rgba(255,255,255,.36) 50%, transparent 61%);
+  z-index: 1;
+  background: linear-gradient(90deg, transparent 39%, rgba(255,255,255,.24) 50%, transparent 61%);
   animation: medify-button-light 6s ease-in-out infinite;
 }
 /* Animated accent line underneath the active navigation item. */
@@ -599,6 +621,7 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
 }
 @media (prefers-reduced-motion: reduce) {
   .site-header::before,
+  .global-search::after,
   .card-heading .card-icon::after,
   .primary-button::before,
   .main-nav button.active::after { animation: none !important; }
