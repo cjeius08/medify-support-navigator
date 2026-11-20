@@ -1,0 +1,210 @@
+/*
+ * Full Motion concept — visual-only prototype.
+ * Intended for the design/full-motion-smartcase-prototype branch.
+ * Both modes leave source data, forms, and mouse targets unchanged.
+ */
+.motion-toggle {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #a8e4e0 !important;
+  border-radius: 999px !important;
+  min-height: 37px;
+  padding: 7px 11px !important;
+  color: #076e79 !important;
+  background: linear-gradient(125deg, #e0faf7, #f5fffd) !important;
+  font-weight: 700 !important;
+  font-size: .77rem !important;
+  box-shadow: inset 0 1px #fff, 0 4px 13px #087f8421;
+  white-space: nowrap;
+}
+.motion-toggle:hover, .motion-toggle:focus-visible { border-color: #54c3be !important; background: #c9f4ed !important; }
+.motion-toggle-symbol { display: inline-block; font-size: 1.05rem; line-height: 1; color: #09a7a5; }
+html[data-motion="calm"] .motion-toggle { color: #557080 !important; border-color: #cadce4 !important; background: #f4f8fa !important; }
+html[data-motion="calm"] .motion-toggle-symbol { color: #87a3ae; }
+.copy-celebration { display: none; pointer-events: none; }
+
+@keyframes fullmotion-aura {
+  0%, 100% { opacity: .4; transform: translate3d(-20px, -3px, 0) rotate(-8deg) scale(.9); }
+  50% { opacity: .9; transform: translate3d(25px, 8px, 0) rotate(8deg) scale(1.14); }
+}
+@keyframes fullmotion-headline {
+  0%, 100% { filter: drop-shadow(0 0 1px #00a7a700); transform: translateY(0); }
+  50% { filter: drop-shadow(0 4px 13px #00a7a72a); transform: translateY(-2px); }
+}
+@keyframes fullmotion-stagger {
+  from { opacity: 0; transform: perspective(900px) rotateX(10deg) translateY(26px) scale(.975); filter: blur(4px); }
+  to { opacity: 1; transform: perspective(900px) rotateX(0) translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes fullmotion-chip {
+  0% { transform: translateY(3px) scale(.86); box-shadow: 0 0 0 0 #13ada800; }
+  55% { transform: translateY(-2px) scale(1.095); box-shadow: 0 0 0 8px #13ada820; }
+  100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 3px #13ada814; }
+}
+@keyframes fullmotion-panel {
+  from { opacity: 0; transform: perspective(900px) translateY(22px) rotateX(-8deg) scale(.96); filter: blur(6px); }
+  to { opacity: 1; transform: perspective(900px) translateY(0) rotateX(0) scale(1); filter: blur(0); }
+}
+@keyframes fullmotion-sweep {
+  0%, 19% { transform: translateX(-140%) skewX(-22deg); }
+  64%, 100% { transform: translateX(155%) skewX(-22deg); }
+}
+@keyframes fullmotion-copy {
+  0% { opacity: 0; transform: translateY(26px) scale(.5) rotate(-12deg); }
+  25% { opacity: 1; transform: translateY(-14px) scale(1.18) rotate(9deg); }
+  50% { transform: translateY(-7px) scale(.98) rotate(0); }
+  76% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(.88); }
+}
+@keyframes fullmotion-ray {
+  0% { opacity: 0; transform: rotate(calc(var(--ray) * 40deg)) translateY(-12px) scale(.3); }
+  20% { opacity: 1; }
+  75% { opacity: .8; transform: rotate(calc(var(--ray) * 40deg)) translateY(-65px) scale(1); }
+  100% { opacity: 0; transform: rotate(calc(var(--ray) * 40deg)) translateY(-80px) scale(.2); }
+}
+@keyframes fullmotion-nav-sheen {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes fullmotion-button {
+  0%, 24% { transform: translateX(-140%) rotate(-17deg); }
+  52%, 100% { transform: translateX(160%) rotate(-17deg); }
+}
+
+/* A visually obvious, interactive mode that still respects Windows reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion="full"] .workdesk-page::after {
+    display: block;
+    opacity: .85;
+    animation: fullmotion-aura 5s ease-in-out infinite;
+  }
+  html[data-motion="full"] .workdesk-page > h1.sr-only {
+    animation: fullmotion-headline 5.2s ease-in-out infinite;
+  }
+  html[data-motion="full"] .tool-card.is-collapsed {
+    transform-origin: center center;
+    transition: transform .18s ease-out, box-shadow .23s ease, border-color .23s ease;
+  }
+  /* Collapsed cards act as 3D shortcuts. Expanded forms never tilt during editing. */
+  html[data-motion="full"] .tool-card.is-collapsed:hover {
+    transform: perspective(950px) rotateX(var(--motion-tilt-x, 0deg)) rotateY(var(--motion-tilt-y, 0deg)) translateY(-4px) !important;
+    border-color: #57c8c6;
+    box-shadow: 0 20px 38px #075a702a, 0 4px 14px #075a7014 !important;
+  }
+  html[data-motion="full"] .tool-card:not(.is-collapsed):hover {
+    transform: none !important;
+  }
+  html[data-motion="full"] .smart-case-heading,
+  html[data-motion="full"] .template-picker,
+  html[data-motion="full"] .smart-case-entry {
+    transition: box-shadow .3s ease, border-color .3s ease, background-color .3s ease;
+  }
+  html[data-motion="full"] #tool-general:focus-within {
+    box-shadow: 0 18px 48px #08698220, 0 0 0 2px #21c5be25;
+  }
+  html[data-motion="full"] .smart-case-entry:focus-within {
+    background: linear-gradient(140deg, #f1fffd, #fff);
+    border-color: #64cfc9;
+    box-shadow: 0 0 0 4px #16b3ae18;
+  }
+  html[data-motion="full"] .quick-action-row button.is-selected {
+    animation: fullmotion-chip .44s cubic-bezier(.14,.8,.25,1.2) both !important;
+    border-color: #0da6a7;
+    background: linear-gradient(145deg, #c9f5ed, #e9fffa);
+    box-shadow: 0 5px 14px #06978f25;
+  }
+  html[data-motion="full"] .fraud-email-panel,
+  html[data-motion="full"] .smart-workflow-guide {
+    transform-origin: 50% 0;
+    animation: fullmotion-panel .62s cubic-bezier(.18,.75,.2,1) both !important;
+  }
+  html[data-motion="full"] .card-heading .card-icon {
+    animation: medify-gentle-float 4.1s ease-in-out infinite;
+    box-shadow: 0 9px 21px #0eafaf3b, inset 0 1px 0 #ffffffce;
+  }
+  html[data-motion="full"] .main-nav button.active {
+    background: linear-gradient(120deg, #d9f6f4, #f3ffff, #c7eeec);
+    background-size: 230% 100%;
+    animation: fullmotion-nav-sheen 5s ease-in-out infinite;
+  }
+  html[data-motion="full"] .motion-toggle-symbol {
+    animation: medify-gentle-float 2.7s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px #0ca8a877);
+  }
+  html[data-motion="full"] .primary-button::before {
+    z-index: 1;
+    background: linear-gradient(90deg, transparent 37%, #ffffff7a 49%, transparent 62%);
+    animation: fullmotion-button 3.8s ease-in-out infinite !important;
+  }
+  html[data-motion="full"] .copy-celebration {
+    position: fixed;
+    display: grid;
+    place-items: center;
+    width: 126px;
+    height: 126px;
+    right: 45px;
+    bottom: 70px;
+    z-index: 100;
+    opacity: 0;
+    animation: fullmotion-copy 1.5s ease-out both;
+  }
+  html[data-motion="full"] .copy-celebration-mark {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    color: white;
+    background: linear-gradient(145deg, #12c0b2, #0b8ab1);
+    box-shadow: 0 16px 34px #047f943d, inset 0 2px 1px #ffffff70;
+    font-size: 2rem;
+    font-weight: 800;
+  }
+  html[data-motion="full"] .copy-celebration i {
+    position: absolute;
+    top: 50%;
+    left: calc(50% - 4px);
+    width: 8px;
+    height: 13px;
+    border-radius: 3px;
+    background: hsl(calc(175 + var(--ray) * 15), 75%, 60%);
+    animation: fullmotion-ray 1.2s .09s ease-out both;
+  }
+}
+/* Full Motion adjusts to window width, without shifting active form fields. */
+@media (max-width: 560px) {
+  .motion-toggle { min-width: 40px !important; width: 40px; padding: 6px !important; }
+  .motion-toggle-label { display: none !important; }
+  html[data-motion="full"] .copy-celebration { right: 10px; bottom: 64px; transform-origin: center; }
+  html[data-motion="full"] .tool-card.is-collapsed:hover { transform: perspective(950px) rotateX(var(--motion-tilt-x, 0deg)) rotateY(var(--motion-tilt-y, 0deg)) translateY(-2px) !important; }
+}
+
+/* Calm always disables decorative motion. Native controls remain fully functional.
+   Also acts as an override for animations present in the previous theme. */
+html[data-motion="calm"] .workdesk-page::before,
+html[data-motion="calm"] .workdesk-page::after,
+html[data-motion="calm"] .site-header::before,
+html[data-motion="calm"] .card-heading .card-icon::after,
+html[data-motion="calm"] .main-nav button.active::after,
+html[data-motion="calm"] .global-search::after,
+html[data-motion="calm"] .primary-button::before,
+html[data-motion="calm"] .copy-celebration {
+  display: none !important;
+}
+html[data-motion="calm"] .app-shell *,
+html[data-motion="calm"] .app-shell *::before,
+html[data-motion="calm"] .app-shell *::after {
+  animation: none !important;
+  transition-duration: .01ms !important;
+}
+/* Accessibility: always honor OS reduced-motion, even if Full is selected. */
+@media (prefers-reduced-motion: reduce) {
+  .copy-celebration, .workdesk-page::before, .workdesk-page::after,
+  .site-header::before, .primary-button::before { display: none !important; }
+  .app-shell *, .app-shell *::before, .app-shell *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
