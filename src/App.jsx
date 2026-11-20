@@ -14,14 +14,14 @@ const blankOrder = { ...BLANK_CASE, category: "Warranty Replacement", reason: "W
 const blankClaim = { "Claim Number": "", "Tracking Number": "", "Claim Status": "Claim Issued", type: "Damaged", invoice: false };
 
 function appendSku(value, sku, skus = []) { const current = value.split(",").map((item) => item.trim()).filter(Boolean); if (current.length === 1 && !skus.some((item) => item.toLowerCase() === current[0].toLowerCase())) return sku; return current.some((item) => item.toLowerCase() === sku.toLowerCase()) ? value : [...current, sku].join(", "); }
-function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder = "Search SKU…", optionAction = "Select", multi = false }) {
-  const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const picker = useRef(null); const input = useRef(null); const inputId = useId(); const resultsId = useId(); const isMulti = multi || label === "SKU"; const selected = isMulti ? value.split(",").map((item) => item.trim()).filter(Boolean) : []; const results = skus.filter((sku) => sku.toLowerCase().includes((isMulti ? query : value).toLowerCase()) && !selected.some((item) => item.toLowerCase() === sku.toLowerCase())).slice(0, 25);
+function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder = "Search SKU…", optionAction = "Select", multi = false, showSuggestionsOnFocus = false }) {
+  const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const picker = useRef(null); const input = useRef(null); const inputId = useId(); const resultsId = useId(); const isMulti = multi || label === "SKU"; const selected = isMulti ? value.split(",").map((item) => item.trim()).filter(Boolean) : []; const results = skus.filter((sku) => sku.toLowerCase().includes((isMulti ? query : value).toLowerCase()) && !selected.some((item) => item.toLowerCase() === sku.toLowerCase())).slice(0, 25); const hasQuery = Boolean(isMulti ? query : value); const showResults = open && (hasQuery || showSuggestionsOnFocus);
   useEffect(() => { const outside = (event) => { if (!picker.current?.contains(event.target)) setOpen(false); }; document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside); }, []);
   const select = (sku) => { onSelect ? onSelect(sku) : onChange(isMulti ? [...selected, sku].join(", ") : sku); setQuery(""); setOpen(false); if (isMulti) input.current?.focus(); };
   const remove = (sku) => onChange(selected.filter((item) => item.toLowerCase() !== sku.toLowerCase()).join(", "));
-  return <div className="sku-field"><label htmlFor={inputId}>{label}</label><div ref={picker} className="sku-picker">{isMulti && selected.length > 0 && <div className="sku-chips" aria-label={`Selected ${label}s`}>{selected.map((sku) => <div key={sku} className="sku-chip"><b>{sku}</b><button type="button" aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></div>)}</div>}<div className="input-with-icon"><Icon name="search"/><input ref={input} id={inputId} role="combobox" autoComplete="off" aria-autocomplete="list" aria-controls={resultsId} aria-expanded={Boolean((isMulti ? query : value) && open)} value={isMulti ? query : value} onFocus={() => setOpen(true)} onChange={(event) => { isMulti ? setQuery(event.target.value) : onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => {
+  return <div className="sku-field"><label htmlFor={inputId}>{label}</label><div ref={picker} className="sku-picker">{isMulti && selected.length > 0 && <div className="sku-chips" aria-label={`Selected ${label}s`}>{selected.map((sku) => <div key={sku} className="sku-chip"><b>{sku}</b><button type="button" aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></div>)}</div>}<div className="input-with-icon"><Icon name="search"/><input ref={input} id={inputId} role="combobox" autoComplete="off" aria-autocomplete="list" aria-controls={resultsId} aria-expanded={Boolean(showResults)} value={isMulti ? query : value} onFocus={() => setOpen(true)} onChange={(event) => { isMulti ? setQuery(event.target.value) : onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => {
     if (event.key === "Escape") { setOpen(false); return; }
-    if (!results.length || !(isMulti ? query : value)) return;
+    if (!results.length || !(hasQuery || showSuggestionsOnFocus)) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!open) { setOpen(true); return; }
@@ -29,7 +29,7 @@ function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder
       items?.[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
     }
     if (event.key === "Enter" && open) { event.preventDefault(); select(results[0]); }
-  }} placeholder={placeholder}/></div>{(isMulti ? query : value) && open && <div id={resultsId} className="sku-results" role="group" aria-label={`Matching ${label}s`}>{results.length ? results.map((sku, index) => <button key={sku} type="button" aria-label={`${optionAction} ${sku}`} onClick={() => select(sku)} onKeyDown={(event) => {
+  }} placeholder={placeholder}/></div>{showResults && <div id={resultsId} className="sku-results" role="group" aria-label={`Matching ${label}s`}>{results.length ? results.map((sku, index) => <button key={sku} type="button" aria-label={`${optionAction} ${sku}`} onClick={() => select(sku)} onKeyDown={(event) => {
     const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
     if (event.key === "Escape") { event.preventDefault(); input.current?.focus(); setOpen(false); return; }
     if (event.key === "Enter") { event.preventDefault(); select(sku); return; }
@@ -437,7 +437,7 @@ function SmartCaseCard({ general, setGeneral, order, setOrder, text, copy, fold,
       <p>Generate a concise warranty reply. Video, troubleshooting, address updates and same-day fulfillment requests appear only when recorded in Action Taken.</p>
       <div className="fraud-email-fields">
         <label>Customer Name<input value={general["Customer Name"] || ""} onChange={(event) => update("Customer Name", event.target.value)} placeholder="Customer's first name"/></label>
-        <label>Product Model<input value={general["Product Model"] || ""} onChange={(event) => update("Product Model", event.target.value)} placeholder="e.g. MA-35"/></label>
+        <SkuPicker label="Product Model" value={general["Product Model"] || ""} onChange={(value) => update("Product Model", value)} skus={MASTER_SKUS} placeholder="Search SKU or type a product model…" showSuggestionsOnFocus/>
         {warrantyProcessed && <label>Replacement Order Number<input value={general["Replacement Order ID"] || ""} onChange={(event) => update("Replacement Order ID", event.target.value)} placeholder="e.g. 811370"/></label>}
       </div>
       {warrantyAddressUpdated && <label>Updated Shipping Address<textarea className="warranty-address" rows="3" value={general["Updated Shipping Address"] || ""} onChange={(event) => update("Updated Shipping Address", event.target.value)} placeholder="Street address, apartment, city, state and ZIP"/></label>}
