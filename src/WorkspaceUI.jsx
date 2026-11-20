@@ -4,7 +4,18 @@ import { PERIODS } from "./workdeskData";
 
 export function ToolCard({ title, icon, children, open, onToggle, className = "", id, onUse }) {
   const panelId = useId();
-  return <section id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`} onFocusCapture={onUse} onClickCapture={onUse}>
+  return <section id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`} onFocusCapture={onUse} onClickCapture={onUse}
+    onPointerMove={(event) => {
+      if (event.pointerType !== "mouse") return;
+      const card = event.currentTarget;
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty("--spotlight-x", `${Math.round(event.clientX - rect.left)}px`);
+      card.style.setProperty("--spotlight-y", `${Math.round(event.clientY - rect.top)}px`);
+    }}
+    onPointerLeave={(event) => {
+      event.currentTarget.style.removeProperty("--spotlight-x");
+      event.currentTarget.style.removeProperty("--spotlight-y");
+    }}>
     <h2 className="card-heading"><button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}>
       <span className="card-icon"><Icon name={icon}/></span><span>{title}</span>
       <Icon name="chevron" className="collapse-chevron"/>
