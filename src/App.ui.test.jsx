@@ -63,7 +63,7 @@ describe("preserved workspace workflows", () => {
     const smart = tool("Smart Case Notes");
     copyText.mockRejectedValueOnce(new Error("Clipboard denied"));
     click("Copy Note", smart);
-    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Copy was blocked"));
+    await waitFor(() => expect(screen.getByText("Copy was blocked. Select the preview text manually.")).toBeTruthy());
     expect(document.querySelector(".copy-celebration")).toBeNull();
   });
 
