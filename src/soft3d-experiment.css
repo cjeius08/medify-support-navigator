@@ -280,3 +280,229 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+
+/* --------------------------------------------------------------------------
+ * Motion prototype based on uploaded reel references:
+ *   soft floating 3D, lamp-like focus glow, tactile controls, smooth reveals.
+ * No fake OTP flow, cursor-escaping buttons, auto-submission or extra actions.
+ * -------------------------------------------------------------------------- */
+@keyframes medify-enter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes medify-chip-pop {
+  0% { transform: scale(.94); }
+  62% { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+@keyframes medify-gentle-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+@keyframes medify-reveal {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes medify-ready {
+  from { box-shadow: 0 0 0 0 rgba(17, 175, 164, .24); }
+  to { box-shadow: 0 0 0 8px rgba(17, 175, 164, 0); }
+}
+
+/* Soft-floating ambient shapes, behind every real control. */
+.workdesk-page { position: relative; isolation: isolate; }
+.workdesk-page::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 3%;
+  z-index: -1;
+  width: clamp(120px, 21vw, 275px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(177, 251, 247, .65), rgba(99, 209, 211, .18) 50%, transparent 71%);
+  filter: blur(9px);
+  animation: medify-gentle-float 8s ease-in-out infinite;
+}
+
+/* Card entrance and float-on-hover resemble the light 3D reel. */
+.workdesk-page .tool-card,
+.reports-page .report-kpis,
+.reports-page .trend-panel,
+.reports-page .followup-panel,
+.reports-page .report-table {
+  animation: medify-enter .55s cubic-bezier(.2, .75, .24, 1) both;
+}
+.workdesk-page .support-columns .tool-card { animation-delay: .07s; }
+.workdesk-page .work-column > .tool-card + .tool-card { animation-delay: .12s; }
+.tool-card {
+  transition: transform .24s cubic-bezier(.18,.8,.24,1),
+              border-color .24s ease,
+              box-shadow .24s ease;
+  will-change: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tool-card:not(:focus-within):hover {
+    transform: translateY(-3px);
+    border-color: #a8dfe0;
+    box-shadow: 0 13px 29px rgba(14, 94, 111, .12), 0 3px 10px rgba(10, 100, 118, .045);
+  }
+}
+.card-icon {
+  transition: transform .35s cubic-bezier(.18,1.35,.2,1), box-shadow .2s ease;
+}
+.card-heading > button:hover .card-icon,
+.card-heading > button:focus-visible .card-icon {
+  transform: translateY(-2px) rotate(-5deg) scale(1.08);
+  box-shadow: 0 6px 18px rgba(13,158,159,.24);
+}
+
+/* Lamp-inspired focus halo: visible only while a user interacts with search. */
+.global-search { position: relative; isolation: isolate; transition: box-shadow .3s ease, border-color .3s ease, transform .25s ease; }
+.global-search::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -6px;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 48%, rgba(11,181,180,.25), transparent 73%);
+  filter: blur(14px);
+  transform: scale(.92);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.global-search:focus-within {
+  border-color: #20bdb7;
+  box-shadow: 0 7px 24px rgba(16, 153, 157, .13), 0 0 0 3px rgba(29, 192, 184, .10);
+}
+.global-search:focus-within::before { opacity: 1; transform: scale(1.05); }
+
+/* Tactile button hover, shine and brief spring on selected quick actions. */
+.primary-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform .2s cubic-bezier(.2,.9,.3,1),
+              box-shadow .2s ease,
+              background .2s ease;
+}
+.primary-button::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  z-index: -1;
+  pointer-events: none;
+  transform: translateX(-130%) rotate(-19deg);
+  background: linear-gradient(90deg, transparent 42%, rgba(255,255,255,.20) 50%, transparent 58%);
+  transition: transform .5s ease;
+}
+.primary-button:hover:not(:disabled)::before,
+.primary-button:focus-visible::before { transform: translateX(130%) rotate(-19deg); }
+@media (hover: hover) and (pointer: fine) {
+  .primary-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(5, 142, 143, .23);
+  }
+}
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.quick-action-row button:active:not(:disabled) {
+  transform: scale(.97);
+}
+.secondary-button, .outline-button {
+  transition: background .2s ease, border-color .2s ease,
+              transform .2s ease, box-shadow .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .secondary-button:hover:not(:disabled), .outline-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 83, 99, .10);
+  }
+}
+.snippet-row button {
+  transition: transform .2s cubic-bezier(.18,.86,.2,1),
+              background .24s ease, box-shadow .24s ease, border-color .24s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .snippet-row button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(8, 153, 155, .10);
+  }
+}
+.quick-action-row button.is-selected,
+.snippet-row button[aria-pressed="true"] {
+  animation: medify-chip-pop .33s cubic-bezier(.15,.8,.3,1);
+  box-shadow: 0 0 0 2px rgba(15, 157, 157, .12), 0 4px 12px rgba(14, 148, 146, .09);
+}
+.main-nav button {
+  transition: transform .2s ease, background .2s ease,
+              box-shadow .2s ease, color .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .main-nav button:hover { transform: translateX(3px); }
+}
+.main-nav button:active { transform: scale(.98); }
+
+/* Auto-generated email enters softly; it never implies a message was sent. */
+.fraud-email-panel, .smart-workflow-guide {
+  animation: medify-reveal .38s cubic-bezier(.2,.78,.25,1) both;
+}
+.email-copy-checklist.is-ready { animation: medify-ready .65s ease-out 1; }
+.smart-case-entry, .smart-case-extras details {
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+.smart-case-entry:focus-within, .smart-case-extras details:focus-within {
+  border-color: #99dcd9;
+  box-shadow: 0 0 0 3px rgba(12, 176, 166, .09);
+}
+
+/* Neumorphic welcome screen: the login card responds to focus, not a gimmick button. */
+.auth-card {
+  position: relative;
+  isolation: isolate;
+  animation: medify-enter .55s cubic-bezier(.2,.75,.24,1) both;
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.auth-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -10px;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 25px;
+  background: radial-gradient(ellipse at 50% 5%, rgba(37, 221, 213, .3), transparent 68%);
+  filter: blur(14px);
+  transition: opacity .35s ease;
+}
+.auth-card:focus-within::before { opacity: 1; }
+.auth-card:focus-within { box-shadow: 0 17px 45px rgba(12,104,118,.17); }
+
+/* Conserve space and avoid continuous decoration in the user's narrow Chrome pane. */
+@media (max-width: 560px) {
+  .workdesk-page::after { display: none; }
+  .main-nav button:hover { transform: none; }
+  .tool-card { animation-duration: .38s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workdesk-page::after,
+  .workdesk-page .tool-card,
+  .reports-page .report-kpis,
+  .reports-page .trend-panel,
+  .reports-page .followup-panel,
+  .reports-page .report-table,
+  .quick-action-row button.is-selected,
+  .snippet-row button[aria-pressed="true"],
+  .fraud-email-panel, .smart-workflow-guide,
+  .email-copy-checklist.is-ready, .auth-card {
+    animation: none !important;
+  }
+  .tool-card, .card-icon, .global-search, .global-search::before,
+  .primary-button, .primary-button::before, .secondary-button,
+  .outline-button, .snippet-row button, .main-nav button,
+  .smart-case-entry, .smart-case-extras details, .auth-card::before {
+    transition: none !important;
+  }
+}
