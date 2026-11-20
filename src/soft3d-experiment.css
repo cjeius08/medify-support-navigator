@@ -332,7 +332,7 @@ input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0
 .reports-page .trend-panel,
 .reports-page .followup-panel,
 .reports-page .report-table {
-  animation: medify-enter .55s cubic-bezier(.2, .75, .24, 1) both;
+  animation: medify-enter .55s cubic-bezier(.2, .75, .24, 1) backwards;
 }
 .workdesk-page .support-columns .tool-card { animation-delay: .07s; }
 .workdesk-page .work-column > .tool-card + .tool-card { animation-delay: .12s; }
