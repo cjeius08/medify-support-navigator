@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 import "./reference-theme.css";
+import "./soft3d-experiment.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

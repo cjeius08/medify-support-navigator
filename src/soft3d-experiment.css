@@ -1,0 +1,508 @@
+/*
+ * EXPERIMENTAL: Light 3D responsive appearance.
+ * Loaded only on design/soft-3d-experiments-2026-11-20.
+ * No business logic, storage, database or production changes.
+ */
+:root {
+  --canvas: #f3f9fc;
+  --surface: #ffffff;
+  --surface-soft: #f3fafb;
+  --ink: #152f43;
+  --muted: #50677a;
+  --navy: #153c50;
+  --navy-deep: #0e3045;
+  --gold: #0d9ca0;
+  --gold-soft: #a6e7e3;
+  --teal: #087e85;
+  --teal-hover: #066971;
+  --teal-soft: #e6f9f7;
+  --accent: #0a9096;
+  --accent-soft: #e7f9f7;
+  --border: #d5e5ec;
+  --border-soft: #e6eff4;
+  --focus: #087e85;
+  --radius: 17px;
+  --radius-small: 10px;
+  --shadow: 0 8px 23px rgba(19, 69, 91, 0.07), 0 2px 6px rgba(19, 69, 91, 0.035);
+  --shadow-overlay: 0 20px 52px rgba(19, 69, 91, 0.19);
+  font-family: Inter, Arial, sans-serif;
+}
+
+html { background: var(--canvas); }
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  background:
+    radial-gradient(ellipse at 91% 2%, rgba(73, 208, 210, .15), transparent 31%),
+    radial-gradient(ellipse at 5% 38%, rgba(147, 227, 234, .12), transparent 38%),
+    var(--canvas);
+}
+.app-shell::before {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfd 65%, #ecf8f8 100%);
+  box-shadow: inset -1px 0 var(--border);
+}
+.brand-lockup { color: var(--ink); border-color: var(--border-soft); }
+.brand-lockup::before {
+  content: "M";
+  border: 1px solid #75d9d2;
+  background: linear-gradient(145deg, #e9fbf9, #ccf3f1);
+  color: #087a7b;
+  font-family: Inter, Arial, sans-serif;
+  box-shadow: 0 5px 14px rgba(20, 149, 153, .16);
+}
+.brand-lockup strong { color: var(--ink); font-family: Inter, Arial, sans-serif; font-weight: 750; }
+.brand-lockup small { color: var(--muted); letter-spacing: .055em; }
+.global-search {
+  border: 1px solid #cbe4e7;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 5px 20px rgba(19, 91, 111, .055);
+}
+.global-search:focus-within { outline-color: #0d9ca0; }
+.global-search kbd { background: #eef8fb; border-color: #d1e7ed; color: #647e8d; }
+.header-links > button, .recent-wrap > button { color: var(--muted); }
+.header-links > button:hover, .recent-wrap > button:hover,
+.recent-wrap > button[aria-expanded="true"] { color: var(--navy); background: #e9f8f9; }
+.user-avatar { color: #006c74; border-color: #98e1df; background: #d8f5f3; box-shadow: 0 3px 13px #0c989719; }
+.main-nav { color: var(--ink); background: transparent; }
+.main-nav::after { display: none; }
+.main-nav button { color: #4a6577; border-radius: 11px; }
+.main-nav button:hover { color: var(--navy); background: #ebf8fa; }
+.main-nav button.active {
+  color: #087b80;
+  border-color: #b4eae7;
+  border-bottom-color: #b4eae7;
+  background: linear-gradient(110deg, #e7f9f7, #d5f3f1);
+  box-shadow: inset 3px 0 0 #1db5af, 0 4px 14px rgba(15, 151, 153, .10);
+}
+.main-nav > span { color: #617887; }
+.main-nav > span .icon, .main-nav > span b { color: #159b9b; }
+.workdesk-page > h1.sr-only,
+.analytics-heading h1, .card-heading > button,
+.trend-panel h2, .followup-panel h2, .driver-panel h2,
+.records-heading h2, .usage-detail h2, .usage-detail h3 {
+  font-family: Inter, Arial, sans-serif;
+  letter-spacing: -.035em;
+}
+.workdesk-page > h1.sr-only::before { color: #0c898e; }
+.workdesk-page > h1.sr-only::after { color: var(--muted); }
+.workdesk-page > .jump-nav { border-color: #dcebf0; }
+.workdesk-page > .jump-nav::before { color: #0b8288; }
+.workdesk-page > .jump-nav button {
+  background: #fff;
+  border-color: #d9e9ee;
+  color: #385e70;
+  border-radius: 999px;
+  box-shadow: 0 2px 7px #17425307;
+}
+.workdesk-page > .jump-nav button:hover { color: white; background: var(--teal); border-color: var(--teal); }
+.tool-card, .report-kpis, .trend-panel, .followup-panel, .report-table,
+.driver-panel, .usage-table, .usage-detail, .workdesk-page > .timer-bar {
+  border-color: var(--border);
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--shadow);
+}
+.tool-card { border-radius: var(--radius); }
+.card-heading > button { color: var(--ink); font-weight: 750; }
+.card-heading > button:hover { background: #f5fbfc; }
+.card-icon, .timer-icon {
+  color: #087c84;
+  background: linear-gradient(145deg, #e6faf8, #c6f2ef);
+  box-shadow: 0 3px 11px #0a989713;
+}
+.collapse-chevron { color: #6a95a1; }
+.tool-card.is-collapsed:hover { box-shadow: 0 11px 27px #16435913; }
+label { color: #385467; }
+input, select, textarea {
+  border: 1px solid #ccdde5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 5px #163e5006;
+}
+input:hover, select:hover, textarea:hover { border-color: #80bfc4; }
+input:focus, select:focus, textarea:focus { border-color: #129ca1; box-shadow: 0 0 0 3px #12a6a11a; }
+.primary-button {
+  border-radius: 10px;
+  border-color: #098b90;
+  color: white;
+  background: linear-gradient(125deg, #06a9a9, #087b82);
+  box-shadow: 0 5px 13px #08999b22;
+}
+.primary-button:hover:not(:disabled) { border-color: #086f77; background: #087e85; }
+.secondary-button, .outline-button {
+  border-radius: 10px;
+  background: #fff;
+  border-color: #c8e0e7;
+  color: var(--navy);
+}
+.secondary-button:hover:not(:disabled), .outline-button:hover:not(:disabled) { border-color: #83c5c7; background: #f0fbfa; }
+.ghost-button { color: #527084; }
+.ghost-button:hover:not(:disabled) { color: #075e6b; background: #e9f8f7; }
+.snippet-row button { border-color: #cfe7e8; border-radius: 10px; background: #f1fbfa; color: #215c69; }
+.snippet-row button:hover, .sku-results button:hover { border-color: #7bc7c7; color: #075e64; background: #dcf6f3; }
+.quick-action-row button.is-selected { background: #d4f4ef; border-color: #14a4a3; color: #076c70; }
+.smart-case-entry, .smart-workflow-guide, .smart-case-extras details { border-color: #d6e8ec; background: #f7fcfd; }
+.note-preview, .utility-preview pre { border-color: #d6e8eb; background: #f1fafa; }
+.note-preview pre, .utility-preview pre { color: #2b505e; }
+.period-tabs { border-color: #d6e8ea; background: #fff; }
+.period-tabs button.active { background: #087e85; color: white; }
+.report-kpis b { color: var(--navy); font-family: Inter, Arial, sans-serif; }
+.report-period > h2, .report-table > header, .usage-table > header { background: #eaf6f9; }
+.followup-item:hover, .report-row summary:hover { background: #f3fbfc; }
+.report-row[open] > summary, .report-expanded { background: #f1fafa; }
+.chart-key i, .trend-line { stroke: #0e999a; border-color: #0e999a; }
+.trend-point::after { border-color: #0e999a; background: white; }
+.trend-point span { background: var(--navy); }
+.auth-page { background: transparent; }
+.auth-brand { background: linear-gradient(135deg, #0c7484, #0b445c); }
+.auth-card { border-color: #cbdfe8; border-radius: 17px; box-shadow: var(--shadow-overlay); }
+.auth-error { color: var(--danger); }
+
+/* Desktop / medium laptop: preserve navigation and editable multi-column tools. */
+@media (min-width: 861px) and (max-width: 1299px) {
+  .global-search { width: min(330px, calc(100% - 210px)); margin-left: 16px; }
+  .header-links { margin-right: 14px; gap: 3px; }
+}
+
+/* Narrow window/tablet: switch from fixed sidebar to a light horizontal nav. */
+@media (max-width: 860px) {
+  .site-header {
+    background: linear-gradient(105deg, #fff, #f0fbfc);
+    color: var(--ink);
+    border-bottom: 1px solid var(--border-soft);
+    padding: 12px 16px 10px;
+  }
+  .brand-lockup { color: var(--ink); }
+  .brand-lockup small { color: var(--muted); }
+  .global-search { width: 100%; max-width: none; min-width: 0; margin: 0; }
+  .header-links > button, .recent-wrap > button { color: var(--muted); }
+  .header-links > button:hover, .recent-wrap > button:hover,
+  .recent-wrap > button[aria-expanded="true"] { background: #e7f8f8; color: var(--ink); }
+  .main-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    gap: 5px;
+    padding: 7px 12px;
+    background: rgba(255,255,255,.98);
+    border-bottom: 1px solid var(--border);
+  }
+  .main-nav button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
+    min-height: 40px;
+    padding: 8px 13px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    border-radius: 10px;
+  }
+  .main-nav button.active { box-shadow: 0 2px 10px #0b999918; border-color: #a7e6e2; }
+  .workdesk-page, .reports-page, .drivers-page { padding: 18px 14px 34px; }
+  .workdesk-page, .workspace-grid, .support-grid { grid-template-columns: minmax(0,1fr); min-width: 0; }
+  .workdesk-page > .jump-nav {
+    flex-wrap: nowrap;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+    padding: 10px 1px 13px;
+  }
+  .workdesk-page > .jump-nav::before { display: none; }
+  .workdesk-page > .jump-nav button { flex: 0 0 auto; white-space: nowrap; }
+  .tool-card { min-width: 0; }
+  .tool-card.is-collapsed, .tool-card.is-collapsed .card-heading > button { min-height: 64px; }
+  .card-heading > button { min-height: 62px; padding: 13px 16px; }
+  .card-icon { width: 36px; height: 36px; }
+  .workspace-grid, .work-column, .support-grid { gap: 14px; }
+  .timer-bar { min-width: 0; }
+  .smart-case-heading, .compact-fields, .stack-fields, .claim-fields { padding-left: 15px; padding-right: 15px; }
+  .field-layout, .claim-fields, .smart-case-extras-grid { grid-template-columns: minmax(0,1fr); }
+  .card-actions { padding: 12px 15px; }
+  .fraud-email-panel { margin-left: 15px; margin-right: 15px; }
+  .note-preview pre, .utility-preview pre, .fraud-email-panel textarea { white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
+/* Chrome side-by-side / minimized (approx. 480px): retain full functionality. */
+@media (max-width: 560px) {
+  .site-header { gap: 8px; padding: 10px 12px; }
+  .brand-lockup { gap: 7px; }
+  .brand-lockup strong { font-size: .91rem; }
+  .brand-lockup small { font-size: .68rem; }
+  .brand-lockup::before { width: 30px; height: 30px; flex-basis: 30px; }
+  .header-links { gap: 2px; }
+  .header-links > button, .recent-wrap > button { min-width: 36px; min-height: 36px; padding: 5px; }
+  .global-search { padding: 0 11px; }
+  .global-search kbd { display: none; }
+  .main-nav { padding: 6px 10px; }
+  .main-nav button { min-height: 38px; font-size: .78rem; }
+  .workdesk-page, .reports-page, .drivers-page { padding: 14px 10px 28px; }
+  .workdesk-page > h1.sr-only { font-size: clamp(1.6rem, 7vw, 2.05rem); }
+  .workdesk-page > h1.sr-only::after { font-size: .75rem; line-height: 1.5; }
+  .workdesk-page > .timer-bar { gap: 8px 12px; padding: 12px; }
+  .workdesk-page > .timer-bar .timer-count { font-size: 1.55rem; }
+  .tool-card, .report-table, .report-kpis { max-width: 100%; }
+  .card-heading > button { gap: 9px; padding: 12px; min-height: 56px; }
+  .tool-card.is-collapsed, .tool-card.is-collapsed .card-heading > button { min-height: 58px; }
+  .card-icon { width: 32px; height: 32px; }
+  .call-notes-grid, .stack-fields, .compact-fields, .claim-fields { padding-left: 12px; padding-right: 12px; }
+  .smart-case-heading { padding-left: 12px; padding-right: 12px; }
+  .smart-case-entry { padding: 10px; }
+  .smart-case-entry-title { align-items: flex-start; }
+  .smart-workflow-guide { margin-left: 12px; margin-right: 12px; }
+  .fraud-email-panel { margin-left: 12px; margin-right: 12px; padding: 12px; }
+  .field-layout { gap: 11px; }
+  .action-row { gap: 8px; }
+  .action-row > div { flex: 1 1 auto; min-width: 0; }
+  .action-row > div .primary-button { margin-left: auto; }
+  .card-actions button { white-space: normal; }
+  .snippet-row > div { gap: 7px; }
+  .snippet-row button { max-width: 100%; white-space: normal; min-height: 36px; }
+  .sku-results { max-height: min(245px, 40dvh); }
+  .period-tabs { max-width: 100%; overflow-x: auto; }
+  .period-tabs button { flex: 0 0 auto; }
+  .report-info-grid { grid-template-columns: minmax(0,1fr); }
+  .report-row summary { min-width: 0; }
+  .toast { max-width: calc(100vw - 24px); right: 12px; left: 12px; width: auto; }
+}
+@media (max-width: 360px) {
+  .site-header { padding: 9px 8px; }
+  .brand-lockup small { display: none; }
+  .workdesk-page, .reports-page, .drivers-page { padding-left: 8px; padding-right: 8px; }
+  .action-row > div { width: 100%; }
+  .action-row > div .primary-button { flex: 1; }
+  .timer-actions button { min-width: 0; font-size: .76rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+
+/* --------------------------------------------------------------------------
+ * Motion prototype based on uploaded reel references:
+ *   soft floating 3D, lamp-like focus glow, tactile controls, smooth reveals.
+ * No fake OTP flow, cursor-escaping buttons, auto-submission or extra actions.
+ * -------------------------------------------------------------------------- */
+@keyframes medify-enter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes medify-chip-pop {
+  0% { transform: scale(.94); }
+  62% { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+@keyframes medify-gentle-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+@keyframes medify-reveal {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes medify-ready {
+  from { box-shadow: 0 0 0 0 rgba(17, 175, 164, .24); }
+  to { box-shadow: 0 0 0 8px rgba(17, 175, 164, 0); }
+}
+
+/* Soft-floating ambient shapes, behind every real control. */
+.workdesk-page { position: relative; isolation: isolate; }
+.workdesk-page::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 3%;
+  z-index: -1;
+  width: clamp(120px, 21vw, 275px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(177, 251, 247, .65), rgba(99, 209, 211, .18) 50%, transparent 71%);
+  filter: blur(9px);
+  animation: medify-gentle-float 8s ease-in-out infinite;
+}
+
+/* Card entrance and float-on-hover resemble the light 3D reel. */
+.workdesk-page .tool-card,
+.reports-page .report-kpis,
+.reports-page .trend-panel,
+.reports-page .followup-panel,
+.reports-page .report-table {
+  animation: medify-enter .55s cubic-bezier(.2, .75, .24, 1) backwards;
+}
+.workdesk-page .support-columns .tool-card { animation-delay: .07s; }
+.workdesk-page .work-column > .tool-card + .tool-card { animation-delay: .12s; }
+.tool-card {
+  transition: transform .24s cubic-bezier(.18,.8,.24,1),
+              border-color .24s ease,
+              box-shadow .24s ease;
+  will-change: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tool-card:not(:focus-within):hover {
+    transform: translateY(-3px);
+    border-color: #a8dfe0;
+    box-shadow: 0 13px 29px rgba(14, 94, 111, .12), 0 3px 10px rgba(10, 100, 118, .045);
+  }
+}
+.card-icon {
+  transition: transform .35s cubic-bezier(.18,1.35,.2,1), box-shadow .2s ease;
+}
+.card-heading > button:hover .card-icon,
+.card-heading > button:focus-visible .card-icon {
+  transform: translateY(-2px) rotate(-5deg) scale(1.08);
+  box-shadow: 0 6px 18px rgba(13,158,159,.24);
+}
+
+/* Lamp-inspired focus halo: visible only while a user interacts with search. */
+.global-search { position: relative; isolation: isolate; transition: box-shadow .3s ease, border-color .3s ease, transform .25s ease; }
+.global-search::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -6px;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 48%, rgba(11,181,180,.25), transparent 73%);
+  filter: blur(14px);
+  transform: scale(.92);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.global-search:focus-within {
+  border-color: #20bdb7;
+  box-shadow: 0 7px 24px rgba(16, 153, 157, .13), 0 0 0 3px rgba(29, 192, 184, .10);
+}
+.global-search:focus-within::before { opacity: 1; transform: scale(1.05); }
+
+/* Tactile button hover, shine and brief spring on selected quick actions. */
+.primary-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform .2s cubic-bezier(.2,.9,.3,1),
+              box-shadow .2s ease,
+              background .2s ease;
+}
+.primary-button::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  z-index: -1;
+  pointer-events: none;
+  transform: translateX(-130%) rotate(-19deg);
+  background: linear-gradient(90deg, transparent 42%, rgba(255,255,255,.20) 50%, transparent 58%);
+  transition: transform .5s ease;
+}
+.primary-button:hover:not(:disabled)::before,
+.primary-button:focus-visible::before { transform: translateX(130%) rotate(-19deg); }
+@media (hover: hover) and (pointer: fine) {
+  .primary-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(5, 142, 143, .23);
+  }
+}
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.quick-action-row button:active:not(:disabled) {
+  transform: scale(.97);
+}
+.secondary-button, .outline-button {
+  transition: background .2s ease, border-color .2s ease,
+              transform .2s ease, box-shadow .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .secondary-button:hover:not(:disabled), .outline-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 83, 99, .10);
+  }
+}
+.snippet-row button {
+  transition: transform .2s cubic-bezier(.18,.86,.2,1),
+              background .24s ease, box-shadow .24s ease, border-color .24s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .snippet-row button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(8, 153, 155, .10);
+  }
+}
+.quick-action-row button.is-selected,
+.snippet-row button[aria-pressed="true"] {
+  animation: medify-chip-pop .33s cubic-bezier(.15,.8,.3,1);
+  box-shadow: 0 0 0 2px rgba(15, 157, 157, .12), 0 4px 12px rgba(14, 148, 146, .09);
+}
+.main-nav button {
+  transition: transform .2s ease, background .2s ease,
+              box-shadow .2s ease, color .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .main-nav button:hover { transform: translateX(3px); }
+}
+.main-nav button:active { transform: scale(.98); }
+
+/* Auto-generated email enters softly; it never implies a message was sent. */
+.fraud-email-panel, .smart-workflow-guide {
+  animation: medify-reveal .38s cubic-bezier(.2,.78,.25,1) both;
+}
+.email-copy-checklist.is-ready { animation: medify-ready .65s ease-out 1; }
+.smart-case-entry, .smart-case-extras details {
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+.smart-case-entry:focus-within, .smart-case-extras details:focus-within {
+  border-color: #99dcd9;
+  box-shadow: 0 0 0 3px rgba(12, 176, 166, .09);
+}
+
+/* Neumorphic welcome screen: the login card responds to focus, not a gimmick button. */
+.auth-card {
+  position: relative;
+  isolation: isolate;
+  animation: medify-enter .55s cubic-bezier(.2,.75,.24,1) both;
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.auth-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -10px;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 25px;
+  background: radial-gradient(ellipse at 50% 5%, rgba(37, 221, 213, .3), transparent 68%);
+  filter: blur(14px);
+  transition: opacity .35s ease;
+}
+.auth-card:focus-within::before { opacity: 1; }
+.auth-card:focus-within { box-shadow: 0 17px 45px rgba(12,104,118,.17); }
+
+/* Conserve space and avoid continuous decoration in the user's narrow Chrome pane. */
+@media (max-width: 560px) {
+  .workdesk-page::after { display: none; }
+  .main-nav button:hover { transform: none; }
+  .tool-card { animation-duration: .38s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workdesk-page::after,
+  .workdesk-page .tool-card,
+  .reports-page .report-kpis,
+  .reports-page .trend-panel,
+  .reports-page .followup-panel,
+  .reports-page .report-table,
+  .quick-action-row button.is-selected,
+  .snippet-row button[aria-pressed="true"],
+  .fraud-email-panel, .smart-workflow-guide,
+  .email-copy-checklist.is-ready, .auth-card {
+    animation: none !important;
+  }
+  .tool-card, .card-icon, .global-search, .global-search::before,
+  .primary-button, .primary-button::before, .secondary-button,
+  .outline-button, .snippet-row button, .main-nav button,
+  .smart-case-entry, .smart-case-extras details, .auth-card::before {
+    transition: none !important;
+  }
+}
