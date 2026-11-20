@@ -559,6 +559,34 @@ describe("preserved workspace workflows", () => {
     await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).not.toContain("Updated Shipping Address"));
   });
 
+  it("offers the master SKU list in Warranty Product Model while preserving manual entry", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Warranty Replacement", smart);
+    const model = smart.getByLabelText("Product Model");
+    expect(model.getAttribute("role")).toBe("combobox");
+    fireEvent.focus(model);
+    expect(model.getAttribute("aria-expanded")).toBe("true");
+    expect(smart.getByRole("button", { name: "Select MA-10-B1" })).toBeTruthy();
+
+    change("Product Model", "MA-35-W2", smart);
+    click("Select MA-35-W2", smart);
+    expect(model.value).toBe("MA-35-W2");
+    expect(model.getAttribute("aria-expanded")).toBe("false");
+    change("Customer Name", "Kim", smart);
+    expect(smart.getByLabelText("Generated Warranty Reply").value).toContain("your MA-35-W2");
+
+    // A model outside the SKU list can still be entered, as before.
+    change("Product Model", "MA-35", smart);
+    expect(model.value).toBe("MA-35");
+    expect(smart.getByLabelText("Generated Warranty Reply").value).toContain("your MA-35");
+    expect(smart.getByRole("button", { name: "Copy Warranty Email" }).disabled).toBe(false);
+
+    // Other SKU picker workflows remain independent of the Product Model choice.
+    expect(smart.getByLabelText("SKU")).toBeTruthy();
+    expect(smart.getByLabelText("SKU").value).toBe("");
+  });
+
   it("keeps warranty template neutral unless a replacement was really processed", async () => {
     await openApp();
     const smart = tool("Smart Case Notes");
