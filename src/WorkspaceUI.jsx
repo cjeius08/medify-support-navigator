@@ -11,10 +11,18 @@ export function ToolCard({ title, icon, children, open, onToggle, className = ""
       const rect = card.getBoundingClientRect();
       card.style.setProperty("--spotlight-x", `${Math.round(event.clientX - rect.left)}px`);
       card.style.setProperty("--spotlight-y", `${Math.round(event.clientY - rect.top)}px`);
+      if (card.classList.contains("is-collapsed") && rect.width && rect.height) {
+        const horizontal = (event.clientX - rect.left) / rect.width - .5;
+        const vertical = (event.clientY - rect.top) / rect.height - .5;
+        card.style.setProperty("--motion-tilt-x", `${(-vertical * 7).toFixed(2)}deg`);
+        card.style.setProperty("--motion-tilt-y", `${(horizontal * 7).toFixed(2)}deg`);
+      }
     }}
     onPointerLeave={(event) => {
       event.currentTarget.style.removeProperty("--spotlight-x");
       event.currentTarget.style.removeProperty("--spotlight-y");
+      event.currentTarget.style.removeProperty("--motion-tilt-x");
+      event.currentTarget.style.removeProperty("--motion-tilt-y");
     }}>
     <h2 className="card-heading"><button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}>
       <span className="card-icon"><Icon name={icon}/></span><span>{title}</span>
