@@ -26,6 +26,48 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("preserved workspace workflows", () => {
 
+  it("lets agents switch Full Motion to Calm without losing their Smart Case draft", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    change("Case Type", "Return / Refund", smart);
+    click("Ordered Incorrect Filter", smart);
+    const full = screen.getByRole("button", { name: /Animation mode: Full Motion/ });
+    expect(full.getAttribute("aria-pressed")).toBe("true");
+    expect(document.documentElement.dataset.motion).toBe("full");
+
+    fireEvent.click(full);
+    const calm = screen.getByRole("button", { name: /Animation mode: Calm/ });
+    expect(calm.getAttribute("aria-pressed")).toBe("false");
+    expect(document.documentElement.dataset.motion).toBe("calm");
+    expect(JSON.parse(localStorage.getItem("medify-motion-mode"))).toBe("calm");
+    expect(smart.getByLabelText("Issue").value).toContain("Ordered Incorrect Filter");
+
+    fireEvent.click(calm);
+    expect(document.documentElement.dataset.motion).toBe("full");
+    expect(smart.getByLabelText("Issue").value).toContain("Ordered Incorrect Filter");
+    expect(JSON.parse(localStorage.getItem("medify-motion-mode"))).toBe("full");
+  });
+
+  it("shows Copy celebration only after clipboard success", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    expect(document.querySelector(".copy-celebration")).toBeNull();
+    click("Copy Note", smart);
+    await waitFor(() => expect(document.querySelector(".copy-celebration")).toBeTruthy());
+    expect(copyText).toHaveBeenCalledTimes(1);
+    expect(document.querySelector(".copy-celebration").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("does not show successful copy effects when clipboard write fails", async () => {
+    await openApp();
+    const smart = tool("Smart Case Notes");
+    copyText.mockRejectedValueOnce(new Error("Clipboard denied"));
+    click("Copy Note", smart);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Copy was blocked"));
+    expect(document.querySelector(".copy-celebration")).toBeNull();
+  });
+
+
   it("keeps the chosen Saved Template visible and persists it with the Smart Case draft", async () => {
     await openApp();
     const smart = tool("Smart Case Notes");
