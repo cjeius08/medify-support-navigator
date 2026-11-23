@@ -9,7 +9,8 @@ import {
 } from "./workdeskData";
 import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
 
-const blankFilter = { reason: "Variant Error", search: "", selected: {}, conversions: {}, notes: "" };
+const FILTER_CLUB_ACTIONS = ["Filter Change / Conversion", "Rescheduled Charge Date", "Skipped Charge Date", "Cancelled Filter Club Subscription", "Added Filter Club Subscription"];
+const blankFilter = { action: FILTER_CLUB_ACTIONS[0], reason: "Variant Error", search: "", selected: {}, conversions: {}, fromDate: "", toDate: "", notes: "" };
 const blankOrder = { ...BLANK_CASE, category: "Warranty Replacement", reason: "WR-01" };
 const blankClaim = { "Claim Number": "", "Tracking Number": "", "Claim Status": "Claim Issued", type: "Damaged", invoice: false };
 
@@ -128,6 +129,12 @@ function CallNotes({ call, setCall, followup, setFollowup, text, copy, reset, fo
 function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
   const selected = Object.entries(filter.selected || {}).filter(([, count]) => Number(count) > 0);
   const conversions = filter.conversions || {};
+  const action = FILTER_CLUB_ACTIONS.includes(filter.action) ? filter.action : FILTER_CLUB_ACTIONS[0];
+  const isFilterChange = action === FILTER_CLUB_ACTIONS[0];
+  const isAdded = action === "Added Filter Club Subscription";
+  const needsDates = action === "Rescheduled Charge Date" || action === "Skipped Charge Date";
+  const validDates = Boolean(filter.fromDate && filter.toDate && filter.toDate >= filter.fromDate);
+  const copyDisabled = (needsDates && !validDates) || (isAdded && selected.length === 0);
   const add = (sku) => setFilter({ ...filter, search: "", selected: { ...filter.selected, [sku]: (filter.selected[sku] || 0) + 1 } });
   const quantity = (sku, change) => {
     const count = Math.max(0, (Number(filter.selected[sku]) || 0) + change);
@@ -156,10 +163,12 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
     ...conversions, [sku]: { ...(conversions[sku] || {}), ...patch }
   } });
 
-  return <ToolCard id="tool-filter" title="Swapped Filter Subscription" icon="package" open={fold} onToggle={toggle} onUse={onUse}>
-    <div className="stack-fields"><label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>
-      <SkuPicker label="Filter Model(s)" value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add"/>
-      {selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
+  return <ToolCard id="tool-filter" title="Filter Club Subscription" icon="package" open={fold} onToggle={toggle} onUse={onUse}>
+    <div className="stack-fields">
+      <label>Subscription Action<select value={action} onChange={(event) => setFilter({ ...blankFilter, action: event.target.value })}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
+      {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
+      {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add"/>}
+      {(isFilterChange || isAdded) && selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
         const conversion = conversions[sku];
         const targetSku = FILTER_SKUS.includes(conversion?.sku) && conversion.sku !== sku ? conversion.sku : "";
         const originalVariantId = FILTER_VARIANT_IDS[sku] || "Not assigned";
@@ -169,10 +178,10 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
         const remaining = Number(amount) - sourceQuantity;
         return <div className="filter-selection" key={sku}>
           <div className="sku-chip filter-sku-chip">
-            <span className="filter-sku-details"><b>{sku}</b><small>Original Variant ID#: {originalVariantId}</small></span>
-            <span className="filter-row-actions"><button aria-label={`Decrease ${sku}`} onClick={() => quantity(sku, -1)}>−</button><output aria-label={`${sku} quantity`}>{amount}</output><button aria-label={`Increase ${sku}`} onClick={() => quantity(sku, 1)}>+</button>{conversion ? <button className="text-button convert-button" onClick={() => cancelConversion(sku)}>Cancel conversion</button> : <button className="text-button convert-button" onClick={() => startConversion(sku)}>Convert</button>}<button aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></span>
+            <span className="filter-sku-details"><b>{sku}</b><small>{isAdded ? "Variant ID#" : "Original Variant ID#"}: {originalVariantId}</small></span>
+            <span className="filter-row-actions"><button aria-label={`Decrease ${sku}`} onClick={() => quantity(sku, -1)}>−</button><output aria-label={`${sku} quantity`}>{amount}</output><button aria-label={`Increase ${sku}`} onClick={() => quantity(sku, 1)}>+</button>{isFilterChange && (conversion ? <button className="text-button convert-button" onClick={() => cancelConversion(sku)}>Cancel conversion</button> : <button className="text-button convert-button" onClick={() => startConversion(sku)}>Convert</button>)}<button aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></span>
           </div>
-          {conversion && <div className="conversion-box">
+          {isFilterChange && conversion && <div className="conversion-box">
             <div className="conversion-heading"><strong>Convert part of {sku}</strong><span>Original: {sku} x{amount}</span></div>
             <p className="conversion-help">Only convert the filters that match the address, frequency and charge date. Leave the others unchanged.</p>
             <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku })} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
@@ -193,8 +202,13 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
           </div>}
         </div>;
       })}</div>}
+      {needsDates && <div className="field-layout">
+        <label>From Charge Date<input type="date" value={filter.fromDate || ""} onChange={(event) => setFilter({ ...filter, fromDate: event.target.value })}/></label>
+        <label>To Charge Date<input type="date" min={filter.fromDate || undefined} value={filter.toDate || ""} onChange={(event) => setFilter({ ...filter, toDate: event.target.value })}/></label>
+      </div>}
+      {copyDisabled && <p className="conversion-help" role="status">{needsDates ? "Enter valid From and To charge dates to copy this note." : "Select at least one filter SKU to copy this note."}</p>}
       <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => setFilter({ ...filter, notes: event.target.value })} placeholder="Add any supporting details…"/></label>
-    </div><CardActions preview={text} onCopy={() => copy("Swapped Filter Subscription", text)} onReset={() => setFilter({ ...blankFilter, selected: {}, conversions: {} })}/>
+    </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={() => setFilter({ ...blankFilter })}/>
   </ToolCard>;
 }
 
@@ -502,7 +516,7 @@ function WorkDesk({ state }) {
     <div className="workspace-grid">
       <div className="work-column main-work-column"><CallNotes call={call} setCall={setCall} followup={followup} setFollowup={setFollowup} text={callText} copy={copy} reset={newCall} fold={folds.call} toggle={() => setFolds({ ...folds, call: !folds.call })} onUse={() => trackTool("Call Notes")}/><ClaimCard claims={claims} setClaims={setClaims} text={claims.map((claim, index) => buildClaimNote(claim, agent, claims.length > 1 ? index + 1 : undefined)).join("\n\n")} copy={copy} fold={folds.claim} toggle={() => setFolds({ ...folds, claim: !folds.claim })} onUse={() => trackTool("UPS Claim")}/></div>
       <div className="support-columns"><div className="support-grid">
-        <div className="work-column"><FilterCard filter={filter} setFilter={setFilter} text={buildFilterNote(filter, agent)} copy={copy} fold={folds.filter} toggle={() => setFolds({ ...folds, filter: !folds.filter })} onUse={() => trackTool("Swapped Filter Subscription")}/></div>
+        <div className="work-column"><FilterCard filter={filter} setFilter={setFilter} text={buildFilterNote(filter, agent)} copy={copy} fold={folds.filter} toggle={() => setFolds({ ...folds, filter: !folds.filter })} onUse={() => trackTool("Filter Club Subscription")}/></div>
         <div className="work-column"><SmartCaseCard order={order} setOrder={setOrder} general={general} setGeneral={setGeneral} text={buildSmartCaseNote(general, agent, orderCode)} copy={copy} fold={folds.general} toggle={() => setFolds({ ...folds, general: !folds.general })} onUse={() => trackTool("Smart Case Notes")}/></div>
       </div></div>
     </div>
