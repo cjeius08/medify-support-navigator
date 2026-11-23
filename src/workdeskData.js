@@ -680,6 +680,35 @@ export function effectiveFilterRows(filter = {}) {
 }
 
 export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_VARIANT_IDS) {
+  const action = filter.action || "Filter Change / Conversion";
+  const manualNotes = String(filter.notes || "").trim();
+  if (["Rescheduled Charge Date", "Skipped Charge Date", "Cancelled Filter Club Subscription", "Added Filter Club Subscription"].includes(action)) {
+    const needsDates = action === "Rescheduled Charge Date" || action === "Skipped Charge Date";
+    const isAdded = action === "Added Filter Club Subscription";
+    const addedRows = isAdded
+      ? Object.entries(filter.selected || {}).filter(([sku, quantity]) => FILTER_SKUS.includes(sku) && Number(quantity) > 0)
+      : [];
+    const variantLines = addedRows.length === 1
+      ? ["Variant ID#: " + (variantIds[addedRows[0][0]] || "Not assigned")]
+      : addedRows.length > 1
+        ? ["Variant ID#:", ...addedRows.map(([sku]) => sku + ": " + (variantIds[sku] || "Not assigned"))]
+        : [];
+    return [
+      "Filter Club Subscription",
+      "Action: " + action,
+      ...(needsDates ? [
+        "From Charge Date: " + (filter.fromDate || "Not provided"),
+        "To Charge Date: " + (filter.toDate || "Not provided")
+      ] : []),
+      ...(isAdded ? [
+        "Added Filter SKU(s):",
+        ...(addedRows.length ? addedRows.map(([sku, quantity]) => sku + " x" + Math.floor(Number(quantity))) : ["Not provided"]),
+        ...variantLines
+      ] : []),
+      ...(manualNotes ? ["Additional Notes: " + manualNotes] : []),
+      agentInitials || "Not provided"
+    ].join("\n");
+  }
   const effective = effectiveFilterRows(filter);
   const conversions = filterConversionDetails(filter);
   const converted = conversions.length > 0;
@@ -715,7 +744,7 @@ export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_
       : [`Additional Notes: ${manualNotes}`];
 
   return [
-    "Swapped Filter Subscription",
+    "Filter Club Subscription",
     "Filter(s):",
     ...(effective.length
       ? effective.map(({ sku, quantity, status }) => `${sku} x${quantity}${converted ? ` (${status})` : ""}`)
