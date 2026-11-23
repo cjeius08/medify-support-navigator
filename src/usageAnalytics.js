@@ -1,11 +1,14 @@
 export const USAGE_TOOLS = [
   "Call Notes",
-  "Swapped Filter Subscription",
+  "Filter Club Subscription",
   "Order Codes / Replacement",
   "UPS Claim",
   "Email / General Case Notes",
   "Smart Case Notes"
 ];
+
+export const usageTrackingTool = (tool) => tool === "Filter Club Subscription" ? "Swapped Filter Subscription" : tool;
+export const usageDisplayTool = (tool) => tool === "Swapped Filter Subscription" ? "Filter Club Subscription" : tool;
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export const HEARTBEAT_MS = 45 * 1000;
@@ -54,7 +57,7 @@ export function summarizeUsage(sessions = [], initials = [], period = "Monthly",
   const rows = initialList.map((initial) => {
     const own = inPeriod.filter((session) => (session.medify_profiles?.initials || session.initials) === initial);
     const toolCounts = Object.fromEntries(USAGE_TOOLS.map((tool) => [tool, 0]));
-    own.forEach((session) => Object.entries(session.tool_counts || {}).forEach(([tool, count]) => { if (tool in toolCounts) toolCounts[tool] += Number(count) || 0; }));
+    own.forEach((session) => Object.entries(session.tool_counts || {}).forEach(([tool, count]) => { if (usageDisplayTool(tool) in toolCounts) toolCounts[usageDisplayTool(tool)] += Number(count) || 0; }));
     const latest = own.slice().sort((a, b) => new Date(b.last_activity || b.last_seen || 0) - new Date(a.last_activity || a.last_seen || 0))[0];
     const mostUsedTool = Object.entries(toolCounts).sort(([, a], [, b]) => b - a)[0];
     const openedTimes = own.map((session) => usageDate(session)?.getTime()).filter(Number.isFinite);
@@ -67,7 +70,7 @@ export function summarizeUsage(sessions = [], initials = [], period = "Monthly",
       sessions: own.length,
       toolCounts,
       mostUsedTool: mostUsedTool?.[1] ? mostUsedTool[0] : "—",
-      lastToolUsed: latest?.last_tool_used || "—"
+      lastToolUsed: usageDisplayTool(latest?.last_tool_used) || "—"
     };
   });
   return { selected, sessions: inPeriod, rows };
