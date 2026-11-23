@@ -40,10 +40,10 @@ export function NotePreview({ text, onCopy }) {
   </aside>;
 }
 
-export function CardActions({ onCopy, onReset, copyLabel = "Copy Note", extra, preview }) {
+export function CardActions({ onCopy, onReset, copyLabel = "Copy Note", extra, preview, copyDisabled = false }) {
   return <footer className="card-actions">
     {preview && <details className="utility-preview"><summary><Icon name="note"/>Preview note<Icon name="chevron"/></summary><pre tabIndex="0">{preview}</pre></details>}
-    <div className="action-row"><button className="ghost-button reset-button" onClick={onReset}><Icon name="reset"/>Reset</button><div>{extra}<button className="primary-button" onClick={onCopy}><Icon name="copy"/>{copyLabel}</button></div></div>
+    <div className="action-row"><button className="ghost-button reset-button" onClick={onReset}><Icon name="reset"/>Reset</button><div>{extra}<button className="primary-button" onClick={onCopy} disabled={copyDisabled}><Icon name="copy"/>{copyLabel}</button></div></div>
   </footer>;
 }
 

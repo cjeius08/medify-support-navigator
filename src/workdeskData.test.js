@@ -440,6 +440,33 @@ describe("WorkDesk helpers", () => {
     expect(note).toContain("Resolution: Processed refund\nJA");
   });
 
+  it("generates rescheduled and skipped charge dates without unrelated SKU fields", () => {
+    for (const action of ["Rescheduled Charge Date", "Skipped Charge Date"]) {
+      const note = buildFilterNote({ action, fromDate: "2026-11-25", toDate: "2027-01-25", selected: { "MA-50R-1": 1 }, notes: "Customer confirmed" }, "JA");
+      expect(note).toBe([
+        "Filter Club Subscription",
+        "Action: " + action,
+        "From Charge Date: 2026-11-25",
+        "To Charge Date: 2027-01-25",
+        "Additional Notes: Customer confirmed",
+        "JA"
+      ].join("\n"));
+      expect(note).not.toContain("Variant ID");
+      expect(note).not.toContain("Filter(s):");
+    }
+  });
+
+  it("builds cancelled and added Filter Club notes with correct SKU and quantities", () => {
+    expect(buildFilterNote({ action: "Cancelled Filter Club Subscription" }, "JA")).toBe([
+      "Filter Club Subscription", "Action: Cancelled Filter Club Subscription", "JA"
+    ].join("\n"));
+    const added = buildFilterNote({ action: "Added Filter Club Subscription", selected: { "MA-50R-2": 2, "MA-35R-W2": 1 } }, "JA");
+    expect(added).toContain("Action: Added Filter Club Subscription\nAdded Filter SKU(s):\nMA-50R-2 x2\nMA-35R-W2 x1");
+    expect(added).toContain("Variant ID#:\nMA-50R-2: 43720696987715\nMA-35R-W2: 43720705704003");
+    expect(added).not.toContain("Original Variant ID#");
+    expect(added).not.toContain("Reason:");
+  });
+
   it("partially converts two of four MA-50 filters while preserving both variant IDs", () => {
     const note = buildFilterNote({
       reason: "Variant Error",
@@ -447,7 +474,7 @@ describe("WorkDesk helpers", () => {
       conversions: { "MA-50R-1": { sku: "MA-50R-2", sourceQuantity: 2, quantity: 2 } }
     }, "JA");
     expect(note).toBe([
-      "Swapped Filter Subscription",
+      "Filter Club Subscription",
       "Filter(s):",
       "MA-50R-1 x2 (Unchanged)",
       "MA-50R-2 x2 (Converted)",
@@ -502,7 +529,7 @@ describe("WorkDesk helpers", () => {
     expect(buildFilterNote({
       reason: "Variant Error", selected: { "MA-35R-W2": 1 }
     }, "JA")).toBe([
-      "Swapped Filter Subscription",
+      "Filter Club Subscription",
       "Filter(s):",
       "MA-35R-W2 x1",
       "Reason: Variant Error",

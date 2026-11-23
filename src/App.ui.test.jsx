@@ -154,7 +154,7 @@ describe("preserved workspace workflows", () => {
 
   it("navigates all destinations and keeps entered drafts and each tool's independent fold state", async () => {
     await openApp(); change("Spoke With", "QA Caller");
-    for (const title of ["Call Notes", "Swapped Filter Subscription", "UPS Claim", "Smart Case Notes"]) {
+    for (const title of ["Call Notes", "Filter Club Subscription", "UPS Claim", "Smart Case Notes"]) {
       click(title); expect(button(title).getAttribute("aria-expanded")).toBe("false");
       click(title); expect(button(title).getAttribute("aria-expanded")).toBe("true");
     }
@@ -178,13 +178,13 @@ describe("preserved workspace workflows", () => {
   it("handles SKU searching, no matches, quantities, removal, variant and copied utility history", async () => {
     await openApp(); change("Reason", "Variant Error"); change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
-    click("Decrease MA-50R-1"); change("Additional Notes", "Different variant received"); click("Copy Note", tool("Swapped Filter Subscription"));
-    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Swapped Filter Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nNew Variant ID#: 43720696922179\nAdditional Notes: Different variant received\nJA"));
+    click("Decrease MA-50R-1"); change("Additional Notes", "Different variant received"); click("Copy Note", tool("Filter Club Subscription"));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith("Filter Club Subscription\nFilter(s):\nMA-50R-1 x1\nReason: Variant Error\nNew Variant ID#: 43720696922179\nAdditional Notes: Different variant received\nJA"));
     click("Recent"); expect(screen.getByRole("dialog",{name:"Recent utility notes"})).toBeTruthy(); click("Close recent notes");
     click("Remove MA-50R-1"); expect(screen.queryByLabelText("MA-50R-1 quantity")).toBeNull();
     change("Filter Model(s)", "ZZZZ"); expect(screen.getByText("No matching SKU. Try a model like MA-50.")).toBeTruthy();
     fireEvent.keyDown(screen.getByLabelText("Filter Model(s)"), {key:"Escape"}); expect(screen.queryByText("No matching SKU. Try a model like MA-50.")).toBeNull();
-    click("Reset", tool("Swapped Filter Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
+    click("Reset", tool("Filter Club Subscription")); expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
   });
 
   it("shows missing Smart Case Notes SKUs and selects them using arrow keys or Enter", async () => {
@@ -221,7 +221,7 @@ describe("preserved workspace workflows", () => {
 
   it("supports ↑ ↓ Home End and Escape in filter and conversion SKU suggestions", async () => {
     await openApp();
-    const filter = tool("Swapped Filter Subscription");
+    const filter = tool("Filter Club Subscription");
     change("Filter Model(s)", "MA-45R", filter);
     const filterSearch = filter.getByLabelText("Filter Model(s)");
     fireEvent.keyDown(filterSearch, { key: "ArrowUp" });
@@ -248,7 +248,7 @@ describe("preserved workspace workflows", () => {
   });
 
   it("defaults a converted filter quantity to one even when the original quantity is higher", async () => {
-    await openApp(); const filterTool = tool("Swapped Filter Subscription");
+    await openApp(); const filterTool = tool("Filter Club Subscription");
     change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Increase MA-50R-1"); expect(screen.getByLabelText("MA-50R-1 quantity").textContent).toBe("2");
     click("Convert", filterTool); change("Convert MA-50R-1 to", "MA-50R-2", filterTool); click("Use MA-50R-2", filterTool);
@@ -260,7 +260,7 @@ describe("preserved workspace workflows", () => {
   });
 
   it("converts only two of four MA-50 filters and leaves original/new Variant IDs visible", async () => {
-    await openApp(); const filter = tool("Swapped Filter Subscription");
+    await openApp(); const filter = tool("Filter Club Subscription");
     change("Filter Model(s)", "MA-50R-1", filter);
     click("Add MA-50R-1", filter);
     for (let i = 0; i < 3; i++) click("Increase MA-50R-1", filter);
@@ -285,8 +285,48 @@ describe("preserved workspace workflows", () => {
     expect(note).toContain("Converted MA-50R-1 x2 to MA-50R-2 x2\nRemaining MA-50R-1 x2 unchanged");
   });
 
+  it("switches Filter Club actions and requires dates or added filter SKUs before copying", async () => {
+    await openApp();
+    const filter = tool("Filter Club Subscription");
+    change("Subscription Action", "Rescheduled Charge Date", filter);
+    expect(filter.queryByLabelText("Filter Model(s)")).toBeNull();
+    expect(button("Copy Note", filter).disabled).toBe(true);
+    change("From Charge Date", "2026-11-25", filter);
+    change("To Charge Date", "2026-12-25", filter);
+    expect(button("Copy Note", filter).disabled).toBe(false);
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action: Rescheduled Charge Date\nFrom Charge Date: 2026-11-25\nTo Charge Date: 2026-12-25"));
+
+    change("Subscription Action", "Skipped Charge Date", filter);
+    expect(filter.getByLabelText("From Charge Date").value).toBe("");
+    expect(button("Copy Note", filter).disabled).toBe(true);
+    change("From Charge Date", "2026-12-25", filter);
+    change("To Charge Date", "2027-01-25", filter);
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action: Skipped Charge Date"));
+
+    change("Subscription Action", "Cancelled Filter Club Subscription", filter);
+    expect(filter.queryByLabelText("From Charge Date")).toBeNull();
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action: Cancelled Filter Club Subscription"));
+
+    change("Subscription Action", "Added Filter Club Subscription", filter);
+    expect(button("Copy Note", filter).disabled).toBe(true);
+    change("Added Filter SKU(s)", "MA-50R-2", filter);
+    click("Add MA-50R-2", filter);
+    expect(filter.queryByRole("button", { name: "Convert" })).toBeNull();
+    expect(button("Copy Note", filter).disabled).toBe(false);
+    click("Increase MA-50R-2", filter);
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Added Filter SKU(s):\nMA-50R-2 x2\nVariant ID#: 43720696987715"));
+
+    change("Subscription Action", "Filter Change / Conversion", filter);
+    expect(filter.getByLabelText("Reason").value).toBe("Variant Error");
+    expect(filter.queryByLabelText("Added Filter SKU(s)")).toBeNull();
+  });
+
   it("uses the converted SKU as the final filter and variant ID while supporting multiple filters", async () => {
-    await openApp(); const filterTool = tool("Swapped Filter Subscription");
+    await openApp(); const filterTool = tool("Filter Club Subscription");
     expect(screen.getByLabelText("Reason").value).toBe("Variant Error");
     change("Filter Model(s)", "MA-50R-1"); click("Add MA-50R-1");
     click("Convert", filterTool); change("Convert MA-50R-1 to", "MA-50R-2", filterTool); click("Use MA-50R-2", filterTool);
@@ -294,7 +334,7 @@ describe("preserved workspace workflows", () => {
     change("Filter Model(s)", "MA-15R-1"); click("Add MA-15R-1");
     expect(filterTool.getByText("New Variant ID#: 43720696987715")).toBeTruthy();
     click("Copy Note", filterTool);
-    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Swapped Filter Subscription\nFilter(s):\nMA-50R-2 x2 (Converted)\nMA-15R-1 x1 (Unchanged)\nReason: Variant Error\nOriginal Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toBe("Filter Club Subscription\nFilter(s):\nMA-50R-2 x2 (Converted)\nMA-15R-1 x1 (Unchanged)\nReason: Variant Error\nOriginal Variant ID#:\nMA-50R-1: 43720696922179\nNew Variant ID#:\nMA-50R-2: 43720696987715\nMA-15R-1: 43720703475779\nAdditional Notes:\nConverted MA-50R-1 x1 to MA-50R-2 x2\nJA"));
   });
 
   it("uses one Smart Case Notes card for SKU, replacement code and specific quick inserts", async () => {
@@ -862,9 +902,9 @@ describe("preserved workspace workflows", () => {
     expect(smart.getByLabelText("Issue").value).toBe("Warranty photo request");
   });
 
-  it("shows MA-35R-W2 Variant ID in Swapped Filter Subscription and copied note", async () => {
+  it("shows MA-35R-W2 Variant ID in Filter Club Subscription and copied note", async () => {
     await openApp();
-    const filter = tool("Swapped Filter Subscription");
+    const filter = tool("Filter Club Subscription");
     change("Filter Model(s)", "MA-35R-W2", filter);
     click("Add MA-35R-W2", filter);
     expect(filter.getByText("Original Variant ID#: 43720705704003")).toBeTruthy();
@@ -875,7 +915,7 @@ describe("preserved workspace workflows", () => {
 
   it("does not offer invalid MA-125R-1 in Filter Model or Smart Case SKU search", async () => {
     await openApp();
-    const filter = tool("Swapped Filter Subscription");
+    const filter = tool("Filter Club Subscription");
     const smart = tool("Smart Case Notes");
 
     change("Filter Model(s)", "MA-125R-1", filter);
@@ -896,7 +936,7 @@ describe("preserved workspace workflows", () => {
 
   it("keeps SKU selection and filter conversions while showing MA-40E-4 in Smart Case Notes", async () => {
     await openApp();
-    const filter = tool("Swapped Filter Subscription"), smart = tool("Smart Case Notes");
+    const filter = tool("Filter Club Subscription"), smart = tool("Smart Case Notes");
     change("Filter Model(s)", "MA-40E-4", filter);
     click("Add MA-40E-4", filter);
     expect(filter.getByText("Original Variant ID#: 31987508740163")).toBeTruthy();
