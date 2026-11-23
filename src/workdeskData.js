@@ -735,7 +735,6 @@ export function buildFilterNote(filter = {}, agentInitials, variantIds = FILTER_
     ...(remaining > 0 ? [`Remaining ${originalSku} x${remaining} unchanged`] : [])
   ]);
 
-  const manualNotes = String(filter.notes || "").trim();
   const additional = [...conversionNotes, ...(manualNotes ? [manualNotes] : [])];
   const additionalLines = !additional.length
     ? []
