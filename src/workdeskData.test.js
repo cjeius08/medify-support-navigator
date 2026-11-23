@@ -550,9 +550,9 @@ describe("WorkDesk helpers", () => {
     expect(FILTER_VARIANT_IDS["MA-45R-2"]).toBe("67857759371331");
     expect(FILTER_VARIANT_IDS["MA-45R-1"]).toBe("67857759338563");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-45R-1": 1 } }, "JA"))
-      .toContain("MA-45R-1 x1\\nReason: Variant Error\\nNew Variant ID#: 67857759338563");
+      .toContain("MA-45R-1 x1\nReason: Variant Error\nNew Variant ID#: 67857759338563");
     expect(buildFilterNote({ action: "Added Filter Club Subscription", selected: { "MA-45R-1": 1, "MA-45R-2": 2 } }, "JA"))
-      .toContain("Variant ID#:\\nMA-45R-1: 67857759338563\\nMA-45R-2: 67857759371331");
+      .toContain("Variant ID#:\nMA-45R-1: 67857759338563\nMA-45R-2: 67857759371331");
     expect(buildFilterNote({ reason: "Variant Error", selected: { "MA-45R-2": 1 } }, "JA"))
       .toContain("MA-45R-2 x1\nReason: Variant Error\nNew Variant ID#: 67857759371331");
     expect(buildFilterNote({
