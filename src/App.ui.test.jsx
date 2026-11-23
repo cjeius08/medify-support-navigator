@@ -239,12 +239,12 @@ describe("preserved workspace workflows", () => {
 
     change("Filter Model(s)", "MA-45R-2", filter);
     fireEvent.keyDown(filterSearch, { key: "Enter" });
-    expect(filter.getByText("Original Variant ID#: 43720705867843")).toBeTruthy();
+    expect(filter.getByText("Original Variant ID#: 67857759371331")).toBeTruthy();
     click("Convert", filter);
     change("Convert MA-45R-2 to", "MA-45R-1", filter);
     fireEvent.keyDown(filter.getByLabelText("Convert MA-45R-2 to"), { key: "ArrowDown" });
     fireEvent.keyDown(document.activeElement, { key: "Enter" });
-    expect(filter.getByText("New Variant ID#: 43720705835075")).toBeTruthy();
+    expect(filter.getByText("New Variant ID#: 67857759338563")).toBeTruthy();
   });
 
   it("defaults a converted filter quantity to one even when the original quantity is higher", async () => {
