@@ -1,3 +1,4 @@
+import { usageTrackingTool, usageDisplayTool } from "./usageAnalytics";
 import { describe, expect, it } from "vitest";
 import { IDLE_TIMEOUT_MS, isUsageActive, summarizeUsage, usageDayKey, usagePeriodKey } from "./usageAnalytics";
 
@@ -19,6 +20,18 @@ describe("website usage summaries", () => {
     const { rows } = summarizeUsage(sessions, [{ initials: "JA" }, { initials: "CB" }], "Daily", new Date(time));
     const cb = rows.find((row) => row.initial === "CB");
     expect(cb.sessions).toBe(2); expect(cb.activeSeconds).toBe(3000); expect(cb.toolCounts["Call Notes"]).toBe(0); expect(cb.toolCounts["Order Codes / Replacement"]).toBe(20); expect(cb.mostUsedTool).toBe("Order Codes / Replacement"); expect(cb.lastToolUsed).toBe("Email / General Case Notes");
+  });
+
+  it("maps the renamed Filter Club tool to legacy database usage keys", () => {
+    expect(usageTrackingTool("Filter Club Subscription")).toBe("Swapped Filter Subscription");
+    expect(usageDisplayTool("Swapped Filter Subscription")).toBe("Filter Club Subscription");
+    const { rows } = summarizeUsage([{
+      first_opened: "2026-11-24T00:00:00Z", last_tool_used: "Swapped Filter Subscription",
+      tool_counts: { "Swapped Filter Subscription": 3, "Filter Club Subscription": 2 },
+      medify_profiles: { initials: "JA" }
+    }], [{ initials: "JA" }], "Daily", new Date("2026-11-24T00:00:00Z"));
+    expect(rows[0].toolCounts["Filter Club Subscription"]).toBe(5);
+    expect(rows[0].lastToolUsed).toBe("Filter Club Subscription");
   });
 
   it("groups usage by the browser local calendar date and Monday-based week", () => {
