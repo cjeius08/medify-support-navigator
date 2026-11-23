@@ -7,7 +7,7 @@ import {
   ORDER_CODES, UPS_LOST_SUBCATEGORIES, appendSnippet, toggleCaseSnippet, missingCaseEmailFields, smartCaseWorkflow, buildClaimNote, buildFilterNote, buildFraudEmail, buildSmartCaseNote, buildWarrantyReply, buildReturnEmail, buildUpsEmail, canCopyWarrantyReply, canCopyReturnEmail, canCopyUpsEmail, caseQuickOptions, hasCaseAction, returnEmailKind, upsEmailKind, parseFraudOrderNumbers,
   buildCallNote, detectCallDriver, followupState, formatClock, formatDuration, periodKey, readStorage, replacementCode, trendPoints
 } from "./workdeskData";
-import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS } from "./usageAnalytics";
+import { ACTIVE_NOW_MS, HEARTBEAT_MS, isUsageActive, summarizeUsage, usageDayKey, USAGE_TOOLS, usageTrackingTool } from "./usageAnalytics";
 
 const FILTER_CLUB_ACTIONS = ["Filter Change / Conversion", "Rescheduled Charge Date", "Skipped Charge Date", "Cancelled Filter Club Subscription", "Added Filter Club Subscription"];
 const blankFilter = { action: FILTER_CLUB_ACTIONS[0], reason: "Variant Error", search: "", selected: {}, conversions: {}, fromDate: "", toDate: "", notes: "" };
@@ -680,7 +680,7 @@ export default function App() {
   const sendUsageHeartbeat = useCallback(async ({ sessionKey, active, tool = null }) => {
     if (!profile?.id || !sessionKey) return;
     const sentAt = new Date().toISOString();
-    const { error } = await supabase.rpc("medify_usage_heartbeat", { p_session_key: sessionKey, p_active: active, p_tool: tool, p_view: viewRef.current });
+    const { error } = await supabase.rpc("medify_usage_heartbeat", { p_session_key: sessionKey, p_active: active, p_tool: usageTrackingTool(tool), p_view: viewRef.current });
     if (!error) { setUsageHealth((state) => ({ ...state, heartbeatError: "", lastHeartbeat: sentAt })); return; }
     const { error: fallbackError } = await supabase.from("medify_user_presence").upsert({ user_id: profile.id, last_seen: sentAt, active_view: viewRef.current });
     setUsageHealth((state) => ({ ...state, heartbeatError: error.message || "Usage heartbeat failed.", lastHeartbeat: fallbackError ? state.lastHeartbeat : sentAt, presenceError: fallbackError ? (fallbackError.message || "Presence fallback failed.") : state.presenceError }));
