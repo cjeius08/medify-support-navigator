@@ -4,31 +4,51 @@ import { PERIODS } from "./workdeskData";
 
 export function ToolCard({ title, icon, children, open, onToggle, className = "", id, onUse }) {
   const panelId = useId();
-  return <section id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`} onFocusCapture={onUse} onClickCapture={onUse}
+  const motionFrame = useRef(null);
+  const pointer = useRef(null);
+  const cardRef = useRef(null);
+  const resetMotion = () => {
+    if (motionFrame.current !== null) cancelAnimationFrame(motionFrame.current);
+    motionFrame.current = null;
+    pointer.current = null;
+    const card = cardRef.current;
+    if (!card) return;
+    for (const prop of ["--spotlight-x", "--spotlight-y", "--motion-tilt-x", "--motion-tilt-y"]) card.style.removeProperty(prop);
+  };
+  useEffect(() => () => {
+    if (motionFrame.current !== null) cancelAnimationFrame(motionFrame.current);
+  }, []);
+  return <section ref={cardRef} id={id} className={`tool-card ${className} ${open ? "" : "is-collapsed"}`} onFocusCapture={onUse} onClickCapture={onUse}
     onPointerMove={(event) => {
-      if (event.pointerType !== "mouse") return;
-      const card = event.currentTarget;
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty("--spotlight-x", `${Math.round(event.clientX - rect.left)}px`);
-      card.style.setProperty("--spotlight-y", `${Math.round(event.clientY - rect.top)}px`);
-      if (card.classList.contains("is-collapsed") && rect.width && rect.height) {
-        const horizontal = (event.clientX - rect.left) / rect.width - .5;
-        const vertical = (event.clientY - rect.top) / rect.height - .5;
-        card.style.setProperty("--motion-tilt-x", `${(-vertical * 7).toFixed(2)}deg`);
-        card.style.setProperty("--motion-tilt-y", `${(horizontal * 7).toFixed(2)}deg`);
-      }
+      // Limit pointer tracking to collapsed shortcuts, one update per rendered frame.
+      if (event.pointerType !== "mouse" || open || document.documentElement.dataset.motion !== "full" ||
+          window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+      pointer.current = { x: event.clientX, y: event.clientY };
+      if (motionFrame.current !== null) return;
+      motionFrame.current = requestAnimationFrame(() => {
+        motionFrame.current = null;
+        const card = cardRef.current;
+        const point = pointer.current;
+        if (!card || !point || !card.classList.contains("is-collapsed") ||
+            document.documentElement.dataset.motion !== "full" ||
+            window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+        const rect = card.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const x = Math.min(1, Math.max(0, (point.x - rect.left) / rect.width));
+        const y = Math.min(1, Math.max(0, (point.y - rect.top) / rect.height));
+        card.style.setProperty("--spotlight-x", `${Math.round(x * 100)}%`);
+        card.style.setProperty("--spotlight-y", `${Math.round(y * 100)}%`);
+        card.style.setProperty("--motion-tilt-x", `${((.5 - y) * 5).toFixed(2)}deg`);
+        card.style.setProperty("--motion-tilt-y", `${((x - .5) * 5).toFixed(2)}deg`);
+      });
     }}
-    onPointerLeave={(event) => {
-      event.currentTarget.style.removeProperty("--spotlight-x");
-      event.currentTarget.style.removeProperty("--spotlight-y");
-      event.currentTarget.style.removeProperty("--motion-tilt-x");
-      event.currentTarget.style.removeProperty("--motion-tilt-y");
-    }}>
-    <h2 className="card-heading"><button type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelId}>
+    onPointerLeave={resetMotion}
+    onPointerCancel={resetMotion}>
+    <h2 className="card-heading"><button type="button" onClick={() => { resetMotion(); onToggle(); }} aria-expanded={open} aria-controls={panelId}>
       <span className="card-icon"><Icon name={icon}/></span><span>{title}</span>
       <Icon name="chevron" className="collapse-chevron"/>
     </button></h2>
-    <div id={panelId} hidden={!open}>{children}</div>
+    <div id={panelId} className="tool-card-panel" hidden={!open}>{children}</div>
   </section>;
 }
 
