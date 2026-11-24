@@ -328,6 +328,41 @@ describe("preserved workspace workflows", () => {
     expect(note).toContain("Converted MA-50R-1 x2 to MA-50R-2 x2\nRemaining MA-50R-1 x2 unchanged");
   });
 
+  it("keeps the Filter Club SKU input focused for consecutive mouse and keyboard additions", async () => {
+    await openApp();
+    const filter = tool("Filter Club Subscription");
+    const search = filter.getByLabelText("Filter Model(s)");
+    fireEvent.change(search, { target: { value: "MA-45R-1" } });
+    const first = button("Add MA-45R-1", filter);
+    first.focus();
+    fireEvent.click(first);
+    expect(document.activeElement).toBe(search);
+    expect(search.value).toBe("");
+    expect(search.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.change(search, { target: { value: "MA-45R-2" } });
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(button("Add MA-45R-2", filter));
+    fireEvent.keyDown(document.activeElement, { key: "Enter" });
+    expect(document.activeElement).toBe(search);
+    expect(search.value).toBe("");
+    fireEvent.change(search, { target: { value: "MA-45R-2" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(document.activeElement).toBe(search);
+    expect(filter.getByLabelText("MA-45R-2 quantity").textContent).toBe("2");
+    change("Subscription Action", "Added Filter Club Subscription", filter);
+    const added = filter.getByLabelText("Added Filter SKU(s)");
+    fireEvent.change(added, { target: { value: "MA-50R-1" } });
+    const result = button("Add MA-50R-1", filter);
+    result.focus();
+    fireEvent.click(result);
+    expect(document.activeElement).toBe(added);
+    expect(added.value).toBe("");
+    fireEvent.change(added, { target: { value: "MA-50R-2" } });
+    fireEvent.keyDown(added, { key: "Enter" });
+    expect(document.activeElement).toBe(added);
+    expect(filter.getByLabelText("MA-50R-2 quantity").textContent).toBe("1");
+  });
+
   it("switches Filter Club actions and requires dates or added filter SKUs before copying", async () => {
     await openApp();
     const filter = tool("Filter Club Subscription");
