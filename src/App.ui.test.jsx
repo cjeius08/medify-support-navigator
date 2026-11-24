@@ -48,6 +48,49 @@ describe("preserved workspace workflows", () => {
     expect(JSON.parse(localStorage.getItem("medify-motion-mode"))).toBe("full");
   });
 
+  it("batches collapsed card pointer motion and keeps expanded and Calm controls stationary", async () => {
+    await openApp();
+    const heading = button("Filter Club Subscription");
+    const card = heading.closest("section");
+    const panel = document.getElementById(heading.getAttribute("aria-controls"));
+    expect(panel.hidden).toBe(false);
+    const frames = [];
+    const schedule = vi.fn((callback) => { frames.push(callback); return frames.length; });
+    const cancel = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", schedule);
+    vi.stubGlobal("cancelAnimationFrame", cancel);
+    vi.spyOn(card, "getBoundingClientRect").mockReturnValue({ left: 0, top: 0, width: 200, height: 100 });
+    const move = (x, y) => {
+      const event = new MouseEvent("pointermove", { bubbles: true, clientX: x, clientY: y });
+      Object.defineProperty(event, "pointerType", { value: "mouse" });
+      fireEvent(card, event);
+    };
+    try {
+      move(50, 20);
+      expect(schedule).not.toHaveBeenCalled();
+      fireEvent.click(heading);
+      expect(panel.hidden).toBe(true);
+      move(30, 20);
+      move(150, 75);
+      expect(schedule).toHaveBeenCalledTimes(1);
+      frames[0]();
+      expect(card.style.getPropertyValue("--spotlight-x")).toBe("75%");
+      expect(card.style.getPropertyValue("--spotlight-y")).toBe("75%");
+      move(90, 40);
+      fireEvent.click(heading);
+      expect(cancel).toHaveBeenCalled();
+      expect(panel.hidden).toBe(false);
+      expect(card.style.getPropertyValue("--spotlight-x")).toBe("");
+      fireEvent.click(heading);
+      fireEvent.click(screen.getByRole("button", { name: /Animation mode: Full Motion/ }));
+      const previousCount = schedule.mock.calls.length;
+      move(120, 40);
+      expect(schedule).toHaveBeenCalledTimes(previousCount);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("shows Copy celebration only after clipboard success", async () => {
     await openApp();
     const smart = tool("Smart Case Notes");
