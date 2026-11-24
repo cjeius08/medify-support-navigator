@@ -208,3 +208,215 @@ html[data-motion="calm"] .app-shell *::after {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Motion polish: a coordinated, quieter motion system for everyday support work.
+   Movement is mostly opacity/transform. No animation of the active form layout,
+   no continuous button sweeping, and no pointer tracking on expanded cards. */
+@keyframes medify-polish-enter {
+  from { opacity: .6; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes medify-polish-reveal {
+  from { opacity: .45; transform: translate3d(0, 5px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes medify-polish-panel {
+  from { opacity: .45; }
+  to { opacity: 1; }
+}
+@keyframes medify-polish-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
+}
+@keyframes medify-polish-aura {
+  0%, 100% { opacity: .42; transform: translate3d(-7px, 0, 0) scale(.95); }
+  50% { opacity: .7; transform: translate3d(12px, 6px, 0) scale(1.06); }
+}
+@keyframes medify-polish-halo {
+  0%, 100% { opacity: .25; transform: scale(.97); }
+  50% { opacity: .5; transform: scale(1.08); }
+}
+@keyframes medify-polish-press {
+  0% { transform: scale(.97); }
+  60% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+@keyframes medify-polish-shine {
+  from { transform: translate3d(-130%, 0, 0) rotate(-19deg); }
+  to { transform: translate3d(130%, 0, 0) rotate(-19deg); }
+}
+@keyframes medify-polish-success {
+  0% { opacity: 0; transform: translate3d(0, 10px, 0) scale(.82); }
+  24% { opacity: 1; transform: translate3d(0, -3px, 0) scale(1.035); }
+  40%, 76% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(0, -6px, 0) scale(.96); }
+}
+@keyframes medify-polish-ray {
+  0% { opacity: 0; transform: rotate(calc(var(--ray) * 40deg)) translateY(-23px) scale(.5); }
+  22% { opacity: .9; }
+  100% { opacity: 0; transform: rotate(calc(var(--ray) * 40deg)) translateY(-59px) scale(.6); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion="full"] {
+    --motion-ease: cubic-bezier(.2, .8, .2, 1);
+    --motion-fast: 180ms;
+    --motion-medium: 280ms;
+  }
+  html[data-motion="full"] .workdesk-page::after {
+    animation: medify-polish-aura 8s ease-in-out infinite;
+    filter: none;
+  }
+  html[data-motion="full"] .site-header::before {
+    animation: medify-polish-aura 9s ease-in-out infinite;
+  }
+  html[data-motion="full"] .global-search::after,
+  html[data-motion="full"] .workdesk-page > h1.sr-only {
+    animation: none;
+  }
+  html[data-motion="full"] .global-search::after { opacity: .35; left: 42%; }
+  html[data-motion="full"] .global-search:focus-within::after { opacity: .8; }
+  html[data-motion="full"] .workdesk-page .tool-card,
+  html[data-motion="full"] .reports-page .report-kpis,
+  html[data-motion="full"] .reports-page .trend-panel,
+  html[data-motion="full"] .reports-page .followup-panel,
+  html[data-motion="full"] .reports-page .report-table,
+  html[data-motion="full"] .auth-card {
+    animation: medify-polish-enter 380ms var(--motion-ease) backwards;
+  }
+  html[data-motion="full"] .workdesk-page .support-columns .tool-card { animation-delay: 45ms; }
+  html[data-motion="full"] .workdesk-page .work-column > .tool-card + .tool-card { animation-delay: 85ms; }
+
+  html[data-motion="full"] .tool-card,
+  html[data-motion="full"] .tool-card.is-collapsed {
+    transition: transform var(--motion-medium) var(--motion-ease), border-color var(--motion-fast) ease, box-shadow var(--motion-medium) ease;
+  }
+  html[data-motion="full"] .tool-card:not(.is-collapsed):hover {
+    background: rgba(255,255,255,.98);
+    transform: none !important;
+  }
+  html[data-motion="full"] .tool-card.is-collapsed:hover {
+    transform: none !important;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    html[data-motion="full"] .tool-card.is-collapsed:hover:not(:focus-within) {
+      transform: perspective(1000px) translate3d(0, -2px, 0) rotateX(var(--motion-tilt-x, 0deg)) rotateY(var(--motion-tilt-y, 0deg)) !important;
+      background: radial-gradient(ellipse 270px 125px at var(--spotlight-x, 50%) var(--spotlight-y, 50%), rgba(61,211,203,.15), transparent 80%), #fff;
+      border-color: #83ceca;
+      box-shadow: 0 12px 28px #075a701c, 0 3px 9px #075a7010 !important;
+    }
+  }
+  html[data-motion="full"] .tool-card-panel:not([hidden]) {
+    animation: medify-polish-panel 230ms var(--motion-ease);
+  }
+  html[data-motion="full"] .collapse-chevron {
+    transition: transform 260ms var(--motion-ease), color var(--motion-fast) ease;
+  }
+  html[data-motion="full"] .card-heading .card-icon {
+    animation: none;
+    transition: transform var(--motion-medium) var(--motion-ease), box-shadow var(--motion-medium) ease;
+    box-shadow: inset 0 1px 1px #fff, 0 5px 15px #0eafaf25;
+  }
+  html[data-motion="full"] .card-heading .card-icon::after {
+    animation: none;
+    opacity: .28;
+  }
+  html[data-motion="full"] .card-heading > button:hover .card-icon,
+  html[data-motion="full"] .card-heading > button:focus-visible .card-icon {
+    transform: translate3d(0, -1px, 0) rotate(-3deg) scale(1.05);
+  }
+  html[data-motion="full"] .tool-card.is-collapsed .card-icon::after {
+    animation: medify-polish-halo 4.8s ease-in-out infinite;
+  }
+  html[data-motion="full"] .motion-toggle-symbol {
+    animation: medify-polish-float 4.2s ease-in-out infinite;
+    filter: none;
+  }
+  html[data-motion="full"] .main-nav button.active {
+    animation: none;
+    background: linear-gradient(120deg,#d9f6f4,#effdfa);
+  }
+  html[data-motion="full"] .main-nav button.active::after {
+    animation: medify-polish-halo 4.8s ease-in-out infinite;
+  }
+  html[data-motion="full"] .primary-button,
+  html[data-motion="full"] .secondary-button,
+  html[data-motion="full"] .outline-button,
+  html[data-motion="full"] .ghost-button,
+  html[data-motion="full"] .snippet-row button,
+  html[data-motion="full"] .sku-results button {
+    transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, color var(--motion-fast) ease;
+  }
+  html[data-motion="full"] .primary-button::before {
+    animation: none !important;
+    transition: none;
+    transform: translate3d(-130%, 0, 0) rotate(-19deg);
+    background: linear-gradient(90deg, transparent 42%, #ffffff42 50%, transparent 58%);
+  }
+  html[data-motion="full"] .primary-button:hover:not(:disabled)::before,
+  html[data-motion="full"] .primary-button:focus-visible:not(:disabled)::before {
+    animation: medify-polish-shine 650ms var(--motion-ease) 1 !important;
+  }
+  html[data-motion="full"] .primary-button:disabled::before { display: none; }
+  html[data-motion="full"] .primary-button:active:not(:disabled),
+  html[data-motion="full"] .secondary-button:active:not(:disabled),
+  html[data-motion="full"] .quick-action-row button:active:not(:disabled) {
+    transform: scale(.985);
+  }
+  html[data-motion="full"] .quick-action-row button.is-selected,
+  html[data-motion="full"] .snippet-row button[aria-pressed="true"] {
+    animation: medify-polish-press 260ms var(--motion-ease) !important;
+    box-shadow: 0 0 0 2px #13ada81a, 0 4px 10px #06978f18;
+  }
+  html[data-motion="full"] .sku-results,
+  html[data-motion="full"] .recent-menu,
+  html[data-motion="full"] .utility-preview[open] pre,
+  html[data-motion="full"] .filter-selection,
+  html[data-motion="full"] .conversion-box,
+  html[data-motion="full"] .fraud-email-panel,
+  html[data-motion="full"] .smart-workflow-guide {
+    animation: medify-polish-reveal 230ms var(--motion-ease) !important;
+  }
+  html[data-motion="full"] .sku-results {
+    animation-duration: 160ms !important;
+    transform-origin: top;
+  }
+  html[data-motion="full"] .dialog-shell[open],
+  html[data-motion="full"] .toast {
+    animation: medify-polish-reveal 260ms var(--motion-ease);
+  }
+  html[data-motion="full"] .copy-celebration {
+    width: 110px;
+    height: 110px;
+    animation: medify-polish-success 1.25s var(--motion-ease) both;
+  }
+  html[data-motion="full"] .copy-celebration-mark {
+    width: 58px;
+    height: 58px;
+    background: linear-gradient(145deg,#16b9ad,#087f9e);
+    box-shadow: 0 10px 24px #047f9430, inset 0 1px 1px #ffffff80;
+  }
+  html[data-motion="full"] .copy-celebration i {
+    left: calc(50% - 3px);
+    width: 6px;
+    height: 9px;
+    animation: medify-polish-ray 780ms 100ms var(--motion-ease) both;
+  }
+  @media (max-width: 560px) {
+    html[data-motion="full"] .workdesk-page::after { width: 98px; right: 6px; }
+    html[data-motion="full"] .copy-celebration { right: 8px; bottom: 70px; width: 100px; height: 100px; }
+    html[data-motion="full"] .main-nav button:hover { transform: none; }
+  }
+}
+
+/* A collapsed panel remains natively hidden; no moving forms or faux click targets.
+   Calm and reduced-motion also suppress decorative hover transforms from older themes. */
+html[data-motion="calm"] .tool-card:hover,
+html[data-motion="calm"] .card-heading > button:hover .card-icon,
+html[data-motion="calm"] .app-shell button:hover,
+html[data-motion="calm"] .app-shell button:active { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .tool-card:hover, .card-heading > button:hover .card-icon,
+  .app-shell button:hover, .app-shell button:active { transform: none !important; }
+}
