@@ -15,10 +15,10 @@ const blankOrder = { ...BLANK_CASE, category: "Warranty Replacement", reason: "W
 const blankClaim = { "Claim Number": "", "Tracking Number": "", "Claim Status": "Claim Issued", type: "Damaged", invoice: false };
 
 function appendSku(value, sku, skus = []) { const current = value.split(",").map((item) => item.trim()).filter(Boolean); if (current.length === 1 && !skus.some((item) => item.toLowerCase() === current[0].toLowerCase())) return sku; return current.some((item) => item.toLowerCase() === sku.toLowerCase()) ? value : [...current, sku].join(", "); }
-function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder = "Search SKU…", optionAction = "Select", multi = false, showSuggestionsOnFocus = false }) {
+function SkuPicker({ label = "SKU", value, onChange, onSelect, skus, placeholder = "Search SKU…", optionAction = "Select", multi = false, showSuggestionsOnFocus = false, continuousEntry = false }) {
   const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const picker = useRef(null); const input = useRef(null); const inputId = useId(); const resultsId = useId(); const isMulti = multi || label === "SKU"; const selected = isMulti ? value.split(",").map((item) => item.trim()).filter(Boolean) : []; const results = skus.filter((sku) => sku.toLowerCase().includes((isMulti ? query : value).toLowerCase()) && !selected.some((item) => item.toLowerCase() === sku.toLowerCase())).slice(0, 25); const hasQuery = Boolean(isMulti ? query : value); const showResults = open && (hasQuery || showSuggestionsOnFocus);
   useEffect(() => { const outside = (event) => { if (!picker.current?.contains(event.target)) setOpen(false); }; document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside); }, []);
-  const select = (sku) => { onSelect ? onSelect(sku) : onChange(isMulti ? [...selected, sku].join(", ") : sku); setQuery(""); setOpen(false); if (isMulti) input.current?.focus(); };
+  const select = (sku) => { onSelect ? onSelect(sku) : onChange(isMulti ? [...selected, sku].join(", ") : sku); setQuery(""); if (isMulti || continuousEntry) input.current?.focus({ preventScroll: true }); setOpen(false); };
   const remove = (sku) => onChange(selected.filter((item) => item.toLowerCase() !== sku.toLowerCase()).join(", "));
   return <div className="sku-field"><label htmlFor={inputId}>{label}</label><div ref={picker} className="sku-picker">{isMulti && selected.length > 0 && <div className="sku-chips" aria-label={`Selected ${label}s`}>{selected.map((sku) => <div key={sku} className="sku-chip"><b>{sku}</b><button type="button" aria-label={`Remove ${sku}`} onClick={() => remove(sku)}><Icon name="close" size={14}/></button></div>)}</div>}<div className="input-with-icon"><Icon name="search"/><input ref={input} id={inputId} role="combobox" autoComplete="off" aria-autocomplete="list" aria-controls={resultsId} aria-expanded={Boolean(showResults)} value={isMulti ? query : value} onFocus={() => setOpen(true)} onChange={(event) => { isMulti ? setQuery(event.target.value) : onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => {
     if (event.key === "Escape") { setOpen(false); return; }
@@ -135,7 +135,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
   const needsDates = action === "Rescheduled Charge Date" || action === "Skipped Charge Date";
   const validDates = Boolean(filter.fromDate && filter.toDate && filter.toDate >= filter.fromDate);
   const copyDisabled = (needsDates && !validDates) || (isAdded && selected.length === 0);
-  const add = (sku) => setFilter({ ...filter, search: "", selected: { ...filter.selected, [sku]: (filter.selected[sku] || 0) + 1 } });
+  const add = (sku) => setFilter((current) => ({ ...current, search: "", selected: { ...current.selected, [sku]: (Number(current.selected?.[sku]) || 0) + 1 } }));
   const quantity = (sku, change) => {
     const count = Math.max(0, (Number(filter.selected[sku]) || 0) + change);
     const nextSelected = { ...filter.selected, [sku]: count };
@@ -167,7 +167,8 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
     <div className="stack-fields">
       <label>Subscription Action<select value={action} onChange={(event) => setFilter({ ...blankFilter, action: event.target.value })}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
       {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
-      {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add"/>}
+      {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add" continuousEntry/>}
+      {(isFilterChange || isAdded) && <p className="conversion-help">Type a SKU and press Enter or select a result. Keep typing to add another; selecting the same SKU increases its quantity.</p>}
       {(isFilterChange || isAdded) && selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
         const conversion = conversions[sku];
         const targetSku = FILTER_SKUS.includes(conversion?.sku) && conversion.sku !== sku ? conversion.sku : "";
