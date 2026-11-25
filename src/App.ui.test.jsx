@@ -363,6 +363,38 @@ describe("preserved workspace workflows", () => {
     expect(filter.getByLabelText("MA-50R-2 quantity").textContent).toBe("1");
   });
 
+  it("resets Filter Club from beside the SKU input and focuses the next case without changing the clipboard", async () => {
+    await openApp();
+    const filter = tool("Filter Club Subscription");
+    const search = filter.getByLabelText("Filter Model(s)");
+    change("Filter Model(s)", "MA-15R-1", filter);
+    fireEvent.keyDown(search, { key: "Enter" });
+    change("Filter Model(s)", "MA-25R-2", filter);
+    click("Add MA-25R-2", filter);
+    change("Reason", "Swapped Filter", filter);
+    change("Additional Notes", "Previous case", filter);
+    const copiedCount = copyText.mock.calls.length;
+    const quick = button("Reset Filter Club Subscription", filter);
+    expect(quick.closest(".filter-sku-entry").contains(search)).toBe(true);
+    fireEvent.click(quick);
+    expect(search.value).toBe("");
+    expect(document.activeElement).toBe(search);
+    expect(filter.getByLabelText("Reason").value).toBe("Variant Error");
+    expect(filter.getByLabelText("Additional Notes").value).toBe("");
+    expect(filter.queryByLabelText("MA-15R-1 quantity")).toBeNull();
+    expect(filter.queryByLabelText("MA-25R-2 quantity")).toBeNull();
+    expect(copyText).toHaveBeenCalledTimes(copiedCount);
+    expect(filter.getByLabelText("Auto-copy on selection").value).toBe("note");
+    change("Subscription Action", "Skipped Charge Date", filter);
+    change("From Charge Date", "2026-11-25", filter);
+    change("To Charge Date", "2026-12-25", filter);
+    click("Reset Filter Club Subscription", filter);
+    expect(filter.getByLabelText("Subscription Action").value).toBe("Filter Change / Conversion");
+    expect(document.activeElement).toBe(filter.getByLabelText("Filter Model(s)"));
+    expect(copyText).toHaveBeenCalledTimes(copiedCount);
+    expect(button("Reset", filter)).toBeTruthy();
+  });
+
   it("auto-copies the complete cumulative filter note after each mouse or keyboard selection", async () => {
     localStorage.setItem("medify-filter-auto-copy", JSON.stringify("sku"));
     await openApp();
