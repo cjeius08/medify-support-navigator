@@ -132,6 +132,13 @@ function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse 
     readStorage("medify-filter-note-auto-copy", "note") === "off" ? "off" : "note");
   const [skuCopyStatus, setSkuCopyStatus] = useState("");
   const skuCopyRequest = useRef(0);
+  const filterFields = useRef(null);
+  const focusAfterReset = useRef(false);
+  useEffect(() => {
+    if (!focusAfterReset.current) return;
+    focusAfterReset.current = false;
+    filterFields.current?.querySelector(".filter-sku-entry input")?.focus();
+  }, [filter]);
   const clearCopyStatus = () => { skuCopyRequest.current++; setSkuCopyStatus(""); };
   const autoCopyNote = async (next) => {
     if (autoCopyMode === "off") return;
@@ -150,6 +157,12 @@ function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse 
     }
   };
   const commitFilter = (next) => { setFilter(next); void autoCopyNote(next); };
+  const resetFilter = () => {
+    clearCopyStatus();
+    focusAfterReset.current = true;
+    setFilter({ ...blankFilter });
+  };
+  const quickReset = <button type="button" className="ghost-button filter-quick-reset" aria-label="Reset Filter Club Subscription" onClick={resetFilter}><Icon name="reset"/>Reset</button>;
   const changeAutoCopyMode = (mode) => {
     clearCopyStatus();
     setAutoCopyMode(mode);
@@ -193,10 +206,10 @@ function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse 
   };
 
   return <ToolCard id="tool-filter" title="Filter Club Subscription" icon="package" open={fold} onToggle={toggle} onUse={onUse}>
-    <div className="stack-fields">
-      <label>Subscription Action<select value={action} onChange={(event) => { clearCopyStatus(); setFilter({ ...blankFilter, action: event.target.value }); }}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
+    <div className="stack-fields" ref={filterFields}>
+      <div className="filter-entry-row"><label>Subscription Action<select value={action} onChange={(event) => { clearCopyStatus(); setFilter({ ...blankFilter, action: event.target.value }); }}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>{!(isFilterChange || isAdded) && quickReset}</div>
       {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => commitFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
-      {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add" continuousEntry/>}
+      {(isFilterChange || isAdded) && <div className="filter-entry-row filter-sku-entry"><SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add" continuousEntry/>{quickReset}</div>}
       {(isFilterChange || isAdded) && <div className="filter-auto-copy">
         <label>Auto-copy on selection<select value={autoCopyMode} onChange={(event) => changeAutoCopyMode(event.target.value)}><option value="note">Full note (automatic)</option><option value="off">Off</option></select></label>
         <p className="conversion-help">Select a SKU or press Enter to copy the full updated note, including all selected filters and Variant IDs. Paste with Ctrl+V. Keep typing to add another.</p>
@@ -242,7 +255,7 @@ function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse 
       </div>}
       {copyDisabled && <p className="conversion-help" role="status">{needsDates ? "Enter valid From and To charge dates to copy this note." : "Select at least one filter SKU to copy this note."}</p>}
       <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => { clearCopyStatus(); setFilter({ ...filter, notes: event.target.value }); if (autoCopyMode !== "off" && selected.length) setSkuCopyStatus("Notes edited. Select a filter again or use Copy Note to update the clipboard."); }} placeholder="Add any supporting details…"/></label>
-    </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={() => { clearCopyStatus(); setFilter({ ...blankFilter }); }}/>
+    </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={resetFilter}/>
   </ToolCard>;
 }
 
