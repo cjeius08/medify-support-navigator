@@ -127,6 +127,33 @@ function CallNotes({ call, setCall, followup, setFollowup, text, copy, reset, fo
 }
 
 function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
+  const [autoCopyMode, setAutoCopyMode] = useState(() => {
+    const saved = readStorage("medify-filter-auto-copy", "sku");
+    return ["sku", "variant", "off"].includes(saved) ? saved : "sku";
+  });
+  const [skuCopyStatus, setSkuCopyStatus] = useState("");
+  const skuCopyRequest = useRef(0);
+  const autoCopySku = async (sku) => {
+    if (autoCopyMode === "off") return;
+    const request = ++skuCopyRequest.current;
+    const value = autoCopyMode === "variant" ? FILTER_VARIANT_IDS[sku] : sku;
+    if (!value) {
+      setSkuCopyStatus(`No Variant ID assigned to ${sku}. Clipboard unchanged.`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      if (skuCopyRequest.current === request) setSkuCopyStatus(`Copied: ${value}`);
+    } catch {
+      if (skuCopyRequest.current === request) setSkuCopyStatus(`Copy blocked. Select the ${autoCopyMode === "variant" ? "Variant ID" : "SKU"} manually.`);
+    }
+  };
+  const changeAutoCopyMode = (mode) => {
+    skuCopyRequest.current++;
+    setAutoCopyMode(mode);
+    setSkuCopyStatus("");
+    localStorage.setItem("medify-filter-auto-copy", JSON.stringify(mode));
+  };
   const selected = Object.entries(filter.selected || {}).filter(([, count]) => Number(count) > 0);
   const conversions = filter.conversions || {};
   const action = FILTER_CLUB_ACTIONS.includes(filter.action) ? filter.action : FILTER_CLUB_ACTIONS[0];
@@ -135,7 +162,10 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
   const needsDates = action === "Rescheduled Charge Date" || action === "Skipped Charge Date";
   const validDates = Boolean(filter.fromDate && filter.toDate && filter.toDate >= filter.fromDate);
   const copyDisabled = (needsDates && !validDates) || (isAdded && selected.length === 0);
-  const add = (sku) => setFilter((current) => ({ ...current, search: "", selected: { ...current.selected, [sku]: (Number(current.selected?.[sku]) || 0) + 1 } }));
+  const add = (sku) => {
+    setFilter((current) => ({ ...current, search: "", selected: { ...current.selected, [sku]: (Number(current.selected?.[sku]) || 0) + 1 } }));
+    void autoCopySku(sku);
+  };
   const quantity = (sku, change) => {
     const count = Math.max(0, (Number(filter.selected[sku]) || 0) + change);
     const nextSelected = { ...filter.selected, [sku]: count };
@@ -168,7 +198,11 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
       <label>Subscription Action<select value={action} onChange={(event) => setFilter({ ...blankFilter, action: event.target.value })}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
       {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
       {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add" continuousEntry/>}
-      {(isFilterChange || isAdded) && <p className="conversion-help">Type a SKU and press Enter or select a result. Keep typing to add another; selecting the same SKU increases its quantity.</p>}
+      {(isFilterChange || isAdded) && <div className="filter-auto-copy">
+        <label>Auto-copy on selection<select value={autoCopyMode} onChange={(event) => changeAutoCopyMode(event.target.value)}><option value="sku">SKU (automatic)</option><option value="variant">Variant ID (automatic)</option><option value="off">Off</option></select></label>
+        <p className="conversion-help">Type a SKU, select or press Enter, then paste with Ctrl+V. Keep typing to add another. Copy Note still copies the entire note.</p>
+        <p className="filter-copy-status" role="status" aria-live="polite">{skuCopyStatus}</p>
+      </div>}
       {(isFilterChange || isAdded) && selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
         const conversion = conversions[sku];
         const targetSku = FILTER_SKUS.includes(conversion?.sku) && conversion.sku !== sku ? conversion.sku : "";
@@ -185,7 +219,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
           {isFilterChange && conversion && <div className="conversion-box">
             <div className="conversion-heading"><strong>Convert part of {sku}</strong><span>Original: {sku} x{amount}</span></div>
             <p className="conversion-help">Only convert the filters that match the address, frequency and charge date. Leave the others unchanged.</p>
-            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku })} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
+            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku })} onSelect={(selectedSku) => { updateConversion(sku, { sku: selectedSku }); void autoCopySku(selectedSku); }} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
             <div className="conversion-details">
               <label>Original quantity to convert for {sku}<input type="number" min="1" max={amount} step="1" value={sourceQuantity} onChange={(event) => updateConversion(sku, { sourceQuantity: Math.min(Number(amount), Math.max(1, Math.floor(Number(event.target.value) || 1))) })}/></label>
               <label>Converted quantity for {sku}<input type="number" min="1" step="1" value={targetQuantity} onChange={(event) => updateConversion(sku, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}/></label>
