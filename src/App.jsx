@@ -241,7 +241,7 @@ function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse 
         <label>To Charge Date<input type="date" min={filter.fromDate || undefined} value={filter.toDate || ""} onChange={(event) => setFilter({ ...filter, toDate: event.target.value })}/></label>
       </div>}
       {copyDisabled && <p className="conversion-help" role="status">{needsDates ? "Enter valid From and To charge dates to copy this note." : "Select at least one filter SKU to copy this note."}</p>}
-      <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => { clearCopyStatus(); setFilter({ ...filter, notes: event.target.value }); }} onBlur={() => { if ((isFilterChange || isAdded) && selected.length && filter.notes) void autoCopyNote(filter); }} placeholder="Add any supporting details…"/></label>
+      <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => { clearCopyStatus(); setFilter({ ...filter, notes: event.target.value }); if (autoCopyMode !== "off" && selected.length) setSkuCopyStatus("Notes edited. Select a filter again or use Copy Note to update the clipboard."); }} placeholder="Add any supporting details…"/></label>
     </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={() => { clearCopyStatus(); setFilter({ ...blankFilter }); }}/>
   </ToolCard>;
 }
