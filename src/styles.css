@@ -168,6 +168,12 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .sku-chip button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #c8ddd8; border-radius: 4px; background: white; color: #295f55; }
 .sku-chip button:hover { background: #d9ede7; }
 .sku-chip output { min-width: 20px; text-align: center; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.filter-entry-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; align-items: end; min-width: 0; }
+.filter-entry-row:has(> .filter-quick-reset) { grid-template-columns: minmax(0, 1fr) auto; }
+.filter-entry-row > label, .filter-entry-row > .sku-field { min-width: 0; }
+.filter-entry-row .filter-quick-reset { min-height: 34px; padding: 6px 9px; gap: 5px; white-space: nowrap; align-self: end; border: 1px solid var(--border); background: var(--surface); }
+.filter-entry-row .filter-quick-reset:hover { border-color: var(--teal); }
+.filter-entry-row .filter-quick-reset .icon { width: 14px; height: 14px; }
 .filter-auto-copy { display: grid; gap: 5px; min-width: 0; padding: 9px 11px; background: var(--surface-soft); border: 1px solid var(--border-soft); border-radius: var(--radius-small); }
 .filter-auto-copy > label { display: grid; gap: 5px; }
 .filter-auto-copy .conversion-help { margin: 0; }
