@@ -168,6 +168,11 @@ input[type="checkbox"] { flex: none; width: 18px; height: 18px; min-height: 18px
 .sku-chip button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #c8ddd8; border-radius: 4px; background: white; color: #295f55; }
 .sku-chip button:hover { background: #d9ede7; }
 .sku-chip output { min-width: 20px; text-align: center; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.filter-auto-copy { display: grid; gap: 5px; min-width: 0; padding: 9px 11px; background: var(--surface-soft); border: 1px solid var(--border-soft); border-radius: var(--radius-small); }
+.filter-auto-copy > label { display: grid; gap: 5px; }
+.filter-auto-copy .conversion-help { margin: 0; }
+.filter-copy-status { margin: 0; color: var(--ink); font-size: .78rem; font-weight: 600; overflow-wrap: anywhere; }
+.filter-copy-status:empty { min-height: 0; }
 .filter-selection-list { display: grid; gap: 10px; }
 .filter-selection { display: grid; gap: 8px; }
 .filter-sku-chip { align-items: flex-start; }
