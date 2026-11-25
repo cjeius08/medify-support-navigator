@@ -126,33 +126,34 @@ function CallNotes({ call, setCall, followup, setFollowup, text, copy, reset, fo
   </ToolCard>;
 }
 
-function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
-  const [autoCopyMode, setAutoCopyMode] = useState(() => {
-    const saved = readStorage("medify-filter-auto-copy", "sku");
-    return ["sku", "variant", "off"].includes(saved) ? saved : "sku";
-  });
+function FilterCard({ filter, setFilter, text, copy, agent, fold, toggle, onUse }) {
+  // New preference: migrate the previous SKU-only/ID-only behavior to full notes.
+  const [autoCopyMode, setAutoCopyMode] = useState(() =>
+    readStorage("medify-filter-note-auto-copy", "note") === "off" ? "off" : "note");
   const [skuCopyStatus, setSkuCopyStatus] = useState("");
   const skuCopyRequest = useRef(0);
-  const autoCopySku = async (sku) => {
+  const clearCopyStatus = () => { skuCopyRequest.current++; setSkuCopyStatus(""); };
+  const autoCopyNote = async (next) => {
     if (autoCopyMode === "off") return;
     const request = ++skuCopyRequest.current;
-    const value = autoCopyMode === "variant" ? FILTER_VARIANT_IDS[sku] : sku;
-    if (!value) {
-      setSkuCopyStatus(`No Variant ID assigned to ${sku}. Clipboard unchanged.`);
+    if (!Object.entries(next.selected || {}).some(([sku, count]) => FILTER_SKUS.includes(sku) && Number(count) > 0)) {
+      setSkuCopyStatus("No filters selected. Clipboard unchanged.");
       return;
     }
+    // Copy from the committed next draft, not the previous render or the typed query.
+    setSkuCopyStatus("");
     try {
-      await navigator.clipboard.writeText(value);
-      if (skuCopyRequest.current === request) setSkuCopyStatus(`Copied: ${value}`);
+      await navigator.clipboard.writeText(buildFilterNote(next, agent));
+      if (skuCopyRequest.current === request) setSkuCopyStatus("Full note copied. Ready to paste (Ctrl+V).");
     } catch {
-      if (skuCopyRequest.current === request) setSkuCopyStatus(`Copy blocked. Select the ${autoCopyMode === "variant" ? "Variant ID" : "SKU"} manually.`);
+      if (skuCopyRequest.current === request) setSkuCopyStatus("Auto-copy blocked. Use Copy Note to retry.");
     }
   };
+  const commitFilter = (next) => { setFilter(next); void autoCopyNote(next); };
   const changeAutoCopyMode = (mode) => {
-    skuCopyRequest.current++;
+    clearCopyStatus();
     setAutoCopyMode(mode);
-    setSkuCopyStatus("");
-    localStorage.setItem("medify-filter-auto-copy", JSON.stringify(mode));
+    localStorage.setItem("medify-filter-note-auto-copy", JSON.stringify(mode));
   };
   const selected = Object.entries(filter.selected || {}).filter(([, count]) => Number(count) > 0);
   const conversions = filter.conversions || {};
@@ -162,10 +163,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
   const needsDates = action === "Rescheduled Charge Date" || action === "Skipped Charge Date";
   const validDates = Boolean(filter.fromDate && filter.toDate && filter.toDate >= filter.fromDate);
   const copyDisabled = (needsDates && !validDates) || (isAdded && selected.length === 0);
-  const add = (sku) => {
-    setFilter((current) => ({ ...current, search: "", selected: { ...current.selected, [sku]: (Number(current.selected?.[sku]) || 0) + 1 } }));
-    void autoCopySku(sku);
-  };
+  const add = (sku) => commitFilter({ ...filter, search: "", selected: { ...filter.selected, [sku]: (Number(filter.selected?.[sku]) || 0) + 1 } });
   const quantity = (sku, change) => {
     const count = Math.max(0, (Number(filter.selected[sku]) || 0) + change);
     const nextSelected = { ...filter.selected, [sku]: count };
@@ -175,32 +173,33 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
       ...nextConversions[sku],
       sourceQuantity: Math.min(count, Math.max(1, Number(nextConversions[sku].sourceQuantity) || 1))
     };
-    setFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
+    commitFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
   };
   const remove = (sku) => {
     const nextSelected = { ...filter.selected }; delete nextSelected[sku];
     const nextConversions = { ...conversions }; delete nextConversions[sku];
-    setFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
+    commitFilter({ ...filter, selected: nextSelected, conversions: nextConversions });
   };
   const startConversion = (sku) => setFilter({ ...filter, conversions: {
     ...conversions, [sku]: conversions[sku] || { sku: "", sourceQuantity: 1, quantity: 1 }
   } });
   const cancelConversion = (sku) => {
     const nextConversions = { ...conversions }; delete nextConversions[sku];
-    setFilter({ ...filter, conversions: nextConversions });
+    commitFilter({ ...filter, conversions: nextConversions });
   };
-  const updateConversion = (sku, patch) => setFilter({ ...filter, conversions: {
-    ...conversions, [sku]: { ...(conversions[sku] || {}), ...patch }
-  } });
+  const updateConversion = (sku, patch, committed = true) => {
+    const next = { ...filter, conversions: { ...conversions, [sku]: { ...(conversions[sku] || {}), ...patch } } };
+    if (committed) commitFilter(next); else { clearCopyStatus(); setFilter(next); }
+  };
 
   return <ToolCard id="tool-filter" title="Filter Club Subscription" icon="package" open={fold} onToggle={toggle} onUse={onUse}>
     <div className="stack-fields">
-      <label>Subscription Action<select value={action} onChange={(event) => setFilter({ ...blankFilter, action: event.target.value })}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
-      {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => setFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
+      <label>Subscription Action<select value={action} onChange={(event) => { clearCopyStatus(); setFilter({ ...blankFilter, action: event.target.value }); }}>{FILTER_CLUB_ACTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
+      {isFilterChange && <label>Reason<select value={filter.reason} onChange={(event) => commitFilter({ ...filter, reason: event.target.value })}><option>Variant Error</option><option>Swapped Filter</option><option>Wrong Filter Received</option><option>Filter Variant Request</option></select></label>}
       {(isFilterChange || isAdded) && <SkuPicker label={isAdded ? "Added Filter SKU(s)" : "Filter Model(s)"} value={filter.search} onChange={(search) => setFilter({ ...filter, search })} onSelect={add} skus={FILTER_SKUS} placeholder="Search filter SKU…" optionAction="Add" continuousEntry/>}
       {(isFilterChange || isAdded) && <div className="filter-auto-copy">
-        <label>Auto-copy on selection<select value={autoCopyMode} onChange={(event) => changeAutoCopyMode(event.target.value)}><option value="sku">SKU (automatic)</option><option value="variant">Variant ID (automatic)</option><option value="off">Off</option></select></label>
-        <p className="conversion-help">Type a SKU, select or press Enter, then paste with Ctrl+V. Keep typing to add another. Copy Note still copies the entire note.</p>
+        <label>Auto-copy on selection<select value={autoCopyMode} onChange={(event) => changeAutoCopyMode(event.target.value)}><option value="note">Full note (automatic)</option><option value="off">Off</option></select></label>
+        <p className="conversion-help">Select a SKU or press Enter to copy the full updated note, including all selected filters and Variant IDs. Paste with Ctrl+V. Keep typing to add another.</p>
         <p className="filter-copy-status" role="status" aria-live="polite">{skuCopyStatus}</p>
       </div>}
       {(isFilterChange || isAdded) && selected.length > 0 && <div className="filter-selection-list" aria-label="Selected filter quantities">{selected.map(([sku, amount]) => {
@@ -219,7 +218,7 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
           {isFilterChange && conversion && <div className="conversion-box">
             <div className="conversion-heading"><strong>Convert part of {sku}</strong><span>Original: {sku} x{amount}</span></div>
             <p className="conversion-help">Only convert the filters that match the address, frequency and charge date. Leave the others unchanged.</p>
-            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku })} onSelect={(selectedSku) => { updateConversion(sku, { sku: selectedSku }); void autoCopySku(selectedSku); }} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
+            <SkuPicker label={`Convert ${sku} to`} value={conversion.sku || ""} onChange={(selectedSku) => updateConversion(sku, { sku: selectedSku }, false)} onSelect={(selectedSku) => updateConversion(sku, { sku: selectedSku })} skus={FILTER_SKUS.filter((item) => item !== sku)} placeholder="Search converted SKU…" optionAction="Use"/>
             <div className="conversion-details">
               <label>Original quantity to convert for {sku}<input type="number" min="1" max={amount} step="1" value={sourceQuantity} onChange={(event) => updateConversion(sku, { sourceQuantity: Math.min(Number(amount), Math.max(1, Math.floor(Number(event.target.value) || 1))) })}/></label>
               <label>Converted quantity for {sku}<input type="number" min="1" step="1" value={targetQuantity} onChange={(event) => updateConversion(sku, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })}/></label>
@@ -242,8 +241,8 @@ function FilterCard({ filter, setFilter, text, copy, fold, toggle, onUse }) {
         <label>To Charge Date<input type="date" min={filter.fromDate || undefined} value={filter.toDate || ""} onChange={(event) => setFilter({ ...filter, toDate: event.target.value })}/></label>
       </div>}
       {copyDisabled && <p className="conversion-help" role="status">{needsDates ? "Enter valid From and To charge dates to copy this note." : "Select at least one filter SKU to copy this note."}</p>}
-      <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => setFilter({ ...filter, notes: event.target.value })} placeholder="Add any supporting details…"/></label>
-    </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={() => setFilter({ ...blankFilter })}/>
+      <label>Additional Notes<textarea rows="3" value={filter.notes} onChange={(event) => { clearCopyStatus(); setFilter({ ...filter, notes: event.target.value }); if (autoCopyMode !== "off" && selected.length) setSkuCopyStatus("Notes edited. Select a filter again or use Copy Note to update the clipboard."); }} placeholder="Add any supporting details…"/></label>
+    </div><CardActions preview={text} copyDisabled={copyDisabled} onCopy={() => copy("Filter Club Subscription", text)} onReset={() => { clearCopyStatus(); setFilter({ ...blankFilter }); }}/>
   </ToolCard>;
 }
 
@@ -551,7 +550,7 @@ function WorkDesk({ state }) {
     <div className="workspace-grid">
       <div className="work-column main-work-column"><CallNotes call={call} setCall={setCall} followup={followup} setFollowup={setFollowup} text={callText} copy={copy} reset={newCall} fold={folds.call} toggle={() => setFolds({ ...folds, call: !folds.call })} onUse={() => trackTool("Call Notes")}/><ClaimCard claims={claims} setClaims={setClaims} text={claims.map((claim, index) => buildClaimNote(claim, agent, claims.length > 1 ? index + 1 : undefined)).join("\n\n")} copy={copy} fold={folds.claim} toggle={() => setFolds({ ...folds, claim: !folds.claim })} onUse={() => trackTool("UPS Claim")}/></div>
       <div className="support-columns"><div className="support-grid">
-        <div className="work-column"><FilterCard filter={filter} setFilter={setFilter} text={buildFilterNote(filter, agent)} copy={copy} fold={folds.filter} toggle={() => setFolds({ ...folds, filter: !folds.filter })} onUse={() => trackTool("Filter Club Subscription")}/></div>
+        <div className="work-column"><FilterCard filter={filter} setFilter={setFilter} agent={agent} text={buildFilterNote(filter, agent)} copy={copy} fold={folds.filter} toggle={() => setFolds({ ...folds, filter: !folds.filter })} onUse={() => trackTool("Filter Club Subscription")}/></div>
         <div className="work-column"><SmartCaseCard order={order} setOrder={setOrder} general={general} setGeneral={setGeneral} text={buildSmartCaseNote(general, agent, orderCode)} copy={copy} fold={folds.general} toggle={() => setFolds({ ...folds, general: !folds.general })} onUse={() => trackTool("Smart Case Notes")}/></div>
       </div></div>
     </div>
