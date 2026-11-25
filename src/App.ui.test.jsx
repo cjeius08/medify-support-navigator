@@ -363,6 +363,50 @@ describe("preserved workspace workflows", () => {
     expect(filter.getByLabelText("MA-50R-2 quantity").textContent).toBe("1");
   });
 
+  it("auto-copies committed Filter Club SKUs or variant IDs while preserving keyboard entry and manual notes", async () => {
+    await openApp();
+    const filter = tool("Filter Club Subscription");
+    const search = filter.getByLabelText("Filter Model(s)");
+    expect(filter.getByLabelText("Auto-copy on selection").value).toBe("sku");
+    change("Filter Model(s)", "MA-45R-1", filter);
+    expect(copyText).not.toHaveBeenCalled();
+    fireEvent.keyDown(search, { key: "Enter" });
+    await waitFor(() => expect(filter.getByText("Copied: MA-45R-1")).toBeTruthy());
+    expect(copyText).toHaveBeenLastCalledWith("MA-45R-1");
+    expect(document.activeElement).toBe(search);
+    expect(search.value).toBe("");
+    expect(document.querySelector(".copy-celebration")).toBeNull();
+    change("Auto-copy on selection", "variant", filter);
+    click("Convert", filter);
+    change("Convert MA-45R-1 to", "MA-45R-2", filter);
+    expect(copyText).toHaveBeenCalledTimes(1);
+    click("Use MA-45R-2", filter);
+    await waitFor(() => expect(filter.getByText("Copied: 67857759371331")).toBeTruthy());
+    expect(copyText).toHaveBeenLastCalledWith("67857759371331");
+    change("Subscription Action", "Added Filter Club Subscription", filter);
+    change("Added Filter SKU(s)", "MA-45R-1", filter);
+    click("Add MA-45R-1", filter);
+    await waitFor(() => expect(copyText).toHaveBeenLastCalledWith("67857759338563"));
+    change("Auto-copy on selection", "off", filter);
+    expect(JSON.parse(localStorage.getItem("medify-filter-auto-copy"))).toBe("off");
+    change("Added Filter SKU(s)", "MA-50R-2", filter);
+    click("Add MA-50R-2", filter);
+    expect(copyText).toHaveBeenCalledTimes(3);
+    click("Copy Note", filter);
+    await waitFor(() => expect(copyText.mock.calls.at(-1)[0]).toContain("Action: Added Filter Club Subscription"));
+  });
+
+  it("reports blocked automatic clipboard access without losing the selected filter", async () => {
+    await openApp();
+    const filter = tool("Filter Club Subscription");
+    copyText.mockRejectedValueOnce(new Error("Clipboard denied"));
+    change("Filter Model(s)", "MA-45R-2", filter);
+    click("Add MA-45R-2", filter);
+    await waitFor(() => expect(filter.getByText("Copy blocked. Select the SKU manually.")).toBeTruthy());
+    expect(filter.getByLabelText("MA-45R-2 quantity").textContent).toBe("1");
+    expect(document.activeElement).toBe(filter.getByLabelText("Filter Model(s)"));
+  });
+
   it("switches Filter Club actions and requires dates or added filter SKUs before copying", async () => {
     await openApp();
     const filter = tool("Filter Club Subscription");
